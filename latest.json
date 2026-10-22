@@ -1,0 +1,15 @@
+{
+  "version": "1.3.3",
+  "release_name": "Storyboard_AI_Studio_Pro_v1.3.3",
+  "installer": "https://github.com/namnguyen188-1/story-board-Ai/releases/latest/download/Storyboard_AI_Studio_Pro_v1.3.3.zip",
+  "bytes": 221442432,
+  "sha256": "9DE735B0978E615A2D0E7B2270A9FB7AB0FD4FB9FD332EF5E18D2F4398195619",
+  "release_notes": [
+    "Sửa lỗi giao diện Modal SEO và Muse không mở được (lỗi thẻ div).",
+    "Tối ưu tốc độ tải gói SEO YouTube từ 30s xuống 0.02s.",
+    "Khóa bảo toàn gói SEO theo từng tập: không bị xóa hay ghi đè khi đổi số tập hoặc đang render.",
+    "Tự động inpaint xóa sạch chữ phụ đề kịch bản bị lọt vào ảnh thumbnail.",
+    "Nâng cấp toàn diện Thumbnail dòng phim Khắc Kỷ (Stoic): chuẩn bố cục đối thủ Top 1 (vàng hoàng gia + nét cọ đỏ + trắng tinh khiết, tượng Marcus Aurelius ánh sáng chiaroscuro).",
+    "Sửa lỗi tự động tiếp tục sản xuất (Resume) cho các tập phim đang dở dang."
+  ]
+}
