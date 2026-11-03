@@ -10,7 +10,8 @@ description: Tạo trọn bộ nội dung đăng YouTube Shorts (khung dọc 9:1
 > - Khán giả Shorts lướt cực nhanh, quyết định bấm vào hoặc xem tiếp chỉ trong **1.5 giây**.
 > - Không dùng logic mô tả dài, timestamps nhiều chương hay thumbnail 16:9 của video dài.
 > - Toàn bộ các thành phần xuất bản phải **đồng nhất 100% về ngôn ngữ và thông điệp cốt lõi** với kịch bản/video gốc.
-> - **Màu sắc Thumbnail 3D phải bắt mắt:** Tuyệt đối không dùng chữ bạc đơn điệu; dùng màu vàng kim hoàng gia và cam hổ phách rực lửa để điểm bắt mắt (CTR) đạt tối đa.
+> - **CÔNG THỨC 3 MÀU BẮT MẮT ĐỈNH CAO (VÀNG + ĐỎ + TRẮNG):** Chữ dòng 1 **Vàng kim hoàng gia 3D (Radiant 3D Imperial Gold - #FFD700)**, đường cắt vát **Đỏ thẫm điện ảnh (Cinematic Crimson Red - #DC2626)**, dòng 2 **Trắng tinh khiết titan 3D (Crisp Pure 3D Titanium White - #FFFFFF)** với khối bóng đổ đen sâu thẳm. Tuyệt đối không dùng 1 màu đơn điệu hay chữ bạc.
+> - **MÔ TẢ VÀ HASHTAG SẠCH 100%:** Quét sạch 100% link đối thủ, chỉ đặt **đúng 5 hashtag chuẩn** ở cuối mô tả (bắt đầu bằng `#shorts`). Không để hashtag rác chen vào giữa các câu.
 
 ---
 

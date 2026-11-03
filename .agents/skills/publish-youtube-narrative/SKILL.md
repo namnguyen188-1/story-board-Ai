@@ -1,6 +1,6 @@
 ---
 name: publish-youtube-narrative
-description: Tạo trọn bộ nội dung đăng YouTube cho Video Kể Chuyện, Thuyết Minh, Phim Tài Liệu (khung ngang 16:9, video dài) đồng bộ 100% từ kịch bản/video thực tế. Bao gồm tiêu đề triết lý/chiều sâu 60-85 ký tự, mô tả có hook mở đầu + tóm tắt bài học + Timestamps/Chapters thực tế, 5 hashtag ngách, 25-35 thẻ tag phân lớp <500 ký tự, gói prompt chi tiết cho Google Flow tạo thumbnail 16:9 bố cục 50/50 theo thể loại kèm chữ 3D vàng kim/hổ phách rực rỡ bắt mắt, cấu hình YouTube Studio (ngôn ngữ chuẩn & chứng nhận phụ đề FCC), và bình luận ghim chiêm nghiệm. Kiểm định kỹ thuật thực tế, không dùng điểm số ảo.
+description: Tạo trọn bộ nội dung đăng YouTube cho Video Kể Chuyện, Thuyết Minh, Phim Tài Liệu (khung ngang 16:9, video dài) đồng bộ 100% từ kịch bản/video thực tế. Bao gồm tiêu đề triết lý/chiều sâu 60-85 ký tự, mô tả có hook mở đầu + tóm tắt bài học + Timestamps/Chapters thực tế sạch 100% link đối thủ và không chứa tường hashtag rác, đúng 5 hashtag ngách ở cuối cùng, 25-35 thẻ tag phân lớp <500 ký tự, gói prompt chi tiết cho Google Flow tạo thumbnail 16:9 bố cục 50/50 theo thể loại kèm chữ 3D theo công thức 3 màu bắt mắt đỉnh cao Vàng kim hoàng gia + Đỏ thẫm điện ảnh + Trắng tinh khiết titan (tuyệt đối không dùng 1 màu đơn điệu hay chữ bạc), cấu hình YouTube Studio (ngôn ngữ chuẩn & chứng nhận phụ đề FCC), và bình luận ghim chiêm nghiệm. Đạt 95-100 điểm VidIQ thực chiến.
 ---
 
 # publish-youtube-narrative — TRỌN BỘ XUẤT BẢN VIDEO KỂ CHUYỆN / THUYẾT MINH (16:9)
@@ -11,7 +11,12 @@ description: Tạo trọn bộ nội dung đăng YouTube cho Video Kể Chuyện
 > - Tiêu đề cần cân bằng giữa tính tò mò (Curiosity Gap) và giá trị thực tế mang lại.
 > - Thumbnail 16:9 sử dụng nguyên tắc 50/50 (chủ thể 1 bên, chữ 1 bên) hoặc cinematic focus.
 > - Phong cách hình ảnh phải thích ứng linh hoạt theo thể loại (lịch sử, khoa học, triết học, kinh dị, tài chính...), **tuyệt đối không cố định mọi thumbnail thành tượng đá khắc kỷ!**
-> - **Màu sắc chữ 3D trên thumbnail phải rực rỡ, bắt mắt:** Dùng vàng kim hoàng gia 3D (Radiant 3D Imperial Gold) và cam hổ phách rực lửa (Blazing Amber Gold); tuyệt đối không dùng chữ bạc đơn điệu trùng màu nền tượng đá làm chìm hình.
+> - **CÔNG THỨC 3 MÀU BẮT MẮT ĐỈNH CAO (VÀNG + ĐỎ + TRẮNG):** 
+>   * Dòng 1: **Vàng kim hoàng gia 3D (Radiant 3D Imperial Gold - #FFD700)** thu hút mắt nhìn lập tức.
+>   * Đường cắt / viền: **Đỏ thẫm điện ảnh sắc lẹm (Cinematic Crimson Red - #DC2626)** tạo điểm nhấn và cảnh báo khẩn cấp.
+>   * Dòng 2: **Trắng tinh khiết titan 3D (Crisp Pure 3D Titanium White - #FFFFFF)** với khối bóng đổ đen sâu thẳm, cực kỳ rõ nét trên di động.
+>   * Tuyệt đối không dùng 1 màu đơn điệu hoặc chữ bạc trùng màu tượng đá làm chìm hình.
+> - **MÔ TẢ VÀ HASHTAG TINH GỌN CHUẨN MỰC:** Quét sạch 100% link đối thủ, cảnh báo bản quyền rác của đối thủ, không để hashtag rác nằm rải rác giữa các đoạn văn; chỉ đặt **ĐÚNG 3 ĐẾN 5 HASHTAG LIÊN QUAN** ở dòng cuối cùng của mô tả.
 
 ---
 
@@ -54,11 +59,11 @@ description: Tạo trọn bộ nội dung đăng YouTube cho Video Kể Chuyện
 - **Quy tắc bố cục 50/50 & Typography trực tiếp từ Google Flow:**
   * **Nửa bên phải (Right 50%):** Chủ thể chính nhìn hướng sang trái.
   * **Nửa bên trái (Left 50%):** Dành toàn bộ cho bộ chữ 3D khổng lồ được Google Flow vẽ trực tiếp vào bức ảnh, hòa quyện hoàn hảo với ánh sáng thể tích và bầu trời tối.
-  * **Màu sắc bắt mắt, tương phản cao:** Chữ màu vàng kim hoàng gia 3D (Radiant 3D Imperial Gold) và cam hổ phách rực lửa (Blazing Amber Gold), ánh viền warm rim lighting, bóng đổ khối chiaroscuro. Cỡ chữ giữ nguyên chuẩn khổng lồ uy nghi.
+  * **Màu sắc bắt mắt, tương phản cao (Vàng + Đỏ + Trắng):** Dòng 1 chữ màu vàng kim hoàng gia 3D (Radiant 3D Imperial Gold - #FFD700), đường cắt vát đỏ thẫm điện ảnh (Cinematic Crimson Red - #DC2626), dòng 2 màu trắng tinh khiết titan (Crisp Pure 3D Titanium White - #FFFFFF) với bóng đổ khối chiaroscuro đen tuyền.
   * **Cú pháp Prompt cho Flow (2 dòng):**
-    `...sculpture strictly occupying 50% on the RIGHT half facing towards the left, occupying the entire LEFT 50% with giant monumental 3D extruded typography reading "{LINE_1}" in radiant 3D burnished imperial gold with razor-sharp specular highlights and "{LINE_2}" in blazing molten amber-gold with intense electric warm rim lighting, with dramatic 3D block extrusion, contact shadows, cinematic volumetric lighting, 16:9 horizontal, photorealistic 8k render, no watermark.`
+    `...sculpture strictly occupying 50% on the RIGHT half facing towards the left, occupying the entire LEFT 50% with giant monumental 3D extruded typography reading "{LINE_1}" in radiant 3D burnished imperial gold (#FFD700) with brilliant specular highlights and accentuated by an electric cinematic crimson red 3D razor divider line and crimson bevel trims (#DC2626), and "{LINE_2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion, deep contact shadows, cinematic volumetric lighting, 16:9 horizontal, photorealistic 8k render, no watermark.`
   * **Cú pháp Prompt cho Flow (1 dòng):**
-    `...sculpture strictly occupying 50% on the RIGHT half facing towards the left, occupying the entire LEFT 50% with giant monumental 3D extruded typography reading "{HOOK}" in radiant 3D burnished imperial gold with glowing molten amber rim lighting, razor-sharp specular highlights, dramatic 3D block extrusion, heavy contact shadows, cinematic volumetric lighting, 16:9 horizontal, photorealistic 8k render, no watermark.`
+    `...sculpture strictly occupying 50% on the RIGHT half facing towards the left, occupying the entire LEFT 50% with giant monumental 3D extruded typography reading "{HOOK}" in radiant 3D burnished imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626), crisp pure titanium white specular edge highlights (#FFFFFF), razor-sharp 3D block extrusion, heavy contact shadows, cinematic volumetric lighting, 16:9 horizontal, photorealistic 8k render, no watermark.`
   * **Góc dưới bên phải:** Chừa trống 180px x 60px để không bị huy hiệu thời lượng YouTube (Video Duration Badge) che mất chi tiết quan trọng.
 - **Khử Watermark:** Sau khi Flow tạo xong ảnh, tự động gọi `clean_watermark.py` xoá sạch logo ngôi sao ở góc dưới phải. Không cần chạy script PIL font đè lên.
 

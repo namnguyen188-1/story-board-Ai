@@ -6390,7 +6390,7 @@ def generate_thumbnail_image(
 
 
 
-                fill_color=(57, 255, 20, 255),
+                fill_color=(255, 255, 255, 255),
 
 
 
@@ -6790,7 +6790,7 @@ def generate_thumbnail_image(
 
 
 
-            fill_c = (255, 208, 0, 255) if i == 0 else (57, 255, 20, 255)
+            fill_c = (255, 208, 0, 255) if i == 0 else (255, 255, 255, 255)
 
 
 
@@ -7110,7 +7110,7 @@ def generate_thumbnail_image(
 
 
 
-            fill_c = (255, 208, 0, 255) if i == 0 else (57, 255, 20, 255)
+            fill_c = (255, 208, 0, 255) if i == 0 else (255, 255, 255, 255)
 
 
 
@@ -7654,7 +7654,7 @@ def generate_thumbnail_image(
 
 
 
-                fill_c = (255, 208, 0, 255) if is_first else ((57, 255, 20, 255) if i == 1 else (255, 255, 255, 255))
+                fill_c = (255, 208, 0, 255) if is_first else ((255, 255, 255, 255) if i == 1 else (255, 255, 255, 255))
 
 
 
@@ -9087,13 +9087,15 @@ def generate_thumbnail_with_flow(
             if line2:
                 text_frag = (
                     f'featuring giant monumental 3D extruded typography stamped boldly across the chest and draped toga in the lower half '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold with razor-sharp specular highlights and '
-                    f'"{line2}" in blazing molten amber-gold with intense electric warm rim lighting, heavy contact shadows, dramatic 3D block extrusion, '
+                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with brilliant specular highlights and '
+                    f'accentuated by an electric cinematic crimson red 3D razor divider line and crimson bevel trims (#DC2626), '
+                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion and deep chiaroscuro contact shadows, '
                 )
             else:
                 text_frag = (
                     f'featuring giant monumental 3D extruded typography stamped boldly across the chest and draped toga in the lower half '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold with glowing molten amber rim lighting, razor-sharp specular highlights, dramatic 3D block extrusion, and deep heavy contact shadows, '
+                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626), '
+                    f'crisp pure titanium white specular edge highlights (#FFFFFF), razor-sharp 3D block extrusion, and deep chiaroscuro contact shadows, '
                 )
             prompt = (
                 f"Monumental heroic classical sculpted marble statue of a Stoic philosopher god ({char_desc}), "
@@ -9108,13 +9110,15 @@ def generate_thumbnail_with_flow(
             if line2:
                 text_frag = (
                     f'occupying the entire LEFT 50% with giant monumental 3D extruded typography '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold with razor-sharp specular highlights and '
-                    f'"{line2}" in blazing molten amber-gold with intense electric warm rim lighting, with dramatic 3D block extrusion, contact shadows, cinematic volumetric lighting, '
+                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with brilliant specular highlights and '
+                    f'accentuated by an electric cinematic crimson red 3D razor divider line and crimson bevel trims (#DC2626), '
+                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion, deep contact shadows, cinematic volumetric lighting, '
                 )
             else:
                 text_frag = (
                     f'occupying the entire LEFT 50% with giant monumental 3D extruded typography '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold with glowing molten amber rim lighting, razor-sharp specular highlights, dramatic 3D block extrusion, contact shadows, cinematic volumetric lighting, '
+                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626), '
+                    f'crisp pure titanium white specular edge highlights (#FFFFFF), razor-sharp 3D block extrusion, deep contact shadows, cinematic volumetric lighting, '
                 )
             prompt = (
                 f"Monumental heroic classical sculpted marble and bronze statue of a Stoic philosopher god ({char_desc}), "
@@ -9130,13 +9134,14 @@ def generate_thumbnail_with_flow(
             if line2:
                 text_frag = (
                     f'featuring giant monumental 3D cinematic typography stamped boldly across the lower chest '
-                    f'reading "{line1}" in radiant 3D warm gold with sharp specular highlights and '
-                    f'"{line2}" in electric crimson red or fiery molten amber with heavy 3D bevel and contact shadows, '
+                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with sharp specular highlights, '
+                    f'accentuated by an electric crimson red razor divider (#DC2626), '
+                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy extruded block shadows and dramatic chiaroscuro, '
                 )
             else:
                 text_frag = (
                     f'featuring giant monumental 3D cinematic typography stamped boldly across the lower chest '
-                    f'reading "{line1}" in radiant 3D intense warm gold and electric crimson bevel with heavy 3D block extrusion and contact shadows, '
+                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp titanium white edge highlights (#FFFFFF) with heavy 3D block extrusion and contact shadows, '
                 )
             prompt = (
                 f"High-stakes intense cinematic drama film still about '{ep_title}' in vertical 9:16: "
@@ -9150,13 +9155,14 @@ def generate_thumbnail_with_flow(
             if line2:
                 text_frag = (
                     f'occupying the entire LEFT 50% with giant monumental 3D typography '
-                    f'reading "{line1}" in radiant 3D warm gold with sharp specular highlights and '
-                    f'"{line2}" in electric crimson red or glowing fiery gold with heavy block extrusion and dramatic shadows, '
+                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with sharp specular highlights, '
+                    f'accentuated by an electric crimson red razor divider line and crimson bevel trims (#DC2626), '
+                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy extruded block shadows and dramatic cinematic contrast, '
                 )
             else:
                 text_frag = (
                     f'occupying the entire LEFT 50% with giant monumental 3D typography '
-                    f'reading "{line1}" in radiant 3D intense warm gold and electric crimson bevel with heavy block extrusion and dramatic shadows, '
+                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp pure titanium white edge highlights (#FFFFFF) with heavy block extrusion and dramatic shadows, '
                 )
             prompt = (
                 f"High-stakes viral YouTube drama masterpiece thumbnail in 16:9 about '{ep_title}': "
@@ -9171,13 +9177,13 @@ def generate_thumbnail_with_flow(
         if line2:
             text_frag = (
                 f'featuring giant hand-drawn 3D block lettering '
-                f'reading "{line1}" in radiant sunburst yellow and '
-                f'"{line2}" in vibrant electric orange-amber with bold black 3D shadow outlines, '
+                f'reading "{line1}" in radiant sunburst yellow with electric marker red bevel outlines, '
+                f'and "{line2}" in crisp clean white block lettering with bold black 3D shadow outlines and red accent underlines, '
             )
         else:
             text_frag = (
                 f'featuring giant hand-drawn 3D block lettering '
-                f'reading "{line1}" in radiant sunburst yellow with fiery orange rim outlines and bold black 3D shadow outlines, '
+                f'reading "{line1}" in radiant sunburst yellow with electric marker red rim outlines, crisp white highlights, and bold black 3D shadow outlines, '
             )
         prompt = (
             f"After Skool viral YouTube masterpiece illustration about '{ep_title}' in {target_ratio}: "
@@ -9191,13 +9197,14 @@ def generate_thumbnail_with_flow(
         if line2:
             text_frag = (
                 f'featuring giant bold 3D typography '
-                f'reading "{line1}" in radiant metallic imperial gold and '
-                f'"{line2}" in high-voltage electric amber with heavy drop shadow, '
+                f'reading "{line1}" in radiant metallic imperial gold (#FFD700) with razor-sharp specular highlights, '
+                f'accentuated by an electric cinematic crimson red razor divider (#DC2626), '
+                f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion and deep drop shadow, '
             )
         else:
             text_frag = (
                 f'featuring giant bold 3D typography '
-                f'reading "{line1}" in radiant metallic imperial gold with intense warm amber rim lighting and heavy drop shadow, '
+                f'reading "{line1}" in radiant metallic imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp titanium white highlights (#FFFFFF) with heavy black block extrusion and drop shadow, '
             )
         prompt = (
             f"Cinematic investigative documentary viral YouTube thumbnail in {target_ratio} about '{ep_title}': "
@@ -9886,67 +9893,31 @@ def is_current_seo_package(package, episode_dir):
 
 
 def clean_competitor_links(text: str) -> str:
-
-
-
-    """Removes competitor links, external handles, Telegram/Patreon/PayPal links from descriptions."""
-
-
-
+    """Removes competitor links, external handles, spam hashtags, Telegram/Patreon/PayPal links, and copyright threats from descriptions."""
     if not text:
-
-
-
         return ""
-
-
-
     cleaned_lines = []
-
-
-
     for line in text.splitlines():
-
-
-
         line_str = line.strip()
-
-
-
-        # Drop lines with competitor social handles, external payment or chat channels
-
-
-
-        if re.search(r'(?i)(t\.me/|patreon\.com|paypal\.me|ko-fi\.com|buymeacoffee|instagram\.com|tiktok\.com/@|twitter\.com|facebook\.com|cutt\.ly|bit\.ly)', line_str):
-
-
-
+        if not line_str:
+            cleaned_lines.append("")
             continue
-
-
-
-        if re.search(r'(?i)(visita mi canal|sígueme en mis redes|apoya el canal en|donaciones|t\.me)', line_str):
-
-
-
+        # Drop decorative repeated symbol lines (e.g. __________________)
+        if re.match(r'^[\s_\-\S=~*#]{4,}$', line_str) and not any(c.isalnum() for c in line_str):
             continue
-
-
-
-        cleaned_lines.append(line)
-
-
-
-    return "\n".join(cleaned_lines).strip()
-
-
-
-
-
-
-
-
-
+        # Drop lines with competitor social handles, external payment, video URLs or chat channels
+        if re.search(r'(?i)(https?://|www\.|youtube\.com|youtu\.be|t\.me/|patreon\.com|paypal\.me|ko-fi\.com|buymeacoffee|instagram\.com|tiktok\.com|twitter\.com|facebook\.com|cutt\.ly|bit\.ly)', line_str):
+            continue
+        # Drop promotional / subscription / competitor callout / copyright threat lines
+        if re.search(r'(?i)(suscríbete al canal|mira más vídeos|visita mi canal|sígueme en mis redes|apoya el canal|donaciones|subscribe to our channel|somos los propietarios|derechos relacionados|contenido reutilizado|todos los derechos reservados|copyright|all rights reserved)', line_str):
+            continue
+        # Strip trailing or scattered hashtag clutter from paragraphs
+        line_cleaned = re.sub(r'(\s*#\w+){2,}', '', line_str).strip()
+        if not line_cleaned or line_cleaned.startswith('#'):
+            continue
+        cleaned_lines.append(line_cleaned)
+    res = re.sub(r'\n{3,}', '\n\n', '\n'.join(cleaned_lines)).strip()
+    return res
 
 
 def _seo_prompt(ctx,series,episode):
@@ -12004,7 +11975,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
-        'chapters':chapters,'thumbnail_hook_text':hook,'default_language':'es' if any(k in str(lang).lower() for k in ('spa','es')) else str(lang or 'es'),'default_audio_language':'es' if any(k in str(lang).lower() for k in ('spa','es')) else str(lang or 'es'),'caption_certification':'never_aired_us','thumbnail_scene_num':selection['scene_number'],
+        'chapters':chapters,'thumbnail_hook_text':hook,'default_language':'es' if any(k in str(language).lower() for k in ('spa','es')) else str(language or 'es'),'default_audio_language':'es' if any(k in str(language).lower() for k in ('spa','es')) else str(language or 'es'),'caption_certification':'never_aired_us','thumbnail_scene_num':selection['scene_number'],
 
 
 

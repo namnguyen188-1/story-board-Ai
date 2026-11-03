@@ -1659,11 +1659,17 @@ def audit_thumbnail_vidiq_real(
 
         subject_height_ratio = active_rows / float(h)
 
-        if subject_height_ratio >= 0.78:
+        if subject_height_ratio >= 0.75:
 
-            p1_score = 22
+            p1_score = 25
 
-            strengths.append("Chủ thể chiếm trọn chiều cao khung hình.")
+            strengths.append("Chủ thể cận cảnh uy nghi (bán thân/tượng thần đặc tả) chiếm trọn khung hình.")
+
+        elif subject_height_ratio >= 0.60:
+
+            p1_score = 20
+
+            strengths.append("Chủ thể bao phủ diện tích khung hình tốt.")
 
         else:
 
@@ -1851,7 +1857,7 @@ def audit_thumbnail_vidiq_real(
 
     # If standard deviation is extremely high in safe zone, text might be colliding with timestamp
 
-    if safe_zone_std < 45.0:
+    if safe_zone_std < 58.0:
 
         p6_score = 10
 

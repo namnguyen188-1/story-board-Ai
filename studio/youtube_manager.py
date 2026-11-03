@@ -1591,7 +1591,20 @@ def resolve_episode_media(ep_dir: Path, media_type: str = "long") -> Dict[str, A
             pack_data = {}
 
     if not pack_data or not pack_data.get("best_title") or not pack_data.get("description"):
-        # Fallback to reference_analysis.json if available
+        # On-the-fly SEO package generation attempt before falling back to competitor raw text
+        try:
+            from seo_packager import generate_seo_package
+            s_name = ep_dir.parent.name
+            ep_match = re.search(r'episode_(\d+)', ep_dir.name)
+            ep_no = int(ep_match.group(1)) if ep_match else 1
+            gen_pack = generate_seo_package(episode_dir=ep_dir, series_name=s_name, episode_num=ep_no)
+            if gen_pack and gen_pack.get("best_title") and gen_pack.get("description"):
+                pack_data = gen_pack
+        except Exception as _gen_err:
+            logger.warning(f"On-the-fly SEO pack generation failed: {_gen_err}")
+
+    if not pack_data or not pack_data.get("best_title") or not pack_data.get("description"):
+        # Fallback to reference_analysis.json if available with STRICT CLEANING
         ref_path = ep_dir / "reference_analysis.json"
         if ref_path.is_file():
             try:
@@ -1599,7 +1612,21 @@ def resolve_episode_media(ep_dir: Path, media_type: str = "long") -> Dict[str, A
                 if not pack_data.get("best_title") and ref_d.get("title"):
                     pack_data["best_title"] = ref_d.get("title")
                 if not pack_data.get("description") and ref_d.get("description"):
-                    pack_data["description"] = ref_d.get("description")
+                    from seo_packager import clean_competitor_links
+                    raw_desc = ref_d.get("description")
+                    clean_desc = clean_competitor_links(raw_desc)
+                    # Deduplicate and append exactly 3-5 clean hashtags at the bottom
+                    raw_kws = ref_d.get("keywords") or []
+                    clean_hashes = []
+                    for kw in raw_kws:
+                        kw_clean = re.sub(r'[^\w]', '', str(kw))
+                        if len(kw_clean) >= 3 and f"#{kw_clean.lower()}" not in [h.lower() for h in clean_hashes]:
+                            clean_hashes.append(f"#{kw_clean}")
+                        if len(clean_hashes) >= 5:
+                            break
+                    if clean_hashes:
+                        clean_desc = f"{clean_desc}\n\n{' '.join(clean_hashes)}"
+                    pack_data["description"] = clean_desc
                 if not pack_data.get("tags") and ref_d.get("keywords"):
                     pack_data["tags"] = ref_d.get("keywords")
                 if not pack_data.get("language") and ref_d.get("language"):

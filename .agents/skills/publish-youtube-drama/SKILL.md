@@ -1,6 +1,6 @@
 ---
 name: publish-youtube-drama
-description: Tạo trọn bộ nội dung đăng YouTube cho Phim Kịch Đa Vai, Phim Ngắn Điện Ảnh (Cinematic Drama, nhiều nhân vật đối thoại, kịch tính cao trào) đồng bộ 100% từ kịch bản/video thực tế. Bao gồm tiêu đề nhấn mạnh xung đột/bước ngoặt và số tập, mô tả kịch bản mâu thuẫn nhân vật không spoil cái kết, 5 hashtag thể loại phim kịch, thẻ tag tên nhân vật và diễn biến, gói prompt chi tiết cho Google Flow tạo thumbnail kịch tính đối đầu kèm ảnh tham chiếu nhân vật và chữ 3D vàng kim / đỏ thẫm rực rỡ bắt mắt, cấu hình YouTube Studio (ngôn ngữ chuẩn & chứng nhận phụ đề FCC), và bình luận ghim thăm dò phản ứng của khán giả. Kiểm định kỹ thuật thực tế, không dùng điểm số ảo.
+description: Tạo trọn bộ nội dung đăng YouTube cho Phim Kịch Đa Vai, Phim Ngắn Điện Ảnh (Cinematic Drama, nhiều nhân vật đối thoại, kịch tính cao trào) đồng bộ 100% từ kịch bản/video thực tế. Bao gồm tiêu đề nhấn mạnh xung đột/bước ngoặt và số tập, mô tả kịch bản mâu thuẫn nhân vật không spoil cái kết, 5 hashtag thể loại phim kịch, thẻ tag tên nhân vật và diễn biến, gói prompt chi tiết cho Google Flow tạo thumbnail kịch tính đối đầu kèm ảnh tham chiếu nhân vật và chữ 3D theo công thức 3 màu bắt mắt đỉnh cao Vàng kim hoàng gia + Đỏ thẫm điện ảnh + Trắng tinh khiết titan (tuyệt đối không dùng 1 màu đơn điệu hay chữ bạc), cấu hình YouTube Studio (ngôn ngữ chuẩn & chứng nhận phụ đề FCC), và bình luận ghim thăm dò phản ứng của khán giả. Kiểm định kỹ thuật thực tế, không dùng điểm số ảo.
 ---
 
 # publish-youtube-drama — TRỌN BỘ XUẤT BẢN PHIM KỊCH ĐA VAI (CINEMATIC DRAMA)
@@ -10,7 +10,8 @@ description: Tạo trọn bộ nội dung đăng YouTube cho Phim Kịch Đa Vai
 > - Điểm thu hút cốt lõi là **mâu thuẫn kịch tính giữa các nhân vật (Conflict & Stakes)**, những bước ngoặt (Twists) và sự giằng xé nội tâm.
 > - Thumbnail KHÔNG PHẢI là ảnh tĩnh vô hồn; phải thể hiện **sự đối đầu trực tiếp (Confrontation)** giữa 2 nhân vật hoặc nét mặt biểu cảm kịch độ (tức giận, phản bội, đau đớn, sốc).
 > - Phải giữ **nhận diện khuôn mặt nhân vật (Character Consistency)** bằng cách đính kèm ảnh tham chiếu nhân vật (`master_character_anchor.png` hoặc character turnaround sheet) khi gửi prompt sang Google Flow.
-> - **Màu sắc chữ 3D trên thumbnail:** Sử dụng màu **Vàng kim rực rỡ 3D (Radiant 3D Gold)** kết hợp **Đỏ thẫm điện ảnh (Crimson Red Bevel)** hoặc **Cam hổ phách rực lửa (Blazing Amber)**; tuyệt đối không dùng chữ bạc đơn điệu làm chìm ảnh.
+> - **CÔNG THỨC 3 MÀU BẮT MẮT ĐỈNH CAO (VÀNG + ĐỎ + TRẮNG):** Sử dụng màu **Vàng kim rực rỡ 3D (Radiant 3D Gold - #FFD700)** cho từ khóa hook, kết hợp **Đỏ thẫm điện ảnh (Cinematic Crimson Red - #DC2626)** cho đường viền vát/dao cắt, và **Trắng tinh khiết titan 3D (Crisp Pure Titanium White - #FFFFFF)** cho dòng phụ đề; tuyệt đối không dùng 1 màu đơn điệu làm chìm ảnh.
+> - **MÔ TẢ VÀ HASHTAG SẠCH 100%:** Lọc sạch mọi link đối thủ, không để hashtag rác nằm rải rác giữa thân bài mô tả; chỉ đặt đúng 5 hashtag kịch ở dòng cuối cùng.
 
 ---
 
@@ -58,8 +59,8 @@ description: Tạo trọn bộ nội dung đăng YouTube cho Phim Kịch Đa Vai
 - **Câu chữ Hook trên ảnh:** **2 đến 4 từ** cực kỳ gay cấn, lột tả nút thắt (ví dụ: `LA TRAICIÓN`, `QUÁ MUỘN RỒI`, `SỰ THẬT TÀN NHẪN`, `NO CONFÍES EN NADIE`).
 - **Google Flow Tự Dựng Typography 3D Bắt Mắt:**
   * Đưa trực tiếp câu chữ Hook vào trong prompt của Google Flow với mô tả hiệu ứng 3D điện ảnh vàng kim rực rỡ và đỏ thẫm tương phản cao.
-  * Cú pháp prompt (2 dòng): `...occupying the entire LEFT 50% with giant monumental 3D typography reading "{LINE_1}" in radiant 3D warm gold with sharp specular highlights and "{LINE_2}" in electric crimson red or glowing fiery gold with heavy block extrusion and dramatic shadows, cinematic volumetric lighting, 8k resolution, no watermark.`
-  * Cú pháp prompt (1 dòng): `...occupying the entire LEFT 50% with giant monumental 3D typography reading "{HOOK}" in radiant 3D intense warm gold and electric crimson bevel with heavy block extrusion and dramatic shadows, cinematic volumetric lighting, 8k resolution, no watermark.`
+  * Cú pháp prompt (2 dòng): `...occupying the entire LEFT 50% with giant monumental 3D typography reading "{LINE_1}" in radiant 3D imperial gold (#FFD700) with sharp specular highlights, razor divider line in electric crimson red (#DC2626), and "{LINE_2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion and dramatic shadows, cinematic volumetric lighting, 8k resolution, no watermark.`
+  * Cú pháp prompt (1 dòng): `...occupying the entire LEFT 50% with giant monumental 3D typography reading "{HOOK}" in radiant 3D imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp titanium white highlights (#FFFFFF) with heavy block extrusion and dramatic shadows, cinematic volumetric lighting, 8k resolution, no watermark.`
 - **Kèm ảnh tham chiếu nhân vật (Character Anchor):**
   * Luôn truyền đường dẫn `master_character_anchor.png` hoặc ảnh chân dung nhân vật chính sang Google Flow để giữ **100% nhận diện khuôn mặt nhân vật qua các tập phim**.
 - **Khử Watermark:** Sau khi Flow tạo xong ảnh, tự động gọi `clean_watermark.py` xoá sạch logo ngôi sao ở góc dưới phải. Không cần chèn font PIL 2D đè lên.
