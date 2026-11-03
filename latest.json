@@ -1,15 +1,15 @@
 {
-  "version": "1.3.3",
-  "release_name": "Storyboard_AI_Studio_Pro_v1.3.3",
-  "installer": "https://github.com/namnguyen188-1/story-board-Ai/releases/latest/download/Storyboard_AI_Studio_Pro_v1.3.3.zip",
-  "bytes": 221442432,
-  "sha256": "9DE735B0978E615A2D0E7B2270A9FB7AB0FD4FB9FD332EF5E18D2F4398195619",
+  "version": "1.3.12",
+  "release_name": "Storyboard_AI_Studio_Pro_v1.3.12",
+  "installer": "https://github.com/anma8802-create/AI-tool/releases/latest/download/Storyboard_AI_Studio_Pro_v1.3.12.zip",
+  "bytes": 286396672,
+  "sha256": "3DF0DE3795FE2E8A3A9305E10ACB72156241FA8579AD448AC93EA218D1D3C343",
   "release_notes": [
-    "Sửa lỗi giao diện Modal SEO và Muse không mở được (lỗi thẻ div).",
-    "Tối ưu tốc độ tải gói SEO YouTube từ 30s xuống 0.02s.",
-    "Khóa bảo toàn gói SEO theo từng tập: không bị xóa hay ghi đè khi đổi số tập hoặc đang render.",
-    "Tự động inpaint xóa sạch chữ phụ đề kịch bản bị lọt vào ảnh thumbnail.",
-    "Nâng cấp toàn diện Thumbnail dòng phim Khắc Kỷ (Stoic): chuẩn bố cục đối thủ Top 1 (vàng hoàng gia + nét cọ đỏ + trắng tinh khiết, tượng Marcus Aurelius ánh sáng chiaroscuro).",
-    "Sửa lỗi tự động tiếp tục sản xuất (Resume) cho các tập phim đang dở dang."
+    "Hỗ trợ phân cảnh 5 giây (5s Pacing) cho chế độ Kể Chuyện (Narrative) cả video ngắn 1 phút và video dài.",
+    "Tự động tính toán đúng số cảnh và ngân sách ảnh theo thời lượng (1 phút = 12 ảnh, 5 phút = 60 ảnh, 10 phút = 120 ảnh).",
+    "Đồng bộ trọn bộ 7 kỹ năng AI chuyên biệt độc lập (.agents/skills) cho Kể Chuyện, Phim Kịch, Shorts 9:16 và Thumbnail 3D.",
+    "Thiết kế Thumbnail 3D màu vàng kim hoàng gia / cam hổ phách rực rỡ bắt mắt, Google Flow tự vẽ 3D và tự khử watermark.",
+    "Chuẩn hóa cấu hình đăng bài YouTube: đúng ngôn ngữ và chứng nhận phụ đề FCC.",
+    "Tích hợp bộ kiểm thử E2E tự động xác thực toàn diện tiến trình sản xuất."
   ]
 }
