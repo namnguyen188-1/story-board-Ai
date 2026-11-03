@@ -1,0 +1,11 @@
+{
+  "id": "mafia_thriller",
+  "name_vi": "Trinh thám / Mafia / Đấu trí",
+  "name_en": "Detective / Mafia / Mind Games",
+  "target_channels": [
+    "По ту сторону правды"
+  ],
+  "visual_style": "High-contrast film noir, wet asphalt streets, Venetian blind shadows, cold cyan practical lights, rain on trench coats.",
+  "pacing": "Slow suspenseful build-up followed by sharp revelations, dutch angles, over-the-shoulder interrogations.",
+  "voice_speed": -5
+}

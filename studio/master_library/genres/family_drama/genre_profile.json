@@ -1,0 +1,11 @@
+{
+  "id": "family_drama",
+  "name_vi": "Drama gia đình / Xã hội",
+  "name_en": "Family & HOA Drama",
+  "target_channels": [
+    "The HOA Fallout"
+  ],
+  "visual_style": "Photorealistic contemporary cinema, 35mm anamorphic, sharp fluorescent interior vs warm home lighting, subtle micro-expressions.",
+  "pacing": "Fast escalating, tense dialogue, close-ups on accusatory gestures, steadicam follow.",
+  "voice_speed": 0
+}

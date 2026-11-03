@@ -1,0 +1,13 @@
+# STORYBOARD AI STUDIO PRO - CORE DEPENDENCIES
+# Optimized for universal compatibility across Python 3.10, 3.11, 3.12, 3.13
+google-genai>=1.0.0
+requests>=2.31.0
+pillow>=10.0.0
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+edge-tts>=7.3.1
+gTTS>=2.5.0
+python-dotenv>=1.0.0
+customtkinter>=5.2.0
+pywebview>=5.0.0
+bottle>=0.12.25

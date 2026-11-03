@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "scene_count": 66,
+  "total_seconds": 660.0,
+  "errors": [],
+  "warnings": [],
+  "note": "TXT preflight only; rendered human motion/lip-sync requires video QC.",
+  "branch": "multi_role_cinematic_drama_only",
+  "skill": "write-video-scene-prompts",
+  "scope": "TXT preflight, NOT rendered-video E2E"
+}

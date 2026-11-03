@@ -1,0 +1,12 @@
+{
+  "id": "history",
+  "name_vi": "Lịch sử / Hùng tráng",
+  "name_en": "Epic History & Civilizations",
+  "target_channels": [
+    "Veiled History",
+    "Ancient Mysteries"
+  ],
+  "visual_style": "Monumental ancient temples, weathered sandstone ruins, torchlight, historical authentic costume fabrics, sweeping crane vistas.",
+  "pacing": "Grand, solemn, historical gravitas, slow panoramic sweeps.",
+  "voice_speed": -5
+}

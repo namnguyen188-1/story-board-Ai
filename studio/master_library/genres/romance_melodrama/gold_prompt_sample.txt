@@ -1,0 +1,10 @@
+========== SCENE_001 | TIMELINE 00:00–00:10 | GENERATE 10 SECONDS ==========
+FORMAT & STYLE: 16:9; 10s cinematic motion scene; Soft warm golden hour, shallow depth of field, gentle lens flares, tender gazes, slow drifting parallax.
+CHARACTERS: Main Lead: 38 years old, distinctive facial landmarks with locked wardobe for Act 1.
+SETTING & START STATE: Primary establishing environment for Ngôn tình / Mối tình trắc trở.
+LIGHTING & COLOR: Authentic cinematic lighting matching romance_melodrama palette.
+CAMERA: Smooth motivated cinema movement matching Poetic, emotional pauses, subtle hand touches, rain on window pane..
+TIMED ACTION: 0.0–10.0s: Motivated narrative progression with natural physical acting.
+END STATE: Actor settles into resolved posture; hold eye-lines for next cut.
+AUDIO: Main Lead speaks in English/Vietnamese: "Cuộc hội ngộ sau mười năm: Lời hứa thời niên thiếu dưới tán lá phong vàng".
+CONSTRAINTS: Only listed characters. Non-graphic depiction. No weapons, no violence.

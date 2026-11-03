@@ -1,0 +1,117 @@
+﻿{
+    "date_utc":  "2026-10-12T14:26:31.778266+00:00",
+    "purpose":  "Root folder grouping (non-deleting)",
+    "moves":  {
+                  "storyboard-ai-main":  {
+                                             "src":  "D:\\STORYBOARD_AI\\storyboard-ai-main",
+                                             "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_upstream\\storyboard-ai-main",
+                                             "bytes":  11994680,
+                                             "files":  276
+                                         },
+                  "source.zip":  {
+                                     "src":  "D:\\STORYBOARD_AI\\source.zip",
+                                     "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_upstream\\source.zip",
+                                     "bytes":  6256437,
+                                     "files":  1,
+                                     "sha256":  "2976918d8c7a2fa7bf342defe5cef152538269e38522444f65fa4d5981415fe8"
+                                 },
+                  "fast_mode_stress":  {
+                                           "src":  "D:\\STORYBOARD_AI\\fast_mode_stress",
+                                           "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\fast_mode_stress",
+                                           "bytes":  117721,
+                                           "files":  5
+                                       },
+                  "fullhd_smoke":  {
+                                       "src":  "D:\\STORYBOARD_AI\\fullhd_smoke",
+                                       "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\fullhd_smoke",
+                                       "bytes":  3003129,
+                                       "files":  3
+                                   },
+                  "fast_mode_stress.py":  {
+                                              "src":  "D:\\STORYBOARD_AI\\fast_mode_stress.py",
+                                              "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\fast_mode_stress.py",
+                                              "bytes":  1706,
+                                              "files":  1,
+                                              "sha256":  "45f16ca98d0bf9ed0e5b07cfa36673b09f224183e588dca9fdfe88df834186ff"
+                                          },
+                  "fullhd_smoke.py":  {
+                                          "src":  "D:\\STORYBOARD_AI\\fullhd_smoke.py",
+                                          "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\fullhd_smoke.py",
+                                          "bytes":  1579,
+                                          "files":  1,
+                                          "sha256":  "604d3d62fbceb2b7d5c026b8e2212357fb6d40c40caff9501a206eb3c0ecced2"
+                                      },
+                  "offline_smoke.py":  {
+                                           "src":  "D:\\STORYBOARD_AI\\offline_smoke.py",
+                                           "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\offline_smoke.py",
+                                           "bytes":  3656,
+                                           "files":  1,
+                                           "sha256":  "b03119cb2fe89bc5944b429c8ef014c40dd70972df48db3a0bd96811a448bfe9"
+                                       },
+                  "run_offline.py":  {
+                                         "src":  "D:\\STORYBOARD_AI\\run_offline.py",
+                                         "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\run_offline.py",
+                                         "bytes":  709,
+                                         "files":  1,
+                                         "sha256":  "03dc4708502bb57728f47871b03754832177c388825fb0488428db8bf66af99c"
+                                     },
+                  "TEST_REPORT.md":  {
+                                         "src":  "D:\\STORYBOARD_AI\\TEST_REPORT.md",
+                                         "dest":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\TEST_REPORT.md",
+                                         "bytes":  2248,
+                                         "files":  1,
+                                         "sha256":  "c665b32d4b139a5113562ac38e7867039b30921f6e97c93bc78867e598b1c1f5"
+                                     }
+              },
+    "done":  [
+                 "source.zip",
+                 "fast_mode_stress",
+                 "fullhd_smoke",
+                 "fast_mode_stress.py",
+                 "fullhd_smoke.py",
+                 "offline_smoke.py",
+                 "run_offline.py",
+                 "TEST_REPORT.md"
+             ],
+    "left_untouched":  [
+                           "studio",
+                           ".venv",
+                           "_STORYBOARD_RECYCLE_BIN",
+                           "offline_smoke",
+                           "LAUNCH_STUDIO.bat"
+                       ],
+    "root_before":  [
+                        ".venv",
+                        "fast_mode_stress",
+                        "fast_mode_stress.py",
+                        "fullhd_smoke",
+                        "fullhd_smoke.py",
+                        "LAUNCH_STUDIO.bat",
+                        "offline_smoke",
+                        "offline_smoke.py",
+                        "run_offline.py",
+                        "source.zip",
+                        "storyboard-ai-main",
+                        "studio",
+                        "TEST_REPORT.md",
+                        "_STORYBOARD_RECYCLE_BIN"
+                    ],
+    "skipped":  [
+                    {
+                        "name":  "storyboard-ai-main",
+                        "reason":  "Windows denied rename: preserve original source"
+                    }
+                ],
+    "status":  "VERIFIED_WITH_ONE_LOCKED_SOURCE_DIRECTORY",
+    "root_after_move":  [
+                            ".venv",
+                            "LAUNCH_STUDIO.bat",
+                            "_ARCHIVE",
+                            "_STORYBOARD_RECYCLE_BIN",
+                            "offline_smoke",
+                            "storyboard-ai-main",
+                            "studio"
+                        ],
+    "completed_at":  "2026-10-12T14:27:55.242379+00:00",
+    "legacy_script_backups":  "D:\\STORYBOARD_AI\\_ARCHIVE\\2026-10-11_tests\\_original_scripts_20261012"
+}

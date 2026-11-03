@@ -1,0 +1,174 @@
+[
+  {
+    "suite": "test_drama_asset_first_20261031.py",
+    "exit_code": 0,
+    "duration": 0.84,
+    "tail": [
+      "test_fail_closed_before_muse_or_missing_scene (test_drama_asset_first_20261031.AssetFirstTests.test_fail_closed_before_muse_or_missing_scene) ... ok",
+      "test_fake_duplicate_angles_stay_blocked (test_drama_asset_first_20261031.AssetFirstTests.test_fake_duplicate_angles_stay_blocked) ... ok",
+      "test_real_files_still_need_visual_approval_and_sha (test_drama_asset_first_20261031.AssetFirstTests.test_real_files_still_need_visual_approval_and_sha) ... ok",
+      "test_three_categories_and_six_scene_bindings (test_drama_asset_first_20261031.AssetFirstTests.test_three_categories_and_six_scene_bindings) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 4 tests in 0.597s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_drama_six_scene_continuity_20261031.py",
+    "exit_code": 0,
+    "duration": 0.39,
+    "tail": [
+      "test_no_fake_scene_image_pass (test_drama_six_scene_continuity_20261031.SixSceneContinuity.test_no_fake_scene_image_pass) ... ok",
+      "test_prop_teleport_fails (test_drama_six_scene_continuity_20261031.SixSceneContinuity.test_prop_teleport_fails) ... ok",
+      "test_registry_six_scene_real_plan (test_drama_six_scene_continuity_20261031.SixSceneContinuity.test_registry_six_scene_real_plan) ... ok",
+      "test_state_good (test_drama_six_scene_continuity_20261031.SixSceneContinuity.test_state_good) ... ok",
+      "test_unauthorized_costume_fails (test_drama_six_scene_continuity_20261031.SixSceneContinuity.test_unauthorized_costume_fails) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 5 tests in 0.106s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_reference_voice_guards_20261031.py",
+    "exit_code": 0,
+    "duration": 0.48,
+    "tail": [
+      "[DRAMA_REFERENCE] Existing frame has no valid identity-reference proof; creating a verified replacement.",
+      "[DRAMA_VIDEO] Generating scene base artwork (Ref: True): woman in coat...",
+      "[DRAMA_REFERENCE] Existing frame has no valid identity-reference proof; creating a verified replacement.",
+      "[DRAMA_VIDEO] Generating scene base artwork (Ref: True): woman in coat...",
+      "",
+      "test_cinematic_reference_replaces_unverified_cache (test_reference_voice_guards_20261031.ReferenceVoiceGuards.test_cinematic_reference_replaces_unverified_cache) ... ok",
+      "test_muse_rejects_missing_reference_before_network (test_reference_voice_guards_20261031.ReferenceVoiceGuards.test_muse_rejects_missing_reference_before_network) ... ok",
+      "test_packed_scene_does_not_render_without_character_anchor (test_reference_voice_guards_20261031.ReferenceVoiceGuards.test_packed_scene_does_not_render_without_character_anchor) ... ok",
+      "test_zero_length_word_is_only_repaired_in_bounded_speech_span (test_reference_voice_guards_20261031.ReferenceVoiceGuards.test_zero_length_word_is_only_repaired_in_bounded_speech_span) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 4 tests in 0.147s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_extra_reference_guards_20261031.py",
+    "exit_code": 0,
+    "duration": 0.68,
+    "tail": [
+      "[MUSE_FAILOVER] ⚠️ Cảnh 1 - Tài khoản 'E2E_OFFLINE' gặp sự cố: MUSE_REMOTE_FAILED: Job kết thúc nhưng chưa có video gắn đúng mã cảnh.",
+      "[DRAMA_VIDEO] Generating scene base artwork (Ref: True): Lan talks in room...",
+      "[DRAMA_VIDEO_WARN] Image generation tool encountered issue: COMFY_REMOTE_FAILURE",
+      "[DRAMA_VIDEO] Anchoring visual style to episode reference frame: lan_turnaround.jpg",
+      "[DRAMA_VIDEO] Generating scene base artwork (Ref: True): Lan and Minh in studio...",
+      "[DRAMA_REFERENCE] Existing frame has no valid identity-reference proof; creating a verified replacement.",
+      "[DRAMA_VIDEO] Generating scene base artwork (Ref: True): Lan and Minh in studio...",
+      "",
+      "test_muse_no_video_does_not_failover_to_other_accounts (test_extra_reference_guards_20261031.AdditionalReferenceGuards.test_muse_no_video_does_not_failover_to_other_accounts) ... ok",
+      "test_quota_portrait_fallback_is_not_publishable (test_extra_reference_guards_20261031.AdditionalReferenceGuards.test_quota_portrait_fallback_is_not_publishable) ... ok",
+      "test_two_people_image_generator_receives_both_images_and_cache_invalidates (test_extra_reference_guards_20261031.AdditionalReferenceGuards.test_two_people_image_generator_receives_both_images_and_cache_invalidates) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 3 tests in 0.321s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_native_audio_subtitle_sync.py",
+    "exit_code": 0,
+    "duration": 2.84,
+    "tail": [
+      "test_future_words_hidden_for_native_in_both_styles (test_native_audio_subtitle_sync.NativeSubtitleSafety.test_future_words_hidden_for_native_in_both_styles) ... ok",
+      "test_non_native_legacy_layout_untouched (test_native_audio_subtitle_sync.NativeSubtitleSafety.test_non_native_legacy_layout_untouched) ... ok",
+      "test_silent_gap_alignment_rejected (test_native_audio_subtitle_sync.NativeSubtitleSafety.test_silent_gap_alignment_rejected) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 3 tests in 0.021s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_muse_cli_provider.py",
+    "exit_code": 0,
+    "duration": 0.25,
+    "tail": [
+      "test_prompt_keeps_scene_prompt_and_character_description (test_muse_cli_provider.ProviderTests.test_prompt_keeps_scene_prompt_and_character_description) ... ok",
+      "test_saved_session_transport_does_not_require_api_key (test_muse_cli_provider.ProviderTests.test_saved_session_transport_does_not_require_api_key) ... ok",
+      "test_settings_never_rewrite_studio_env (test_muse_cli_provider.ProviderTests.test_settings_never_rewrite_studio_env) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 3 tests in 0.022s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_muse_gateway_worker.py",
+    "exit_code": 0,
+    "duration": 1.26,
+    "tail": [
+      "test_changed_prompt_cannot_replace_pending_job (test_muse_gateway_worker.GatewayWorkerTests.test_changed_prompt_cannot_replace_pending_job) ... ok",
+      "test_completed_job_reuses_verified_files (test_muse_gateway_worker.GatewayWorkerTests.test_completed_job_reuses_verified_files) ... ok",
+      "test_failed_remote_job_never_resubmits (test_muse_gateway_worker.GatewayWorkerTests.test_failed_remote_job_never_resubmits) ... ok",
+      "test_media_prompt_uses_reduced_aspect_ratio (test_muse_gateway_worker.GatewayWorkerTests.test_media_prompt_uses_reduced_aspect_ratio) ... ok",
+      "test_partial_download_continues_at_saved_offset (test_muse_gateway_worker.GatewayWorkerTests.test_partial_download_continues_at_saved_offset) ... ok",
+      "test_pending_job_resumes_without_second_submission (test_muse_gateway_worker.GatewayWorkerTests.test_pending_job_resumes_without_second_submission) ... ok",
+      "test_persistent_lock_releases_after_exception (test_muse_gateway_worker.GatewayWorkerTests.test_persistent_lock_releases_after_exception) ... ok",
+      "test_remote_path_cannot_escape_workspace (test_muse_gateway_worker.GatewayWorkerTests.test_remote_path_cannot_escape_workspace) ... ok",
+      "test_render_creates_direct_text_to_video_and_extracts_poster_frame (test_muse_gateway_worker.GatewayWorkerTests.test_render_creates_direct_text_to_video_and_extracts_poster_frame) ... ok",
+      "test_render_creates_real_image_and_video_without_user_reference (test_muse_gateway_worker.GatewayWorkerTests.test_render_creates_real_image_and_video_without_user_reference) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 10 tests in 1.033s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_muse_skill_input.py",
+    "exit_code": 0,
+    "duration": 0.2,
+    "tail": [
+      "test_legacy_header_remains_supported (test_muse_skill_input.SkillInputTests.test_legacy_header_remains_supported) ... ok",
+      "test_missing_scene_is_rejected (test_muse_skill_input.SkillInputTests.test_missing_scene_is_rejected) ... ok",
+      "test_skill_scene_identifier_and_timeline_are_accepted (test_muse_skill_input.SkillInputTests.test_skill_scene_identifier_and_timeline_are_accepted) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 3 tests in 0.006s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_muse_video_integration.py",
+    "exit_code": 0,
+    "duration": 0.21,
+    "tail": [
+      "test_current_multi_account_controls_are_bound (test_muse_video_integration.MuseManagerUI.test_current_multi_account_controls_are_bound) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 1 test in 0.039s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "suite": "test_native_muse_audio_merge.py",
+    "exit_code": 0,
+    "duration": 0.44,
+    "tail": [
+      "test_cached_silent_can_resume_audio_merge (test_native_muse_audio_merge.NativeMerge.test_cached_silent_can_resume_audio_merge) ... ok",
+      "test_new_native_muse_clip_preserves_its_audio (test_native_muse_audio_merge.NativeMerge.test_new_native_muse_clip_preserves_its_audio) ... ok",
+      "test_non_muse_image_render_still_merges_tts (test_native_muse_audio_merge.NativeMerge.test_non_muse_image_render_still_merges_tts) ... ok",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 3 tests in 0.189s",
+      "",
+      "OK"
+    ]
+  }
+]

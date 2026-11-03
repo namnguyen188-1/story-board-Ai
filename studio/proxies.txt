@@ -1,0 +1,26 @@
+# ===========================================================================
+# DANH SÁCH PROXY CHO CÁC TÀI KHOẢN MUSE AI (STUDIO PROXY LIST)
+# ===========================================================================
+# Hướng dẫn cách dùng:
+# 1. Dán danh sách proxy của bạn vào bên dưới (mỗi dòng 1 proxy).
+# 2. Hỗ trợ tất cả các định dạng:
+#    - ip:port
+#    - ip:port:user:pass (Định dạng phổ biến của Webshare, LunaProxy, Pia)
+#    - http://user:pass@ip:port
+#    - socks5://user:pass@ip:port
+#
+# CƠ CHẾ TỰ ĐỘNG GÁN CỦA HỆ THỐNG:
+# - Nếu bạn dán 1 PROXY DUY NHẤT (Loại Proxy Dân Cư Xoay Vòng - Rotating Residential):
+#   -> Hệ thống sẽ tự động gán proxy đó cho TẤT CẢ 14 tài khoản.
+#      Mỗi khi tài khoản gửi lệnh tạo video, nó sẽ tự động nhảy 1 IP dân cư sạch mới.
+#
+# - Nếu bạn dán NHIỀU PROXY (danh sách 5, 10, 14 proxy tĩnh):
+#   -> Dòng 1 sẽ tự động gán cho Tài khoản 1
+#   -> Dòng 2 tự động gán cho Tài khoản 2
+#   -> Dòng N tự động gán cho Tài khoản N
+#   -> Nếu số proxy ít hơn số tài khoản, hệ thống tự động chia đều xoay vòng (Round-Robin).
+#
+# VÍ DỤ MẪU (Xóa dấu # ở đầu dòng khi dán proxy thật):
+# 103.152.220.14:8080:username:password
+# 45.120.67.89:9090:username:password
+# http://proxyuser:proxypass@123.45.67.89:3128

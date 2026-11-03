@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storyboard AI Studio Pro | Phần Mềm Sản Xuất Phim Hoạt Hình Bảng Trắng</title>
+  <link rel="stylesheet" href="style.css?v=20261013_dock_layout1">
+  <link rel="icon" type="image/png" href="assets/storyboard_ai_favicon.png?v=20261012">
+</head>
+<body>
+
+  <!-- ======================================================== -->
+  <!-- 1. SLIM TOP BAR (42px)                                   -->
+  <!-- ======================================================== -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo-badge">
+        <img class="studio-pro-brand-logo" src="assets/storyboard_ai_icon.png?v=20261012" width="34" height="34" alt="Storyboard AI Studio Pro">
+      </div>
+      <span class="brand-title">STORYBOARD AI PRO</span>
+      <span class="brand-tag">v2.5 STUDIO</span>
+    </div>
+
+    <div class="header-center-info">
+      <div class="status-pill" id="headerStatusPill">
+        <div class="status-led" id="headerStatusDot"></div>
+        <span id="headerStatusText">Đang kiểm tra trạng thái...</span>
+      </div>
+      <div class="header-project-pill" id="headerProjectPill">
+        <span class="text-dim">Dự án:</span>
+        <strong id="headerProjectName">Whiteboard Chronicles</strong>
+      </div>
+    </div>
+
+    <div class="header-tools">
+      <button class="btn btn-secondary btn-sm" id="btnPlayDemoHeader" onclick="loadSampleDemoVideo()" title="Xem thử video mẫu">
+        ▶ Video Mẫu
+      </button>
+
+      <button class="btn btn-secondary btn-sm" id="btnOpenProductions" title="Kho phim đã tạo">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        Kho Phim
+      </button>
+
+      <button class="btn btn-secondary btn-sm" id="btnOpenSettings" title="Cấu hình API và tài khoản Veo 3 Studio">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Cài Đặt API & Veo 3
+      </button>
+    </div>
+  </header>
+
+  <!-- Adaptive dock navigation: only visible where 3 full columns cannot fit. -->
+  <nav class="dock-nav" aria-label="Chuyển khu vực làm việc">
+    <button type="button" class="dock-tab dock-tab-setup" data-dock="setup" aria-pressed="false">⚙ Thiết lập</button>
+    <button type="button" class="dock-tab dock-tab-scenes" data-dock="scenes" aria-pressed="true">▦ Phân cảnh</button>
+    <button type="button" class="dock-tab dock-tab-monitor" data-dock="monitor" aria-pressed="false">▶ Xem trước &amp; nhật ký</button>
+  </nav>
+  <div class="dock-shade" id="dockShade" aria-hidden="true"></div>
+
+  <!-- ======================================================== -->
+  <!-- 2. ADAPTIVE STUDIO WORKSPACE                             -->
+  <!-- ======================================================== -->
+  <main class="workspace">
+    
+    <!-- ======================================================== -->
+    <!-- COLUMN 1: PRODUCTION CONTROL DOCK (340px)                -->
+    <!-- ======================================================== -->
+    <aside class="col-control">
+      
+      <!-- DOCK HEADER -->
+      <div class="col-header">
+        <div class="col-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          <span>Thiết Lập Sản Xuất</span>
+        </div>
+        <span class="badge badge-indigo">AI Engine</span>
+      </div>
+
+      <!-- DOCK SCROLLABLE BODY -->
+      <div class="control-body">
+        
+        <!-- SECTION 1: THÔNG SỐ TẬP PHIM -->
+        <div class="form-section">
+          <div class="section-title">1. Thông Số Tập Phim</div>
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label for="inSeries">Tên Phim</label>
+              <input type="text" id="inSeries" value="Whiteboard Chronicles" placeholder="Tên series">
+            </div>
+            <div class="field-wrap">
+              <label for="inEpisode">Tập Số</label>
+              <input type="number" id="inEpisode" value="1" min="1" max="999">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label for="inMinutes">Thời Lượng (Phút)</label>
+              <input type="number" id="inMinutes" value="1.0" step="0.5" min="0.1" max="180">
+            </div>
+            <div class="field-wrap">
+              <label for="inSceneSec">Độ Dài Cảnh (Giây)</label>
+              <input type="number" id="inSceneSec" value="25" min="5" max="60">
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: ĐẠO DIỄN NGHỆ THUẬT & DIỄN ĐỌC -->
+        <div class="form-section" id="genreProductionMode">
+          <div class="section-title">2. Đạo Diễn Nghệ Thuật & Diễn Đọc</div>
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label for="inGenre">Thể Loại Phim</label>
+              <select id="inGenre">
+                <option value="auto" selected>✨ Tự nhận diện (mặc định)</option>
+                <option value="stoic">Khắc kỷ / Stoicism Tây Ban Nha</option>
+                <option value="family_drama">Drama gia đình</option>
+                <option value="western">Western miền Viễn Tây</option>
+                <option value="action">Hành động, phiêu lưu</option>
+                <option value="history">Lịch sử</option>
+                <option value="documentary">Phim tài liệu / kể chuyện</option>
+                <option value="animation">Hoạt hình 2D/3D</option>
+                <option value="whiteboard">Vẽ bảng trắng</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <label for="inVisualStyle">Phong Cách Hình Ảnh</label>
+              <select id="inVisualStyle">
+                <option value="auto" selected>✨ Tự chọn theo thể loại</option>
+                <option value="color_cinematic">Phim màu điện ảnh / Photorealistic</option>
+                <option value="color_animation">Hoạt hình màu 2D/3D</option>
+                <option value="hand_color">Vẽ tay toàn bộ ảnh màu</option>
+                <option value="whiteboard">Vẽ tay trên bảng trắng</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label for="inLanguage">Ngôn Ngữ Thuyết Minh</label>
+              <select id="inLanguage">
+                <option value="Auto">✨ Tự nhận diện (khi dùng link)</option>
+                <optgroup label="Châu Á & Đông Nam Á">
+                  <option value="Vietnamese" selected>🇻🇳 Tiếng Việt</option>
+                  <option value="Chinese">🇨🇳 Tiếng Trung (Mandarin)</option>
+                  <option value="Japanese">🇯🇵 Tiếng Nhật (Japanese)</option>
+                  <option value="Korean">🇰🇷 Tiếng Hàn (Korean)</option>
+                  <option value="Thai">🇹🇭 Tiếng Thái (Thai)</option>
+                  <option value="Indonesian">🇮🇩 Tiếng Indonesia</option>
+                  <option value="Malay">🇲🇾 Tiếng Malaysia</option>
+                  <option value="Filipino">🇵🇭 Tiếng Philippines (Tagalog)</option>
+                  <option value="Hindi">🇮🇳 Tiếng Hindi (Ấn Độ)</option>
+                </optgroup>
+                <optgroup label="Âu - Mỹ & Quốc Tế">
+                  <option value="English">🇺🇸 Tiếng Anh (English US/UK)</option>
+                  <option value="Spanish">🇪🇸 Tiếng Tây Ban Nha (Spanish)</option>
+                  <option value="French">🇫🇷 Tiếng Pháp (French)</option>
+                  <option value="German">🇩🇪 Tiếng Đức (German)</option>
+                  <option value="Russian">🇷🇺 Tiếng Nga (Russian)</option>
+                  <option value="Portuguese">🇧🇷 Tiếng Bồ Đào Nha (Portuguese)</option>
+                  <option value="Italian">🇮🇹 Tiếng Ý (Italian)</option>
+                  <option value="Dutch">🇳🇱 Tiếng Hà Lan (Dutch)</option>
+                  <option value="Polish">🇵🇱 Tiếng Ba Lan (Polish)</option>
+                  <option value="Turkish">🇹🇷 Tiếng Thổ Nhĩ Kỳ (Turkish)</option>
+                  <option value="Swedish">🇸🇪 Tiếng Thụy Điển (Swedish)</option>
+                  <option value="Greek">🇬🇷 Tiếng Hy Lạp (Greek)</option>
+                  <option value="Arabic">🇸🇦 Tiếng Ả Rập (Arabic)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <label for="inRegion">Quốc Gia / Kiểu Phát Âm</label>
+              <select id="inRegion">
+                <option value="auto" selected>✨ Tự theo ngôn ngữ</option>
+                <option value="VN">🇻🇳 Việt Nam (Hà Nội / Sài Gòn)</option>
+                <option value="US">🇺🇸 Mỹ (American English)</option>
+                <option value="GB">🇬🇧 Anh (British English)</option>
+                <option value="ES">🇪🇸 Tây Ban Nha (España)</option>
+                <option value="MX">🇲🇽 Mexico / Mỹ Latinh</option>
+                <option value="FR">🇫🇷 Pháp (France)</option>
+                <option value="DE">🇩🇪 Đức (Germany)</option>
+                <option value="JP">🇯🇵 Nhật Bản (Japan)</option>
+                <option value="KR">🇰🇷 Hàn Quốc (Korea)</option>
+                <option value="CN">🇨🇳 Trung Quốc (China)</option>
+                <option value="BR">🇧🇷 Brazil (Portuguese)</option>
+                <option value="RU">🇷🇺 Nga (Russian)</option>
+                <option value="IT">🇮🇹 Ý (Italian)</option>
+                <option value="TH">🇹🇭 Thái Lan (Thai)</option>
+                <option value="ID">🇮🇩 Indonesia</option>
+                <option value="IN">🇮🇳 Ấn Độ (India)</option>
+                <option value="SA">🇸🇦 Ả Rập (Arabic)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-wrap" id="narratorVoiceRow" style="margin-top:6px;">
+            <label for="inVoice" id="inVoiceLabel">Giọng Kể Thuyết Minh (Việt Nam)</label>
+            <select id="inVoice">
+              <option value="auto" selected>✨ Tự động theo Quốc gia & Thể loại</option>
+              <optgroup label="🇻🇳 Giọng Nữ Việt Nam">
+                <option value="Aoede">Aoede — Nữ Hà Nội truyền cảm, kể chuyện ấm áp</option>
+                <option value="Kore">Kore — Nữ Sài Gòn dứt khoát, tin tức & tài liệu</option>
+                <option value="Leda">Leda — Nữ trẻ trung, hiện đại, năng động</option>
+                <option value="Puck">Puck — Nữ hoạt hình, nhí nhảnh, tươi vui</option>
+                <option value="Zephyr">Zephyr — Nữ trong trẻo, khoa học & tri thức</option>
+              </optgroup>
+              <optgroup label="🇻🇳 Giọng Nam Việt Nam">
+                <option value="Orus">Orus — Nam truyền cảm, ấm áp, đời thường</option>
+                <option value="Charon">Charon — Nam trầm đĩnh đạc, tài liệu lịch sử</option>
+                <option value="Gacrux">Gacrux — Nam trưởng thành, sâu sắc, triết lý</option>
+                <option value="Fenrir">Fenrir — Nam mạnh mẽ, hành động, kịch tính</option>
+                <option value="Alnilam">Alnilam — Nam uy quyền, điện ảnh</option>
+              </optgroup>
+              <option value="__ALL__">🌐 Hiển thị tất cả 30 giọng quốc tế...</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SECTION 3: KỊCH BẢN & CỐT TRUYỆN (1 Ô NHẬP DUY NHẤT) -->
+        <div class="form-section">
+          <div class="prompt-head">
+            <div class="section-title" style="margin-bottom:0;" id="promptSectionTitle">3. Kịch Bản & Cốt Truyện</div>
+            <span class="prompt-tip" id="promptTip">Chọn mẫu nhanh:</span>
+          </div>
+          <div class="field-wrap" style="margin-bottom:6px;">
+            <label for="inInputMode">Chế Độ Nhập</label>
+            <select id="inInputMode">
+              <option value="idea" selected>💡 Ý tưởng — AI tự sáng tác kịch bản</option>
+              <option value="link">🔗 Link YouTube — Tự nhận diện & Clone video</option>
+              <option value="script">🔒 Kịch bản hoàn chỉnh — Khóa lời thoại nguyên bản</option>
+            </select>
+          </div>
+          <!-- Hidden input for backward compatibility with test suites -->
+          <input type="hidden" id="inReferenceUrl" value="">
+          
+          <div class="field-wrap" style="margin-bottom:3px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+              <label for="inPrompt" id="inPromptLabel">Ý Tưởng / Cốt Truyện Phim</label>
+              <button type="button" class="btn btn-secondary btn-xs" id="btnAnalyzeLink" style="display:none;padding:2px 7px;font-size:0.66rem;color:#818cf8;border-color:rgba(99,102,241,0.4);" title="Quét thời lượng phút, ngôn ngữ, quốc gia và chất giọng của video">
+                ⚡ Quét Video
+              </button>
+            </div>
+            <textarea id="inPrompt" placeholder="Nhập tóm tắt kịch bản, hành trình nhân vật hoặc ý tưởng câu chuyện..."></textarea>
+          </div>
+
+          <div id="linkDetectBadge" class="link-detect-badge" style="display:none;"></div>
+
+          <div class="hint-chips" id="hintChipsRow">
+            <span class="hint-chip" data-type="history">🏛️ Lịch sử</span>
+            <span class="hint-chip" data-type="science">🌌 Khoa học</span>
+            <span class="hint-chip" data-type="startup">💡 Khởi nghiệp</span>
+          </div>
+        </div>
+
+        <!-- SECTION 4: ĐỘNG CƠ RENDER & PHỤ ĐỀ -->
+        <div class="form-section">
+          <div class="section-title">4. Động Cơ Render & Phụ Đề</div>
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label for="inImageSource">Nguồn Vẽ Ảnh</label>
+              <select id="inImageSource">
+                <option value="mcp_v2" selected>⚡ Google Flow MCP riêng (Nano Banana)</option>
+                <option value="v2_tuanstor">Neural Canvas V2 (nguồn cũ, phụ thuộc V2)</option>
+                <option value="gemini">Gemini Direct Engine</option>
+              </select>
+            </div>
+            <div class="field-wrap">
+              <label for="inResolution">Độ Phân Giải</label>
+              <select id="inResolution">
+                <option value="1280x720" selected>HD 1280x720</option>
+                <option value="1920x1080">Full HD 1080p</option>
+                <option value="640x360">Preview 360p</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MCP / VEO 3 OPTIONS BOX -->
+          <div class="mcp-config-box" id="mcpConfigRow">
+            <div class="mcp-config-head">
+              <span>⚡ GOOGLE FLOW MCP RIÊNG — TẠO ẢNH</span>
+              <span class="mcp-safe-badge">Ultra HD Canvas</span>
+            </div>
+            <div class="form-grid-2">
+              <div class="field-wrap">
+                <label for="inMcpModel">Mô hình tạo ảnh</label>
+                <select id="inMcpModel">
+                  <option value="1" selected>Nano Banana 2 Lite</option>
+                  <option value="0">Nano Banana Pro</option>
+                  <option value="2">Nano Banana 2.1</option>
+                </select>
+              </div>
+              <div class="field-wrap">
+                <label for="inMcpMaxImages">Ảnh mới tối đa / Tập (giới hạn credit)</label>
+                <input type="number" id="inMcpMaxImages" value="20" min="1" max="1000">
+              </div>
+            </div>
+            <label for="inMcpVisualReuse" style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;color:#cbd5e1;font-size:.75rem;line-height:1.5;">
+              <input type="checkbox" id="inMcpVisualReuse" style="margin-top:3px;">
+              Tiết kiệm credit: tái dùng ảnh cho các cảnh gần nhau khi số cảnh vượt hạn mức (có lặp hình, giảm độ bám sát cảnh).
+            </label>
+            <p id="imageBudgetHint" role="status" style="font-size:.74rem;color:#94a3b8;margin:7px 0 0;">Đang tính số cảnh dự kiến...</p>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label for="inModel">LLM Model</label>
+              <input type="text" id="inModel" value="gemini-3.8-flash">
+            </div>
+            <div class="field-wrap">
+              <label for="inSubtitleStyle">Kiểu Phụ Đề</label>
+              <select id="inSubtitleStyle">
+                <option value="karaoke_viral" selected>🔥 Karaoke Chạy Chữ (Trending)</option>
+                <option value="yellow_black">🟡 Vàng Tươi Viền Đen (Cổ điển)</option>
+                <option value="yellow_box">🌟 Vàng Tươi Hộp Nền Đen</option>
+                <option value="white_box">⚪ Chữ Trắng Hộp Nền Đen</option>
+                <option value="white_stroke">🔲 Chữ Trắng Viền Đen Dày</option>
+                <option value="cyan_black">🔷 Xanh Neon Viền Đen</option>
+                <option value="green_black">🟢 Xanh Lá Viền Đen</option>
+                <option value="none">🚫 Không Chèn Phụ Đề</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-wrap" style="margin-top:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <label for="inSubtitleSize">Cỡ Chữ Phụ Đề</label>
+              <span id="subtitleSizeBadge" style="font-size:0.72rem;color:#818cf8;font-weight:700;">52px</span>
+            </div>
+            <input type="number" id="inSubtitleSize" value="52" min="18" max="120" step="2" placeholder="52" title="Nhập cỡ chữ tùy ý (18 - 120px)">
+          </div>
+
+          <div class="subtitle-size-chips" style="display:flex;gap:5px;margin-top:5px;">
+            <button type="button" class="btn btn-secondary btn-xs sub-size-chip" data-size="36" onclick="setSubtitleSize(36)" style="flex:1;padding:3px 0;font-size:0.7rem;">36px</button>
+            <button type="button" class="btn btn-secondary btn-xs sub-size-chip active-chip" data-size="52" onclick="setSubtitleSize(52)" style="flex:1;padding:3px 0;font-size:0.7rem;color:#818cf8;border-color:#818cf8;font-weight:700;">52px (Chuẩn)</button>
+            <button type="button" class="btn btn-secondary btn-xs sub-size-chip" data-size="64" onclick="setSubtitleSize(64)" style="flex:1;padding:3px 0;font-size:0.7rem;">64px (Lớn)</button>
+            <button type="button" class="btn btn-secondary btn-xs sub-size-chip" data-size="76" onclick="setSubtitleSize(76)" style="flex:1;padding:3px 0;font-size:0.7rem;">76px (Cực đại)</button>
+          </div>
+          <input type="hidden" id="inWorkers" value="1">
+        </div>
+
+        <!-- SECTION 5: CỤM NÚT ĐIỀU KHIỂN & TIẾN ĐỘ -->
+        <div class="form-section" style="border-bottom:none;">
+          <div class="action-buttons-group">
+            <button class="btn btn-primary btn-produce" id="btnLive" disabled aria-disabled="true" title="Đang kiểm tra trạng thái sản xuất">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <span id="btnLiveLabel">Đang kiểm tra trạng thái...</span>
+            </button>
+            <div class="action-sub-row">
+              <button class="btn btn-secondary btn-sm" id="btnOffline" style="flex:1;">
+                🧪 Test Offline
+              </button>
+              <button class="btn btn-danger btn-sm" id="btnStop" style="display:none;flex:1;">
+                ⏹ Dừng Lại
+              </button>
+            </div>
+          </div>
+
+          <!-- STEPPER TIẾN ĐỘ THỜI GIAN THỰC -->
+          <div class="stepper-box" style="margin-top:10px;">
+            <div class="stepper-head">
+              <span>TIẾN ĐỘ THỜI GIAN THỰC</span>
+              <span id="progressPercent" style="color:#818cf8;font-weight:700;">0%</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="stepper-steps-track">
+              <div class="step-badge" id="stepScript">1. Kịch bản</div>
+              <div class="step-badge" id="stepImage">2. Vẽ ảnh</div>
+              <div class="step-badge" id="stepAnim">3. Hoạt ảnh</div>
+              <div class="step-badge" id="stepAudio">4. Thuyết minh</div>
+              <div class="step-badge" id="stepConcat">5. Ghép tập</div>
+            </div>
+            <div class="pipeline-status-text" id="pipelineMessage">
+              Sẵn sàng sản xuất
+            </div>
+          </div>
+        </div>
+
+        <!-- FOOTER SPECS (SLIM & CLEAN) -->
+        <div class="system-specs-box">
+          <div class="spec-row">
+            <span class="text-dim">Động cơ:</span>
+            <span>Google Flow MCP riêng — Nano Banana</span>
+            <span class="text-dim">•</span>
+            <span class="text-cyan">30 TTS Voices</span>
+            <span class="text-dim">•</span>
+            <span class="text-main">Karaoke Sub</span>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ======================================================== -->
+    <!-- COLUMN 2: STORYBOARD SCENE DECK (1fr - LẤP ĐẦY TRUNG TÂM) -->
+    <!-- ======================================================== -->
+    <section class="col-storyboard">
+      
+      <!-- DECK HEADER -->
+      <div class="col-header">
+        <div class="col-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+          <span>Storyboard Phân Cảnh (Toàn Bộ Các Cảnh)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-cyan" id="scenesCountBadge">0 cảnh</span>
+          <button class="btn btn-secondary btn-xs" onclick="reloadEpisodeDetails()" title="Tải lại danh sách cảnh">
+            🔄 Làm Mới
+          </button>
+        </div>
+      </div>
+
+      <!-- SCENES GRID VIEWPORT (LƯỚI ĐA CỘT LẤP ĐẦY HOÀN TOÀN) -->
+      <div class="scenes-viewport" id="scenesContainer">
+        <div class="storyboard-empty-state">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <div style="font-weight:600;font-size:0.95rem;color:#e2e8f0;margin-top:10px;">Kịch Bản Phân Cảnh (Storyboard Deck)</div>
+          <div style="font-size:0.8rem;color:var(--text-dim);max-width:360px;text-align:center;line-height:1.45;margin-top:6px;">
+            Nhập ý tưởng rồi bấm <strong>"Sản Xuất Bằng AI"</strong> hoặc mở <strong>"Kho Phim"</strong> để hiển thị toàn bộ lưới phân cảnh hoạt hình.
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadSampleDemoVideo()" style="margin-top:12px;">
+            ▶ Xem Video Mẫu Hoạt Ảnh
+          </button>
+        </div>
+      </div>
+
+      <!-- MASTER FILMSTRIP TIMELINE BAR (CHÂN STORYBOARD DECK) -->
+      <div class="filmstrip-bar" id="filmstripBar">
+        <div class="filmstrip-head">
+          <span>TIMELINE TOÀN TẬP</span>
+          <span class="text-dim" id="timelineDurationText">0:00 - 0:00</span>
+        </div>
+        <div class="timeline-track" id="timelineTrack">
+          <!-- Timeline segments will be generated dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- COLUMN 3: CINEMA MONITOR, INSPECTOR & LOGS (390px)        -->
+    <!-- ======================================================== -->
+    <aside class="col-monitor">
+      
+      <!-- 1. CINEMA VIDEO MONITOR (16:9 RATIO) -->
+      <div class="monitor-card">
+        <div class="monitor-head">
+          <div class="monitor-title" id="playerTitle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line></svg>
+            <span>Cinema Monitor</span>
+          </div>
+          <div class="monitor-switch">
+            <button class="mode-pill active" id="modeBtnEpisode" title="Xem video ghép toàn tập">🎬 Cả Tập</button>
+            <button class="mode-pill" id="modeBtnScene" title="Xem clip riêng của cảnh đang chọn">🎞️ Cảnh</button>
+          </div>
+        </div>
+
+        <div class="video-container">
+          <video id="cinemaVideo" controls preload="metadata" style="display:none;"></video>
+          
+          <div class="video-idle-state" id="videoEmptyState">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <polygon points="10 8 16 12 10 16 10 8"></polygon>
+            </svg>
+            <div style="font-weight:600;font-size:0.85rem;color:#cbd5e1;">Màn Hình Xem Trước 16:9</div>
+            <div style="font-size:0.72rem;color:var(--text-dim);text-align:center;padding:0 12px;">Sẵn sàng phát video Master Cut hoặc clip riêng từng cảnh</div>
+            <button class="btn btn-secondary btn-xs" onclick="loadSampleDemoVideo()" style="margin-top:6px;">▶ Xem Clip Mẫu</button>
+          </div>
+        </div>
+
+        <div class="monitor-footer">
+          <span class="meta-tag" id="playerMetaText">16:9 H.264 HD</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-xs" id="btnOpenFolder" title="Mở thư mục chứa video">
+              📁 Thư Mục
+            </button>
+            <a class="btn btn-primary btn-xs" id="btnDownloadMp4" href="#" download="storyboard_video.mp4" title="Tải file video MP4">
+              ⬇ Tải MP4
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. SCENE INSPECTOR (CHI TIẾT CẢNH ĐANG CHỌN) -->
+      <div class="inspector-card">
+        <div class="card-mini-head">
+          <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span style="white-space:nowrap;">CHI TIẾT CẢNH</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+            <span class="badge badge-indigo" id="inspectorSceneNum">Chọn cảnh</span>
+            <span class="badge badge-pass" id="inspectorSceneStatus" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="inspector-content" id="inspectorBody">
+          <div class="inspector-field" id="inspectorTitleField" style="display:none;">
+            <div class="field-title">Tiêu đề / Tóm tắt cảnh:</div>
+            <div class="field-text font-bold" id="inspectorSceneTitle" style="color:#ffffff;font-weight:600;line-height:1.35;">-</div>
+          </div>
+          <div class="inspector-field">
+            <div class="field-title">Lời thoại thuyết minh:</div>
+            <div class="field-text narration-box" id="inspectorNarration">Chọn một thẻ cảnh ở giữa để xem toàn bộ kịch bản, lời thoại và nghe thuyết minh...</div>
+          </div>
+          <div class="inspector-field">
+            <div class="field-title">Mô tả nét vẽ & bối cảnh:</div>
+            <div class="field-text text-dim" id="inspectorDesc">-</div>
+          </div>
+          <div class="inspector-audio" id="inspectorAudioBox"></div>
+        </div>
+      </div>
+
+      <!-- 3. LIVE ENGINE CONSOLE (NHẬT KÝ THỰC THI) -->
+      <div class="console-card">
+        <div class="card-mini-head">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="status-led active" style="width:6px;height:6px;"></div>
+            <span>NHẬT KÝ THỰC THI</span>
+          </div>
+          <span style="font-size:0.65rem;color:var(--text-dim);">Live Terminal</span>
+        </div>
+        <div class="console-box" id="logsConsole">Khởi động Storyboard AI Studio Pro thành công.</div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODALS                                                   -->
+  <!-- ======================================================== -->
+
+  <!-- MODAL: API KEY & PROVIDERS -->
+  <div class="modal-overlay" id="modalApiKey">
+    <div class="modal-dialog" style="max-width:680px;max-height:85vh;overflow-y:auto;">
+      <div class="modal-header">
+        <h3 style="font-size:1.05rem;color:#ffffff;display:flex;align-items:center;gap:8px;">
+          ⚙️ Cài Đặt API & Tài Khoản Google Flow MCP
+        </h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div>
+        <div class="field-wrap" style="margin-bottom:12px;">
+          <label for="inGeminiKey">Gemini API Key Riêng</label>
+          <input type="password" id="inGeminiKey" placeholder="Nhập khóa AIzaSy... nếu bạn có API key riêng">
+        </div>
+
+        <div class="settings-status-box">
+          <div><strong id="statusGemini">Gemini Key: Đang kiểm tra...</strong></div>
+          <div><strong id="statusV2">Neural Canvas V2: Đang kiểm tra...</strong></div>
+          <div><strong id="statusMcp">MCP riêng: Đang kiểm tra...</strong></div>
+        </div>
+
+        <div id="mcpAccountSection" style="padding:14px 0;border-top:1px solid #334155;margin-top:14px;">
+          <div style="font-size:.94rem;color:#fff;font-weight:700;margin-bottom:7px;">
+            🌐 MCP Riêng Storyboard — Tài khoản Google Flow
+          </div>
+          <p style="font-size:.76rem;color:#94a3b8;line-height:1.55;margin-bottom:10px;">
+            Bấm Thêm để tạo hồ sơ Chrome riêng và mở trang đăng nhập Google Flow. Studio không hỏi mật khẩu hay sao chép cookie. Tài khoản mới phải có quyền truy cập công cụ Flow đã cấu hình; thêm hồ sơ không tự cấp quyền dự án.
+          </p>
+          <div class="field-wrap" style="margin-bottom:9px;">
+            <label for="mcpAccountSelect">Tài khoản & Phiên làm việc</label>
+            <select id="mcpAccountSelect" style="width:100%;"></select>
+          </div>
+          <div class="field-wrap" style="margin-bottom:10px;">
+            <div id="mcpToolAutoStatus" role="status" style="font-size:.79rem;color:#94a3b8;">
+              Công cụ Google Flow được gắn sẵn. Chỉ cần mở Chrome, đăng nhập tài khoản của bạn.
+            </div>
+            <p style="font-size:.72rem;color:#94a3b8;line-height:1.45;">
+              Studio sẽ tự tìm đúng công cụ và lưu đường dẫn theo tài khoản; không cần nhập URL.
+            </p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px;">
+            <button class="btn btn-primary btn-sm" id="btnMcpOpenLogin" type="button">🌐 Mở đăng nhập Google Flow</button>
+            <button class="btn btn-secondary btn-sm" id="btnMcpCheckAccount">Kiểm tra phiên duyệt</button>
+            <button class="btn btn-secondary btn-sm" id="btnMcpVerifyAccount" type="button">Xác minh MCP tạo ảnh</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+            <input type="text" id="mcpNewAccountName" placeholder="Tên tài khoản (ví dụ: Google Flow 2)"
+              style="min-width:0;flex:1;padding:9px;border-radius:6px;background:#0f172a;color:#fff;border:1px solid #475569;">
+            <button class="btn btn-secondary btn-sm" id="btnMcpAddAccount" type="button">+ Thêm & mở đăng nhập</button>
+          </div>
+          <div style="margin:14px 0 11px;padding:12px;border:1px solid #334155;border-radius:10px;">
+            <div style="font-size:.9rem;color:#fff;font-weight:700;margin-bottom:6px;">📂 Dự án Google Flow theo thể loại</div>
+            <p style="font-size:.75rem;color:#94a3b8;margin-bottom:9px;line-height:1.45;">
+              Mỗi tài khoản lưu dự án riêng. Mở Web Tool của dự án trong Chrome bên trên, rồi chọn từ danh sách. Studio không cần nhập URL.
+            </p>
+            <div class="field-wrap" style="margin-bottom:8px;">
+              <label for="mcpOpenProjectTab">Web Tool đang mở trong Chrome</label>
+              <select id="mcpOpenProjectTab" style="width:100%;" aria-label="Web Tool đang mở"><option value="">Bấm Quét các tab Flow</option></select>
+            </div>
+            <div class="field-wrap" style="margin-bottom:8px;">
+              <label for="mcpProjectName">Tên dự án dễ nhận biết</label>
+              <input type="text" id="mcpProjectName" maxlength="65" placeholder="Ví dụ: Khắc kỷ Tây Ban Nha"
+                style="width:100%;padding:9px;background:#0f172a;color:#fff;border:1px solid #475569;border-radius:6px;">
+            </div>
+            <div class="field-wrap" style="margin-bottom:8px;">
+              <label for="mcpGenreBind">Gán thể loại phim</label>
+              <select id="mcpGenreBind" style="width:100%;">
+                <option value="auto">Mặc định / Tự chọn</option>
+                <option value="stoic">Khắc kỷ</option>
+                <option value="family_drama">Drama gia đình</option>
+                <option value="western">Western</option>
+                <option value="action">Hành động</option>
+                <option value="history">Lịch sử</option>
+                <option value="documentary">Tài liệu / Kể chuyện</option>
+                <option value="animation">Hoạt hình</option>
+                <option value="whiteboard">Vẽ bảng trắng</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 10px;">
+              <button class="btn btn-secondary btn-sm" id="btnMcpScanProjects" type="button">Quét các tab Flow</button>
+              <button class="btn btn-primary btn-sm" id="btnMcpRegisterProject" type="button">+ Thêm / Gán dự án</button>
+            </div>
+            <div class="field-wrap" style="margin-bottom:8px;">
+              <label for="mcpProjectSelect">Dự án đã lưu</label>
+              <select id="mcpProjectSelect" style="width:100%;"></select>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px;">
+              <button class="btn btn-secondary btn-sm" id="btnMcpSwitchProject" type="button">Chuyển sang dự án này</button>
+              <button class="btn btn-secondary btn-sm" id="btnMcpOpenProject" type="button">Mở dự án</button>
+            </div>
+            <div id="mcpProjectStatus" role="status" style="font-size:.74rem;color:#94a3b8;line-height:1.5;">
+              Dự án cần có đúng Web Tool tương thích. Chọn dự án rồi xác minh MCP trước sản xuất.
+            </div>
+          </div>
+          <div id="mcpAccountStatus" role="status"
+            style="font-size:.76rem;line-height:1.6;color:#cbd5e1;white-space:pre-line;">
+            Chưa xác minh tài khoản. Thêm tài khoản → đăng nhập Google bằng Chrome → Xác minh MCP.
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+          <button class="btn btn-secondary btn-sm modal-close">Đóng</button>
+          <button class="btn btn-primary btn-sm" id="btnSaveKey">Lưu Khóa API</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ORGANIZED & REVERSIBLE PRODUCTIONS GALLERY -->
+  <div class="modal-overlay" id="modalProductions">
+    <div class="modal-dialog gallery-dialog">
+      <div class="modal-header">
+        <h3 style="font-size:1.05rem;color:#ffffff;">📁 Kho Phim &amp; Dự Án</h3>
+        <button class="modal-close" aria-label="Đóng kho phim">&times;</button>
+      </div>
+      <div id="gallerySummary" class="gallery-summary">Đang kiểm tra kho phim...</div>
+      <div class="gallery-toolbar">
+        <input id="gallerySearch" type="search" placeholder="Tìm dự án hoặc tập phim..." autocomplete="off" aria-label="Tìm dự án">
+        <select id="galleryFilter" aria-label="Nhóm dự án">
+          <option value="main">🎬 Phim chính</option>
+          <option value="test">🧪 Bản thử nghiệm</option>
+          <option value="all">📂 Tất cả</option>
+          <option value="trash">🗑 Thùng rác</option>
+        </select>
+        <select id="gallerySort" aria-label="Sắp xếp dự án">
+          <option value="newest">Mới nhất</option>
+          <option value="name">Tên A–Z</option>
+          <option value="size">Dung lượng lớn</option>
+        </select>
+      </div>
+      <p class="gallery-note">Chọn <strong>Xóa</strong> để đưa phim vào Thùng rác; có thể khôi phục. Xóa vĩnh viễn chỉ thực hiện trong Thùng rác.</p>
+      <div id="productionsList" class="gallery-list" aria-live="polite">Đang tải danh sách phim...</div>
+      <div class="gallery-footer">
+        <span id="galleryFeedback" class="text-dim" role="status"></span>
+        <button class="btn btn-secondary btn-sm modal-close">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMAGE LIGHTBOX -->
+  <div class="modal-overlay" id="modalLightbox">
+    <div class="modal-dialog lightbox-dialog">
+      <button class="modal-close lightbox-close">&times;</button>
+      <img id="lightboxImg" class="lightbox-img" src="" alt="Zoom preview">
+    </div>
+  </div>
+
+  <script src="app.js?v=20261013_dock_layout1"></script>
+</body>
+</html>

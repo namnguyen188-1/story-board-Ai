@@ -1,0 +1,130 @@
+{
+  "version": "1.0",
+  "total_genres": 11,
+  "genres": [
+    {
+      "id": "stoic",
+      "name_vi": "Khắc kỷ / Triết học",
+      "name_en": "Stoic & Ancient Philosophy",
+      "channels": [
+        "Stoic Sovereign",
+        "Notas Estoicas"
+      ],
+      "visual_style": "Monumental classical marble and bronze statues, ancient Roman Pantheon architecture, golden hour and museum chiaroscuro, 35mm cinema lens.",
+      "pacing": "Slow, majestic, deliberate, monumental tilts and slow drifts.",
+      "voice_speed": -10,
+      "sample_topic": "Làm chủ tâm trí: Biến nghịch cảnh thành sức mạnh nội tâm bất khả xâm phạm"
+    },
+    {
+      "id": "family_drama",
+      "name_vi": "Drama gia đình / Xã hội",
+      "name_en": "Family & HOA Drama",
+      "channels": [
+        "The HOA Fallout"
+      ],
+      "visual_style": "Photorealistic contemporary cinema, 35mm anamorphic, sharp fluorescent interior vs warm home lighting, subtle micro-expressions.",
+      "pacing": "Fast escalating, tense dialogue, close-ups on accusatory gestures, steadicam follow.",
+      "voice_speed": 0,
+      "sample_topic": "Bẫy thế chấp bí mật: Khi ban quản trị âm mưu trục xuất cư dân lớn tuổi"
+    },
+    {
+      "id": "mafia_thriller",
+      "name_vi": "Trinh thám / Mafia / Đấu trí",
+      "name_en": "Detective / Mafia / Mind Games",
+      "channels": [
+        "По ту сторону правды"
+      ],
+      "visual_style": "High-contrast film noir, wet asphalt streets, Venetian blind shadows, cold cyan practical lights, rain on trench coats.",
+      "pacing": "Slow suspenseful build-up followed by sharp revelations, dutch angles, over-the-shoulder interrogations.",
+      "voice_speed": -5,
+      "sample_topic": "Cuộc gọi tống tiền lúc nửa đêm: Màn đấu trí sinh tử giữa thanh tra và ông trùm ngầm"
+    },
+    {
+      "id": "psychological_horror",
+      "name_vi": "Kinh dị tâm lý / Giật gân",
+      "name_en": "Psychological Horror & Thriller",
+      "channels": [],
+      "visual_style": "Deep shadowy chiaroscuro, flickering practical lamps, volumetric fog, lifted midnight blue blacks, unsettling slow push-in camera.",
+      "pacing": "Creeping dread, tense silence, sudden visual reveals, unblinking eyes.",
+      "voice_speed": -8,
+      "sample_topic": "Căn phòng cấm tầng áp mái: Tiếng bước chân bí ẩn mỗi khi đồng hồ điểm 3 giờ sáng"
+    },
+    {
+      "id": "romance_melodrama",
+      "name_vi": "Ngôn tình / Mối tình trắc trở",
+      "name_en": "Romance & Melodrama",
+      "channels": [],
+      "visual_style": "Soft warm golden hour, shallow depth of field, gentle lens flares, tender gazes, slow drifting parallax.",
+      "pacing": "Poetic, emotional pauses, subtle hand touches, rain on window pane.",
+      "voice_speed": -5,
+      "sample_topic": "Cuộc hội ngộ sau mười năm: Lời hứa thời niên thiếu dưới tán lá phong vàng"
+    },
+    {
+      "id": "western",
+      "name_vi": "Miền Viễn Tây",
+      "name_en": "Western Frontier",
+      "channels": [
+        "Wild Frontier Chronicles"
+      ],
+      "visual_style": "Dusty desert vistas, weathered wooden saloons, scorching harsh sunlight, leather textures, extreme close-up on eyes and belt buckles.",
+      "pacing": "Tense standoff, whistling wind, sudden motivated camera pans, steady slow tracking.",
+      "voice_speed": -5,
+      "sample_topic": "Thị trấn hoang tàn: Cuộc đối đầu vì danh dự giữa tay thợ săn tiền thưởng và cựu cảnh sát trưởng"
+    },
+    {
+      "id": "action",
+      "name_vi": "Hành động / Phiêu lưu",
+      "name_en": "Action & Adventure",
+      "channels": [],
+      "visual_style": "Dynamic motion blur, high shutter speed, cinematic smoke and sparks, handheld kinetic camera, high contrast teal and orange.",
+      "pacing": "Rapid motivated choreography, defensive dodges, swift camera whips, relentless momentum.",
+      "voice_speed": 5,
+      "sample_topic": "Chạy đua với thời gian: Cuộc đào thoát nghẹt thở khỏi tòa cao ốc bị phong tỏa"
+    },
+    {
+      "id": "history",
+      "name_vi": "Lịch sử / Hùng tráng",
+      "name_en": "Epic History & Civilizations",
+      "channels": [
+        "Veiled History",
+        "Ancient Mysteries"
+      ],
+      "visual_style": "Monumental ancient temples, weathered sandstone ruins, torchlight, historical authentic costume fabrics, sweeping crane vistas.",
+      "pacing": "Grand, solemn, historical gravitas, slow panoramic sweeps.",
+      "voice_speed": -5,
+      "sample_topic": "Bí ẩn Kim Tự Tháp: Công nghệ bị lãng quên của vương triều cổ đại"
+    },
+    {
+      "id": "documentary",
+      "name_vi": "Tài liệu / Kể chuyện",
+      "name_en": "Documentary & Investigative Storytelling",
+      "channels": [
+        "Veiled History"
+      ],
+      "visual_style": "Authentic archival textures, atmospheric macro shots of evidence, cinematic b-roll with naturalistic ambient light.",
+      "pacing": "Measured, investigative, curious, steady pushes toward key visual evidence.",
+      "voice_speed": 0,
+      "sample_topic": "Những hồ sơ mật giải mã: Sự thật đằng sau biến cố thay đổi cả thế kỷ"
+    },
+    {
+      "id": "animation",
+      "name_vi": "Hoạt hình 2D/3D",
+      "name_en": "Stylized 3D CGI & 2D Anime Animation",
+      "channels": [],
+      "visual_style": "Vibrant Pixar-style stylized 3D lighting or Makoto Shinkai cel-shaded anime, magical particle glows, expressive character eyes.",
+      "pacing": "Expressive 12 principles of animation, anticipation, dynamic squash and stretch.",
+      "voice_speed": 5,
+      "sample_topic": "Ngọn lửa tinh nghịch: Hành trình tìm lại ánh sáng của chú bé thợ rèn kỳ ảo"
+    },
+    {
+      "id": "whiteboard",
+      "name_vi": "Vẽ bảng trắng tư duy",
+      "name_en": "Whiteboard & Mind Mapping (After Skool)",
+      "channels": [],
+      "visual_style": "Pure white canvas, real hand drawing with bold colored markers, clean conceptual icons, synchronous illustration with voice narration.",
+      "pacing": "Synchronous 1:1 stroke drawing with voice cadence, brisk, educational, crystal clear.",
+      "voice_speed": 0,
+      "sample_topic": "Vòng tròn năng lực: Cách người khôn ngoan đưa ra quyết định mà không bao giờ hối tiếc"
+    }
+  ]
+}

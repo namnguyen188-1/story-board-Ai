@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "release_role": "StoryBoard standalone Google Flow MCP resources",
+  "include_files": [
+    "studio_mcp/flow_tool.json",
+    "studio_mcp/__init__.py",
+    "studio_mcp/accounts.py",
+    "studio_mcp/paths.py",
+    "studio_mcp/transport.py",
+    "studio_mcp/image_backend.py",
+    "studio_mcp/node/node.exe",
+    "studio_mcp/node/package.json",
+    "studio_mcp/node/studio-flow-rpc.mjs",
+    "studio_mcp/node/studio-flow-config.json",
+    "studio_mcp/node/dist/cli.js",
+    "studio_mcp/node/dist/browser/tool-tab.js",
+    "studio_mcp/projects.py",
+    "studio_mcp/MCP_V2_PINNED_BASELINE.json",
+    "studio_mcp/v2_baseline.py",
+    "studio_mcp/node/package-lock.json",
+    "studio_mcp/node/verify-v2-compatible-tool.mjs",
+    "studio_mcp/production_tab.py",
+    "studio_mcp/node/production-job-tab.mjs",
+    "studio_mcp/auto_flow_manager.py",
+    "studio_mcp/auto_project_provision.py",
+    "studio_mcp/node/auto-flow-provision-project.mjs",
+    "studio_mcp/shared_tool_install.py",
+    "studio_mcp/node/auto-flow-shared-install.mjs",
+    "studio_mcp/node/read-only-google-flow-auth.mjs"
+  ],
+  "include_trees": [
+    "studio_mcp/node/dist",
+    "studio_mcp/node/node_modules"
+  ],
+  "exclude_folders": [
+    "runtime",
+    "productions",
+    "checkpoints",
+    "inbox",
+    "diagnostics",
+    "__pycache__"
+  ],
+  "exclude_patterns": [
+    "*.env",
+    "*.key",
+    "*cookie*",
+    "*token*",
+    "*credentials*",
+    "storyboard_accounts.json",
+    "studio_private_tool_url.json"
+  ],
+  "per_user_on_install": [
+    "new Studio account registry",
+    "fresh Google Chrome user-data-dir",
+    "fresh MCP state dir"
+  ],
+  "customer_flow": "Open sign-in button; Chrome opens bundled share; Flow login & permission; Studio detects project route; no manual URL input.",
+  "release_constraints": [
+    "Google Chrome must be available",
+    "User needs Flow tool permission",
+    "Python dependencies need a clean-machine packaging test",
+    "Include official Node.js v24 license and notices before redistribution",
+    "Perform a clean-machine account onboarding test; none performed yet.",
+    "Bundled share Tool ID 69da86fb was verified through real Flow UI and native MCP bridge on two separate Chrome profiles; clean-machine onboarding is still untested.",
+    "Project registration performs read-only native bridge and Flow image SDK verification; an unrelated Google Flow Web Tool must be rejected before any paid production.",
+    "The pinned V2 core and four reviewed Studio adapters must pass SHA256 verification, and package-lock dependencies must be shipped unchanged.",
+    "Google Flow project creation requires proven attachment of a V2-compatible Web Tool; never mass-create empty projects at Studio startup.",
+    "Auto Flow may reuse and switch only verified compatible projects and must not retry submit_uncertain receipts or bypass Google authentication.",
+    "Auto project provisioning only runs after account login and a previously verified V2-compatible Tool identity; an empty Flow project must never be accepted.",
+    "New-project creation is journaled before UI click, capped to two verified creations per 24 hours, and never automatically retried if Google Flow returns an uncertain result.",
+    "Old submit_uncertain image jobs are never re-submitted; switching projects is for future independent productions only.",
+    "Google account-level quota may remain exhausted after switching Flow projects; do not promise a quota reset."
+  ]
+}

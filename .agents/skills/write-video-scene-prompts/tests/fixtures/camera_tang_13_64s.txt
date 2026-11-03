@@ -1,0 +1,87 @@
+========== SCENE_001 | TIMELINE 00:00–00:08 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical 9:16, 8.0 seconds, 24 fps cinematic photorealism, supernatural mystery, one uninterrupted tracking shot. Quiet high-contrast nocturnal mood, realistic proportions and expressions, not animation. Self-contained text-to-video prompt; no reference image.
+CHARACTERS: Minh, Vietnamese male 34, lean, neatly side-parted short black hair, clean-shaven, navy unmarked security jacket, pale-gray shirt, black trousers; cautious deep Vietnamese voice. On the CCTV feed only: an adult female apparition with straight shoulder-length charcoal hair, plain long ivory coat, a softly translucent silhouette and gentle face, silent.
+SETTING & START STATE: Nighttime security alcove on building floor 13, opening directly to a narrow corridor. Matte-red utility storage door visible on an old CRT CCTV display, positioned two meters to the right of the alcove in the real corridor. Minh sits at brushed-steel console, looking at a previously empty live feed; no signs or screen text.
+LIGHTING & COLOR: Amber fluorescent practicals, faint monitor-blue highlights on Minh's face, dark teal shadows, a muted red door as recurring color anchor. Eerie but clear, no visual strobing.
+CAMERA: Begin over Minh's right shoulder with both his profile and the CRT visible. Slow deliberate push-in, then a 15-degree arc toward his alarmed face; keep the monitor legible as an image, not text.
+TIMED ACTION: 0.0–1.5s empty corridor shown on CRT; 1.5–3.0s ivory-coated woman silently appears beside red door in the live camera feed; 3.0–5.5s Minh leans forward and speaks; 5.5–8.0s his eyes widen and his hand freezes above the console.
+END STATE: Minh seated and startled, watching the ghost standing beside the red door on CCTV. Monitor remains on, feed stable. Ready for a tighter view in scene 2.
+AUDIO: Low electrical hum, subtle fan vibration, delicate CRT crackle. ONLY Minh speaks Vietnamese, 3.0–5.5s, naturally lip-synced: "Tầng mười ba... ai vừa xuất hiện vậy?" Apparition completely silent. No narration or music.
+CONSTRAINTS: Exactly 8.0s; one continuous shot; one spoken line; no reference image, captions, visible words, additional characters, jumps, distorted faces, cuts, aggressive ghost behavior or sudden scene transitions.
+
+========== SCENE_002 | TIMELINE 00:08–00:16 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical 9:16, 8.0 seconds, realistic live-action supernatural mystery at 24 fps, continuous slow camera move. Independent text-to-video generation without a reference image.
+CHARACTERS: Minh, Vietnamese man 34, lean, short black side-parted hair, clean-shaven, navy plain security jacket, pale-gray shirt, black trousers, deep restrained male Vietnamese voice. On live CCTV: a silent translucent adult woman with shoulder-length straight charcoal hair, simple ivory long coat, gentle urgent expression.
+SETTING & START STATE: Same floor-13 security alcove directly adjacent to narrow corridor; old CRT security monitor displays matte-red storage door just right of alcove. Minh is already sitting forward toward the screen. Old brushed-metal console, warm overhead ceiling lamps, dark tile floor, no readable signs.
+LIGHTING & COLOR: Monitor-blue light flickers gently over Minh's fingers, steady amber overhead light, dark teal hallway and the distinct matte-red utility door; no strobing.
+CAMERA: Side-angle medium close-up framing Minh and CRT side by side; slow push toward screen while preserving his mouth and eyes in the same shot. No camera cut.
+TIMED ACTION: 0.0–2.0s apparition gently taps the camera lens exactly three times, without obscuring it fully; 2.0–3.0s she urgently points toward matte-red storage door; 3.0–5.5s Minh points at screen and speaks; 5.5–8.0s apparition holds her pointing gesture and Minh reaches toward an audio-volume knob.
+END STATE: Apparition still pointing at red door on the screen. Minh's fingers near console speaker controls; this carries into scene 4 after Lan enters.
+AUDIO: Three gentle synchronized tapping sounds in the CCTV speaker, low room hum. ONLY Minh speaks Vietnamese at 3.0–5.5s: "Cô muốn tôi mở cửa đó sao?" No speech from apparition, no voiceover or music.
+CONSTRAINTS: Exactly 8.0s; one continuous shot; no reference image; no labels, subtitles, logo, additional voices, teleporting characters, altered costume, horror violence, or camera/feed inconsistencies.
+
+========== SCENE_003 | TIMELINE 00:16–00:24 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical 9:16, 8.0s cinematic photorealism, grounded mystery, 24 fps feeling. A single natural dolly-pan without cuts. No reference image.
+CHARACTERS: Minh, Vietnamese male 34, lean, short side-parted black hair, clean-shaven, navy unmarked security jacket, pale-gray shirt and black trousers, seated at CRT. Lan, Vietnamese woman 39, average build, dark low ponytail, beige cardigan, olive green shirt, dark-brown work trousers, brass keyring hanging from her belt, steady Vietnamese female voice. On monitor: same silent adult apparition, straight shoulder-length charcoal hair, translucent long ivory coat.
+SETTING & START STATE: Floor-13 security alcove, direct view into narrow dark-tiled corridor; old CRT on brushed-steel desk still displays apparition pointing to matte-red utility storage door two meters to the alcove's right. Lan enters from the elevator-side corridor and stops beside Minh.
+LIGHTING & COLOR: Warm amber overhead fixture highlights Lan's keys; blue-gray CRT reflection on Minh; weathered beige walls, cool corridor shadows, matte-red utility door visible on monitor.
+CAMERA: Medium two-shot from slightly behind console; pan slowly from CRT to Lan entering, ending with Lan's face and Minh's worried profile both in frame. No edit.
+TIMED ACTION: 0.0–2.0s Lan enters alcove and keys jingle; 2.0–3.0s she looks at red door on CCTV; 3.0–5.5s she speaks; 5.5–8.0s Minh exchanges an alarmed look with Lan while ghost remains visible on feed.
+END STATE: Lan stands beside Minh at console, keys attached to her belt. Both know the storage-room door was locked the previous night.
+AUDIO: Faint key jingle, ventilation, monitor hiss. ONLY Lan speaks Vietnamese at 3.0–5.5s, naturally synchronized: "Kho ấy khóa từ tối qua rồi mà." Minh and apparition stay silent, no narration or background music.
+CONSTRAINTS: Exactly 8.0s; one shot; no reference image; preserve wardrobe, red-door identity and spatial geometry; no legible text, added character, extra line, subtitles or abrupt cuts.
+
+========== SCENE_004 | TIMELINE 00:24–00:32 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical 9:16, single uninterrupted 8.0s photorealistic suspense shot, natural camera breathing at 24 fps. No reference image.
+CHARACTERS: Minh, Vietnamese man 34, lean, short side-parted black hair, clean-shaven, plain navy security jacket over pale-gray shirt and black trousers, deep Vietnamese voice. Lan, Vietnamese woman 39, dark low ponytail, beige cardigan over olive shirt, dark-brown work trousers, brass keyring on belt, silent. On CRT: same kind adult female apparition, straight shoulder-length charcoal hair and translucent long ivory coat, silent. Kitten heard only, unseen, with a small high-pitched meow.
+SETTING & START STATE: Night level-13 security alcove opening on corridor; scratched brushed-metal desk and analog speaker by CRT. Screen still displays apparition kneeling near matte-red utility room door two meters to the right of alcove. Minh's fingers are on speaker-volume knob and Lan stands at his side.
+LIGHTING & COLOR: Soft monitor-blue wash over faces, stable warm amber room lighting, teal shadows and red door in monitor feed. Gentle suspense, no harsh flashes.
+CAMERA: Begin close on Minh's hand adjusting volume, tilt to his face and the monitor, then end in restrained two-shot showing Lan listening. Continuous movement.
+TIMED ACTION: 0.0–2.0s Minh turns speaker knob; 2.0–3.0s a faint trapped kitten meow comes through monitor's live microphone; 3.0–5.0s Minh speaks, startled; 5.0–8.0s both tilt their heads toward the corridor, and Minh rises halfway from his chair.
+END STATE: Minh starts standing and turning toward utility room; Lan looks toward same door. They are about to step two meters into the corridor.
+AUDIO: Volume knob click, electrical hum, one faint kitten meow at 2.1–2.8s. ONLY Minh speaks Vietnamese at 3.0–5.0s: "Khoan đã... có tiếng mèo kêu!" Others silent. No narrator or music.
+CONSTRAINTS: Exactly 8.0s; kitten does NOT appear visually here; no reference image, screen words, logos, subtitles, other speech, violent imagery or sudden location change.
+
+========== SCENE_005 | TIMELINE 00:32–00:40 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical portrait 9:16, 8.0s photorealistic mystery-drama, single continuous tracking shot, 24 fps cinematic motion. No reference image.
+CHARACTERS: Minh, Vietnamese male 34, lean, side-parted short black hair, clean-shaven, navy unmarked security jacket, pale-gray shirt, black trousers, serious and attentive, silent. Lan, Vietnamese woman 39, average build, dark low ponytail, beige cardigan over olive shirt, dark-brown trousers, brass keyring on belt, clear grounded female Vietnamese voice. No apparition visible in this scene. Kitten still heard but not seen.
+SETTING & START STATE: Narrow floor-13 corridor at night, immediately outside security alcove. Matte-red utility storage door two meters right of the alcove, dark tile floor, beige walls, amber ceiling lights. Minh steps out of alcove first, Lan follows a half-step behind carrying keys on belt.
+LIGHTING & COLOR: Overhead amber pools of light, desaturated teal shadows, distinctly matte-red storage door, warm realistic skin tones.
+CAMERA: Shoulder-height gimbal backs away from the two as they advance two meters, then settles at a diagonal medium view of Lan near the red door. No cut.
+TIMED ACTION: 0.0–2.0s pair walk from alcove to door; 2.0–3.0s muffled meow behind red door; 3.0–5.5s Lan rests her hand on door and speaks; 5.5–8.0s she reaches down to brass keyring while Minh watches the seam beneath door.
+END STATE: Lan stands at red door, right hand grasping keys ready to unlock; Minh at her left, looking toward base of door. They do not open it until scene 6.
+AUDIO: Shoes tapping tile, quiet building ventilation, muffled kitten meow at 2.1–2.8s, metal keys softly clinking. ONLY Lan says at 3.0–5.5s in natural Vietnamese: "Đúng rồi, nó bị nhốt bên trong!" No narration or music.
+CONSTRAINTS: Exactly 8.0s, single move; kitten unseen until next scene; no reference image, new people, readable signage, captions, brand marks, extra speech, jump cuts or spatial shifts.
+
+========== SCENE_006 | TIMELINE 00:40–00:48 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical 9:16, exactly 8.0s natural photorealistic live-action rescue scene, 24 fps cinematic one-shot, gentle handheld intimacy without sudden edits. No reference image.
+CHARACTERS: Minh, Vietnamese man 34, lean, short side-parted black hair, clean-shaven, navy plain security jacket, pale-gray shirt, black trousers, warm restrained Vietnamese male voice. Lan, Vietnamese woman 39, average build, dark hair in low ponytail, beige cardigan, olive top, dark-brown trousers, brass keyring in right hand, silent. Kitten: tiny ginger/orange tabby with white chin and WHITE front paws, no collar, frightened but healthy.
+SETTING & START STATE: Same floor-13 hallway with amber ceiling lights, dark tile floor; matte-red utility door is closed, immediately two meters right of open security alcove. Lan holds keyring at lock; Minh stands to her left at threshold. No ghost visible here.
+LIGHTING & COLOR: Amber corridor overhead, cool shadows in tiny dark storage room, warm orange coat of kitten, matte red on the storage door.
+CAMERA: Medium side view at chest height, slight tilt downward as latch turns and door opens, ending at kitten/Minh eye level; a continuous one-shot.
+TIMED ACTION: 0.0–2.0s Lan selects key and unlocks door; 2.0–3.0s red door opens inward by about 45 degrees; 3.0–4.0s tiny kitten steps into corridor; 4.0–6.0s Minh crouches and speaks gently to kitten; 6.0–8.0s he carefully scoops kitten into both hands, Lan kneels beside them.
+END STATE: Kitten safely held in Minh's hands at chest level; Lan kneeling nearby; matte-red utility door ajar behind them. Ready for ghost reveal in the corridor.
+AUDIO: Key slides into lock, click, hinge, kitten's little meow at 3.0–3.5s, soft fabric movement. ONLY Minh speaks Vietnamese at 4.0–6.0s: "Ra đây nào, an toàn rồi." No other spoken words, no narrator or music.
+CONSTRAINTS: Exactly 8.0s, physically believable lock/door, kitten stays ginger with white chin and front paws, gentle realistic animal handling; no reference image, captions, logo, extra cast, harsh animal distress, jump cut or mismatched clothing.
+
+========== SCENE_007 | TIMELINE 00:48–00:56 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Portrait 9:16, 8.0s cinematic supernatural mystery turning tender, realistic actors and restrained practical-looking visual effect, one continuous 24 fps shot. No reference image.
+CHARACTERS: Minh, Vietnamese man 34, lean, neatly side-parted short black hair, clean-shaven, navy plain security jacket over pale-gray shirt and black trousers, holding tiny ginger tabby kitten with white chin and front paws, silent. Lan, Vietnamese woman 39, low dark ponytail, beige cardigan, olive shirt, dark brown trousers, brass keyring in right hand, natural female Vietnamese voice. Ghost: adult female, straight shoulder-length charcoal-black hair, plain long ivory coat, soft translucent silhouette, serene relieved expression; silent.
+SETTING & START STATE: Same floor-13 corridor by ajar matte-red storage-room door, two meters right of security alcove. Minh stands holding kitten, Lan rises beside him. Several meters behind them, a quiet section of the same corridor is empty before ghost emerges.
+LIGHTING & COLOR: Stable amber practical lights and cool teal shadows, ghost edged with extremely subtle silvery glow, no lightning, no horror flashes; vivid red door continuity.
+CAMERA: Start near Minh cradling kitten, slow elegant pan over Lan's shoulder toward far hallway as she notices ghost, keeping human faces and ghost in one coherent shot. No edits.
+TIMED ACTION: 0.0–2.0s kitten relaxes in Minh's hands; 2.0–3.0s quiet ivory figure fades into visibility a few meters away; 3.0–5.0s Lan whispers her line, looking toward figure; 5.0–7.0s ghost smiles lightly, bows head, gently fades into ambient light; 7.0–8.0s Lan and Minh exchange a relieved look.
+END STATE: Apparition has completely vanished; kitten remains secure in Minh's hands, Lan stands beside him, storage door stays ajar.
+AUDIO: Soft kitten purr, faint airy shimmer as apparition vanishes, corridor ventilation. ONLY Lan speaks naturally in Vietnamese 3.0–5.0s: "Hóa ra cô ấy chỉ muốn cứu nó." Ghost and Minh silent; no narrator or music.
+CONSTRAINTS: Exactly 8.0s; humane, nonviolent tone; apparition never attacks, flies, flickers or multiplies; no reference image, written words, subtitles, logos, extra dialogue, duplicates, sudden cuts or changes to kitten markings.
+
+========== SCENE_008 | TIMELINE 00:56–01:04 | GENERATE 8 SECONDS ==========
+FORMAT & STYLE: Vertical 9:16, exactly 8.0s photorealistic cinematic closing shot, warm humane mystery resolution, 24 fps look, continuous pull-back. No reference image.
+CHARACTERS: Minh, Vietnamese male 34, lean, neatly side-parted short black hair, clean-shaven, navy unmarked security jacket, pale-gray shirt, black trousers, holding healthy tiny ginger tabby kitten with WHITE chin and WHITE front paws, deep warm Vietnamese male voice. Lan, Vietnamese woman 39, dark hair tied in low ponytail, beige cardigan, olive shirt and dark brown trousers, brass keyring held in right hand, no line here. Ghost no longer visible anywhere.
+SETTING & START STATE: Floor-13 corridor, red storage door remains ajar two meters to the right of open security alcove, old CRT console glowing inside alcove. Minh stands with kitten, Lan stands beside him, both a few steps from alcove; live screen shows now-empty corridor. Same amber lights, dark tile, beige walls.
+LIGHTING & COLOR: Amber light now feels reassuring, soft cool-blue CRT glow in alcove, matte-red door stays in background, consistent realistic lighting, no sudden sunrise or day-night shift.
+CAMERA: Start intimate at kitten's face and Minh's relaxed expression, dolly slowly backwards as they step toward security alcove, end framing both adults and CRT showing an empty hall. One take, no cuts.
+TIMED ACTION: 0.0–2.0s kitten nuzzles Minh's chest; 2.0–3.0s Lan smiles quietly; 3.0–5.5s Minh says the closing line with a small grateful smile; 5.5–8.0s both walk slowly two steps to the alcove, camera reveals the calm empty hallway on the CRT; kitten purrs.
+END STATE: Two adults and rescued kitten together safely at security alcove; empty corridor on working CCTV, matte-red door still ajar. Hold final quiet image to 01:04.
+AUDIO: Low purr, gentle shoe taps, quiet CRT hum. ONLY Minh speaks Vietnamese at 3.0–5.5s: "Tầng mười ba cũng có người tốt." No female dialogue, no ghost voice, no voiceover and no music.
+CONSTRAINTS: Exactly 8.0s, one continuous shot, finish without fade affecting runtime; no reference image, on-screen text, subtitles, watermark, logos, new characters, extra spoken sentences, anomalous reflection, costume or kitten mismatch.

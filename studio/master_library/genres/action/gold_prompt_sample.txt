@@ -1,0 +1,10 @@
+========== SCENE_001 | TIMELINE 00:00–00:10 | GENERATE 10 SECONDS ==========
+FORMAT & STYLE: 16:9; 10s cinematic motion scene; Dynamic motion blur, high shutter speed, cinematic smoke and sparks, handheld kinetic camera, high contrast teal and orange.
+CHARACTERS: Main Lead: 38 years old, distinctive facial landmarks with locked wardobe for Act 1.
+SETTING & START STATE: Primary establishing environment for Hành động / Phiêu lưu.
+LIGHTING & COLOR: Authentic cinematic lighting matching action palette.
+CAMERA: Smooth motivated cinema movement matching Rapid motivated choreography, defensive dodges, swift camera whips, relentless momentum..
+TIMED ACTION: 0.0–10.0s: Motivated narrative progression with natural physical acting.
+END STATE: Actor settles into resolved posture; hold eye-lines for next cut.
+AUDIO: Main Lead speaks in English/Vietnamese: "Chạy đua với thời gian: Cuộc đào thoát nghẹt thở khỏi tòa cao ốc bị phong tỏa".
+CONSTRAINTS: Only listed characters. Non-graphic depiction. No weapons, no violence.

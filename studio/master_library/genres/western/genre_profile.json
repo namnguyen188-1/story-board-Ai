@@ -1,0 +1,11 @@
+{
+  "id": "western",
+  "name_vi": "Miền Viễn Tây",
+  "name_en": "Western Frontier",
+  "target_channels": [
+    "Wild Frontier Chronicles"
+  ],
+  "visual_style": "Dusty desert vistas, weathered wooden saloons, scorching harsh sunlight, leather textures, extreme close-up on eyes and belt buckles.",
+  "pacing": "Tense standoff, whistling wind, sudden motivated camera pans, steady slow tracking.",
+  "voice_speed": -5
+}

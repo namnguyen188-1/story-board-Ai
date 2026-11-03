@@ -1,0 +1,11 @@
+{
+  "id": "documentary",
+  "name_vi": "Tài liệu / Kể chuyện",
+  "name_en": "Documentary & Investigative Storytelling",
+  "target_channels": [
+    "Veiled History"
+  ],
+  "visual_style": "Authentic archival textures, atmospheric macro shots of evidence, cinematic b-roll with naturalistic ambient light.",
+  "pacing": "Measured, investigative, curious, steady pushes toward key visual evidence.",
+  "voice_speed": 0
+}

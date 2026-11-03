@@ -1,0 +1,341 @@
+"""Local full-color cinematic scene animation with dynamic camera motion and atmospheric particle overlays.
+Supports:
+- Dynamic Camera Movements:
+    * zoom_in: Smooth cinematic push-in towards subject
+    * zoom_out: Smooth pull-out revealing grand scale
+    * pan_right: Smooth horizontal glide left to right
+    * pan_left: Smooth horizontal glide right to left
+    * tilt_up: Smooth vertical pedestal from base to subject's head
+    * orbit_drift: Subtle parallax rotational orbit drift (xoay quanh / thị sai)
+- Atmospheric Particle Overlays:
+    * dust_particles: Cinematic golden/warm bokeh dust motes (bụi bay)
+    * cinematic_smoke: Volumetric drifting fog and smoke wisps (khói bụi)
+    * falling_snow: Gentle fluttering snowflakes (tuyết rơi)
+    * none: Direct camera motion without overlay
+"""
+from __future__ import annotations
+import subprocess, wave, math, os, re
+import threading, functools
+from pathlib import Path
+from PIL import Image, ImageOps
+
+ENGINE_DIR = Path(__file__).resolve().parent / "engine"
+OVERLAYS_DIR = ENGINE_DIR / "assets" / "overlays"
+
+# Ordered cinematic motions for dynamic per-scene variation
+CINEMATIC_MOTIONS = [
+    "zoom_in",
+    "pan_right",
+    "zoom_out",
+    "orbit_drift",
+    "tilt_up",
+    "pan_left"
+]
+
+
+def create_silence(destination, seconds=8):
+    seconds = max(1, min(60, float(seconds)))
+    target = Path(destination)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(target), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(24000)
+        for _ in range(math.ceil(seconds)):
+            n = min(24000, int(seconds * 24000) - w.getnframes())
+            if n > 0:
+                w.writeframes(b"\0\0" * n)
+    return str(target)
+
+
+def get_camera_motion_filter(motion_type: str, frames: int, width: int, height: int, fps: int, duration_sec: float) -> str:
+    """Builds mathematically precise, smooth Ken Burns & orbital drift camera filters."""
+    f_total = max(1, frames)
+    d_sec = max(0.5, duration_sec)
+    
+    if motion_type == "zoom_in":
+        # Smooth push-in towards center (from 1.0 to ~1.20)
+        return (
+            f"zoompan=z='min(1.0+0.18*(on/{f_total}),1.25)':"
+            f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "zoom_out":
+        # Smooth pull-back revealing scale (from 1.18 to ~1.01)
+        return (
+            f"zoompan=z='max(1.18-0.18*(on/{f_total}),1.0)':"
+            f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "pan_right":
+        # Slight zoom with smooth horizontal pan from left to right
+        return (
+            f"zoompan=z='1.15':"
+            f"x='(iw-iw/zoom)*0.10+(iw-iw/zoom)*0.80*(on/{f_total})':"
+            f"y='(ih-ih/zoom)/2':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "pan_left":
+        # Slight zoom with smooth horizontal pan from right to left
+        return (
+            f"zoompan=z='1.15':"
+            f"x='(iw-iw/zoom)*0.90-(iw-iw/zoom)*0.80*(on/{f_total})':"
+            f"y='(ih-ih/zoom)/2':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "tilt_up":
+        # Slight zoom with vertical upward movement towards subject's head
+        return (
+            f"zoompan=z='1.15':"
+            f"x='(iw-iw/zoom)/2':"
+            f"y='(ih-ih/zoom)*0.85-(ih-ih/zoom)*0.70*(on/{f_total})':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "orbit_drift":
+        # Orbital parallax camera drift: orbital (x,y) motion combined with subtle rotation
+        return (
+            f"zoompan=z='1.12+0.08*(on/{f_total})':"
+            f"x='(iw-iw/zoom)/2+(iw-iw/zoom)*0.35*sin(2*PI*(on/{f_total})*0.8)':"
+            f"y='(ih-ih/zoom)/2+(ih-ih/zoom)*0.35*cos(2*PI*(on/{f_total})*0.8)':"
+            f"d={f_total}:s={width}x{height}:fps={fps},"
+            f"rotate='0.007*sin(2*PI*t/{d_sec})':ow='{width}':oh='{height}':c=black"
+        )
+    else:
+        # Default gentle cinematic push
+        return (
+            f"zoompan=z='min(1.0+0.12*(on/{f_total}),1.18)':"
+            f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+
+
+INDOOR_ENV_PATTERN = r"(indoor|indoors|inside|interior|room|office|shop|store|counter|desk|table|stationery|copier|photocopier|hallway|corridor|bedroom|living room|kitchen|bathroom|apartment|house|home|classroom|studio|restaurant|cafe|bar|elevator|lobby|hospital|clinic|courtroom|prison cell|library|hotel room|trong nhà|trong phòng|văn phòng|quầy|bàn làm việc|tiệm|cửa hàng|phòng khách|phòng ngủ|nhà bếp|hành lang|lớp học|quán cafe|nhà hàng)"
+OUTDOOR_ENV_PATTERN = r"(outdoor|outdoors|outside|exterior|street|road|avenue|highway|park|forest|mountain|field|beach|ocean|sea|sky|bus terminal|bus stop|station exterior|parking lot|courtyard|patio|garden|rooftop|alley|square|ngoài trời|đường phố|con đường|vỉa hè|công viên|khu rừng|núi|cánh đồng|bãi biển|bến xe|trạm xe|sân ga|bãi đỗ xe|sân thượng|sân vườn)"
+SUNNY_LIGHT_PATTERN = r"(sunny|sunlight|sunshine|bright daylight|sun rays|clear blue sky|golden hour|sunset|sunrise|dawn|nắng|ánh nắng|nắng gắt|trưa nắng|nắng chói|buổi sáng nắng|hoàng hôn|bình minh)"
+RAIN_WEATHER_PATTERN = r"(heavy rain|raining|downpour|drizzle|thunderstorm|rainstorm|lightning storm|mưa|mưa rào|mưa bão|sấm chớp|giông bão|mưa phùn)"
+SNOW_WEATHER_PATTERN = r"(heavy snow|snowing|snowfall|blizzard|snow storm|frosty winter|ice storm|frozen lake|tuyết|tuyết rơi|bão tuyết|mùa đông giá rét|băng tuyết|phủ tuyết)"
+FIRE_HEAT_PATTERN = r"(burning fire|bonfire|campfire|fireplace|flames|house fire|explosion|battlefield|warzone|ngọn lửa|đám cháy|bốc cháy|lò sưởi|đống lửa|tàn tro)"
+SMOKE_MIST_PATTERN = r"(dense smoke|thick fog|misty morning|smoky room|foggy forest|sương mù|khói lửa|sương dày|mờ sương|hơi nước dày)"
+VINTAGE_ARCHIVE_PATTERN = r"(vintage film|black and white|1920s|1930s|1940s|1950s|1960s|1970s|1980s|sepia tone|old archival footage|thời bao cấp|phim tài liệu cũ|thế kỷ trước)"
+
+
+def resolve_atmospheric_overlay(overlay_effect: str, genre: str, scene_index: int,
+                                scene_text: str = "") -> tuple[Path | None, float]:
+    """Selects the atmospheric particle overlay file and blending opacity.
+    Intelligently analyzes scene physical environment (indoor vs. outdoor),
+    weather, lighting, and genre to ensure believable physical continuity.
+    - Never rain or snow inside indoor rooms/offices/shops.
+    - Never snow in bright sunny daylight.
+    - Clean by default for indoor dialogue and everyday dramatic scenes.
+    """
+    effect = str(overlay_effect or "auto").lower().strip()
+    g = str(genre or "documentary").lower().strip()
+    st = str(scene_text or "")
+    st_l = st.lower()
+    
+    if effect in ("none", "off", "disabled"):
+        return None, 0.0
+    
+    if effect == "auto":
+        is_indoor = bool(re.search(INDOOR_ENV_PATTERN, st_l, re.IGNORECASE))
+        is_outdoor = bool(re.search(OUTDOOR_ENV_PATTERN, st_l, re.IGNORECASE))
+        is_sunny = bool(re.search(SUNNY_LIGHT_PATTERN, st_l, re.IGNORECASE))
+        is_rain = bool(re.search(RAIN_WEATHER_PATTERN, st_l, re.IGNORECASE))
+        is_snow = bool(re.search(SNOW_WEATHER_PATTERN, st_l, re.IGNORECASE))
+        is_fire = bool(re.search(FIRE_HEAT_PATTERN, st_l, re.IGNORECASE))
+        is_smoke = bool(re.search(SMOKE_MIST_PATTERN, st_l, re.IGNORECASE))
+        is_vintage = bool(re.search(VINTAGE_ARCHIVE_PATTERN, st_l, re.IGNORECASE))
+
+        # PHYSICAL CONTINUITY GUARDS:
+        # 1. Never rain or snow indoors (inside rooms, offices, shops, counters, houses)
+        if is_indoor and not is_outdoor:
+            is_snow = False
+            is_rain = False
+
+        # 2. Never snow in bright sunny daylight
+        if is_sunny and not is_rain:
+            is_snow = False
+
+        # 3. Fire embers indoors only if explicit fireplace or house fire
+        if is_indoor and not is_outdoor and not any(w in st_l for w in ("fireplace", "lò sưởi", "đám cháy", "house fire")):
+            is_fire = False
+
+        if is_snow:
+            chosen = "falling_snow"
+        elif is_rain:
+            chosen = "cinematic_rain"
+        elif is_fire:
+            chosen = "fire_embers"
+        elif is_smoke:
+            chosen = "cinematic_smoke"
+        elif is_sunny and is_outdoor:
+            chosen = "sun_rays"
+        elif is_vintage:
+            chosen = "vintage_film"
+        elif is_indoor:
+            # Clean indoor rooms! No distracting snow/rain/sparks
+            chosen = "none"
+        else:
+            # General outdoor scenes fallback
+            if g in ("history", "stoic", "documentary"):
+                chosen = "vintage_film" if (scene_index % 3 == 1) else ("dust_particles" if (scene_index % 3 == 2) else "none")
+            elif g in ("horror", "thriller", "mystery"):
+                chosen = "cinematic_smoke" if (scene_index % 2 == 1) else "none"
+            elif g in ("war", "western"):
+                chosen = "cinematic_smoke" if (scene_index % 2 == 1) else "none"
+            else:
+                chosen = "dust_particles" if (scene_index % 3 == 1) else "none"
+    else:
+        chosen = effect
+
+    if chosen == "none":
+        return None, 0.0
+
+    target_file = OVERLAYS_DIR / f"{chosen}.mp4"
+    if not target_file.is_file():
+        dust_fallback = OVERLAYS_DIR / "dust_particles.mp4"
+        if dust_fallback.is_file():
+            target_file = dust_fallback
+            chosen = "dust_particles"
+        else:
+            return None, 0.0
+
+    opacity_map = {
+        "dust_particles": 0.28,
+        "cinematic_smoke": 0.32,
+        "falling_snow": 0.45,
+        "cinematic_rain": 0.45,
+        "fire_embers": 0.45,
+        "vintage_film": 0.28,
+        "sun_rays": 0.35,
+    }
+    opacity = opacity_map.get(chosen, 0.30)
+    return target_file, opacity
+
+
+# Balanced renderer: bound CPU-heavy software filters and use dedicated NVENC
+# hardware for final H264 encoding. CPU fallback is always supported.
+_RENDER_SLOTS = threading.BoundedSemaphore(
+    max(1, min(4, int(os.environ.get("STORYBOARD_RENDER_SLOTS", "2"))))
+)
+_CPU_ARGS = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20"]
+_GPU_ARGS = ["-c:v", "h264_nvenc", "-preset", "p4",
+             "-rc", "vbr", "-cq", "21", "-b:v", "0"]
+
+
+@functools.lru_cache(maxsize=1)
+def _hardware_encoder_usable() -> bool:
+    """Test actual NVENC capability, not merely listed encoders."""
+    if os.environ.get("STORYBOARD_VIDEO_ENCODER", "auto").lower() in ("cpu", "off", "software"):
+        return False
+    probe = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi",
+             "-i", "color=c=black:s=256x144:r=2", "-frames:v", "2",
+             "-c:v", "h264_nvenc", "-f", "null", "-"]
+    try:
+        result = subprocess.run(
+            probe, capture_output=True, timeout=15,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        return result.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _replace_encoder_args(command, before, after):
+    for i in range(len(command) - len(before) + 1):
+        if command[i:i+len(before)] == before:
+            return command[:i] + after + command[i+len(before):]
+    raise ValueError("Encoder arguments not found")
+
+
+def color_video(image, audio, output, width, height, fps=25,
+                scene_index=1, motion_type="auto", overlay_effect="auto", genre="documentary",
+                scene_text: str = ""):
+    from series_studio import ffprobe
+    image = Path(image)
+    audio = Path(audio)
+    output = Path(output)
+    
+    with wave.open(str(audio), "rb") as f:
+        seconds = f.getnframes() / max(1, f.getframerate())
+    frames = max(1, math.ceil(seconds * fps))
+
+    # Pad source image to target 16:9 canvas preserving natural proportions
+    inp = output.parent / f"color_source_{scene_index:04d}_16x9.png"
+    with Image.open(image) as original:
+        rgb = ImageOps.pad(original.convert("RGB"), (width, height),
+                          method=Image.Resampling.LANCZOS, color=(10, 12, 20))
+        rgb.save(inp, "PNG")
+    try:
+        from clean_watermark import remove_gemini_watermark
+        remove_gemini_watermark(inp)
+    except Exception:
+        pass
+
+    # Resolve camera motion
+    m_type = str(motion_type or "auto").lower().strip()
+    if m_type == "auto":
+        m_type = CINEMATIC_MOTIONS[(int(scene_index) - 1) % len(CINEMATIC_MOTIONS)]
+    
+    camera_vf = get_camera_motion_filter(m_type, frames, width, height, fps, seconds)
+
+    # Resolve atmospheric particle overlay with smart scene content matching
+    overlay_path, overlay_opacity = resolve_atmospheric_overlay(
+        overlay_effect, genre, int(scene_index), scene_text=scene_text
+    )
+
+    gpu_enabled = _hardware_encoder_usable()
+
+    if overlay_path and overlay_path.is_file():
+        # Composite dynamic camera motion with seamless looping particle overlay using screen blend
+        filter_complex = (
+            f"[0:v]{camera_vf},format=gbrp[base];"
+            f"[1:v]scale={width}:{height},format=gbrp[ovl];"
+            f"[base][ovl]blend=all_mode='screen':all_opacity={overlay_opacity:.2f},format=yuv420p[vout]"
+        )
+        cmd = [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            "-filter_threads", "2", "-filter_complex_threads", "2",
+            "-loop", "1", "-framerate", str(fps), "-i", str(inp),
+            "-stream_loop", "-1", "-i", str(overlay_path),
+            "-filter_complex", filter_complex,
+            "-map", "[vout]",
+            "-frames:v", str(frames), "-an",
+            *(_GPU_ARGS if gpu_enabled else _CPU_ARGS),
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            str(output)
+        ]
+    else:
+        # Direct camera motion without overlay
+        cmd = [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            "-filter_threads", "2", "-filter_complex_threads", "2",
+            "-loop", "1", "-framerate", str(fps), "-i", str(inp),
+            "-vf", f"{camera_vf},format=yuv420p",
+            "-frames:v", str(frames), "-an",
+            *(_GPU_ARGS if gpu_enabled else _CPU_ARGS),
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+            str(output)
+        ]
+
+    # Do not change sources or active plans. Bound simultaneous costly filters.
+    with _RENDER_SLOTS:
+        r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           text=True, encoding="utf-8", errors="replace",
+                           timeout=max(120, min(1800, int(seconds * 20))),
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if r.returncode and gpu_enabled:
+            # Non-destructive fallback if NVENC fails due to driver/session limits.
+            cmd = _replace_encoder_args(cmd, _GPU_ARGS, _CPU_ARGS)
+            print("[RENDER_ACCEL] NVENC failed, retrying CPU codec", flush=True)
+            r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, encoding="utf-8", errors="replace",
+                               timeout=max(120, min(1800, int(seconds * 20))),
+                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    if r.returncode:
+        raise RuntimeError("Color scene ffmpeg failed: " + r.stderr[-350:])
+        
+    _, actual = ffprobe(output)
+    if actual < seconds - 0.3 or actual > seconds + 0.5:
+        raise RuntimeError("Color video duration QC failed")
+        
+    return str(output)

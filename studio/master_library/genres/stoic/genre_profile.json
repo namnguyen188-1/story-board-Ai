@@ -1,0 +1,12 @@
+{
+  "id": "stoic",
+  "name_vi": "Khắc kỷ / Triết học",
+  "name_en": "Stoic & Ancient Philosophy",
+  "target_channels": [
+    "Stoic Sovereign",
+    "Notas Estoicas"
+  ],
+  "visual_style": "Monumental classical marble and bronze statues, ancient Roman Pantheon architecture, golden hour and museum chiaroscuro, 35mm cinema lens.",
+  "pacing": "Slow, majestic, deliberate, monumental tilts and slow drifts.",
+  "voice_speed": -10
+}

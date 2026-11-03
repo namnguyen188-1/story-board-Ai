@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {matchesTrustedToolTab} from './studio_mcp/node/dist/browser/tool-tab.js';
+const project='79dfa39d-8ec4-4ab7-aaa2-2be03bd1bdd0';
+const tool='69da86fb-6c79-43d2-a387-ef47b0fda4db';
+const existing=`https://flow.google.com/project/${project}/tool/${tool}`;
+assert(matchesTrustedToolTab(existing,existing));
+assert(matchesTrustedToolTab(existing,existing+'?mode=APP'));
+assert(matchesTrustedToolTab(existing+'?mode=APP',existing));
+assert(!matchesTrustedToolTab('https://flow.google.com/shared/tool/'+tool,existing));
+assert(!matchesTrustedToolTab('https://flow.google.com/project/'+project+'/tool/00000000-0000-4000-8000-000000000000',existing));
+assert(!matchesTrustedToolTab(existing+'?mode=EDIT',existing));
+assert(!matchesTrustedToolTab('https://evil.invalid/project/'+project+'/tool/'+tool,existing));
+console.log('STUDIO_EXACT_EXISTING_TOOL_TAB_MATCHER_PASS');

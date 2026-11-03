@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'../web/index.html'),'utf8');
+const ids=['seoScheduleMarket','seoScheduleDays','seoScheduleHours','seoScheduleBestTime','seoBenchmarkPercentileBadge','seoBenchmarkEdgeBadge','seoBenchmarkMyScore','seoBenchmarkMyTier','seoBenchmarkMarketAvg','seoBenchmarkDelta','seoBenchmarkDeltaPercent','seoBenchmarkPillarsContainer','inputCompetitorUrl','btnAuditCompetitor','seoVidiqKey'];
+for(const id of ids)assert.match(html,new RegExp('id="'+id+'"'),'Missing SEO control: '+id);
+for(const claim of ['Top 1% Thị Trường','Đề xuất cao gấp 2.8x','Áp Đảo Tuyệt Đối','+61.3% Điểm SEO'])assert.ok(!html.includes(claim),'Fabricated default claim: '+claim);
+console.log('PASS restored SEO controls and unknown-data defaults');
+assert.ok(html.includes('id="seoDataTools"'),'Missing compact tools disclosure');
+assert.ok(!/<details[^>]*id="seoDataTools"[^>]*\sopen(?:\s|>)/.test(html),'Tools must start collapsed');
+assert.ok(html.includes('id="seoMeasuredBenchmark" hidden'),'Market comparison must be hidden without evidence');
+assert.ok(!html.includes('Chi Tiết 5 Trụ Cột So Sánh Trực Tiếp'),'Remove oversized empty comparison');

@@ -1,0 +1,102 @@
+{
+  "time": "2026-10-15T19:12:05.969496",
+  "latest_sha256": "D1B864B73623E49F42DE47F9AFBDEA0E61A2C737FB4E04A03F8C16BD45AD6E10",
+  "actions": [
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\StoryboardAI-Setup.exe",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\StoryboardAI-Setup.exe",
+      "bytes": 197658894,
+      "sha256": "550C39A7B8DE5479F1F137216FF14228415B2F5ADDA40E5E0067AA39BD460BB9"
+    },
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\StoryboardAI-TransferTest-FULL-Setup.exe",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\StoryboardAI-TransferTest-FULL-Setup.exe",
+      "bytes": 259862709,
+      "sha256": "6AA0D2D79ECA2DA608A6D835A5BADB17D3EBFCD7880B5CA59A82DCB6865BC882"
+    },
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\Storyboard_AI_Studio_Pro_v1.0.zip",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\Storyboard_AI_Studio_Pro_v1.0.zip",
+      "bytes": 295987205,
+      "sha256": "86DE9DB7A45EFF365983989A48E9E21C1FF9435F8BFFAA859BD7DC5BE15528AC"
+    },
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\MultiGPU-Candidate-Installer.iss",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\MultiGPU-Candidate-Installer.iss",
+      "bytes": 2035,
+      "sha256": "B5EB06C6714A07DAF5DCE0A03009AED57D02DC58B6ADAC95F2DD8DCB0F3F2C87"
+    },
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\TransferTest-FULL-Installer.iss",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\TransferTest-FULL-Installer.iss",
+      "bytes": 2131,
+      "sha256": "FC08B866639B08706C44280577BB5822F02AFD3BCF7165F6952D1B3553ACC9E6"
+    },
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\StoryboardAI-TransferTest-FULL-SHA256.txt",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\StoryboardAI-TransferTest-FULL-SHA256.txt",
+      "bytes": 108,
+      "sha256": "2CBB08F83E1F5F9A03C1A474795A6A4816D77DA6E7F5D5902D8D8047CE8E4238"
+    },
+    {
+      "action": "archive",
+      "source": "D:\\STORYBOARD_AI\\dist\\TRANSFER_TEST_README_20261015.txt",
+      "destination": "D:\\STORYBOARD_AI\\_ARCHIVE\\OLDER_INSTALLERS_20261015\\TRANSFER_TEST_README_20261015.txt",
+      "bytes": 2952,
+      "sha256": "01E1EE4ED9E614CED0B52BAF19E80147F5C06F505471EB9CEFBD2D0EB0874CC8"
+    },
+    {
+      "action": "delete_exe",
+      "source": "D:\\STORYBOARD_AI\\dist\\Setup_Storyboard_AI_Studio_Pro_v1.0.exe",
+      "bytes": 174664595,
+      "sha256": "88CBECFBAF9F18BB7036C988F3F12A01675F0CCE5F6799AD2A138B3FA32732F4"
+    },
+    {
+      "action": "delete_exe",
+      "source": "D:\\STORYBOARD_AI\\dist\\StoryboardAI-MultiGPU-Candidate-Setup.exe",
+      "bytes": 185751440,
+      "sha256": "1E73DA8EF5BB8935469BA98DF9A71E4947D4B5FE0BFDF3D935E6B1E81F55101F"
+    },
+    {
+      "action": "delete_staging",
+      "source": "D:\\STORYBOARD_AI\\dist\\Storyboard_AI_Studio_Pro_v1.0",
+      "bytes": 801587411,
+      "files": 12543
+    },
+    {
+      "action": "delete_staging",
+      "source": "D:\\STORYBOARD_AI\\dist\\Storyboard_AI_Studio_Pro_MultiGPU_Candidate",
+      "bytes": 789091549,
+      "files": 12231
+    },
+    {
+      "action": "delete_duplicate_zip",
+      "source": "D:\\STORYBOARD_AI\\dist.zip",
+      "bytes": 295987205,
+      "sha256": "86DE9DB7A45EFF365983989A48E9E21C1FF9435F8BFFAA859BD7DC5BE15528AC"
+    }
+  ],
+  "status": "PASS",
+  "completed": [
+    "D:\\STORYBOARD_AI\\dist\\StoryboardAI-Setup.exe",
+    "D:\\STORYBOARD_AI\\dist\\StoryboardAI-TransferTest-FULL-Setup.exe",
+    "D:\\STORYBOARD_AI\\dist\\Storyboard_AI_Studio_Pro_v1.0.zip",
+    "D:\\STORYBOARD_AI\\dist\\MultiGPU-Candidate-Installer.iss",
+    "D:\\STORYBOARD_AI\\dist\\TransferTest-FULL-Installer.iss",
+    "D:\\STORYBOARD_AI\\dist\\StoryboardAI-TransferTest-FULL-SHA256.txt",
+    "D:\\STORYBOARD_AI\\dist\\TRANSFER_TEST_README_20261015.txt",
+    "D:\\STORYBOARD_AI\\dist\\Setup_Storyboard_AI_Studio_Pro_v1.0.exe",
+    "D:\\STORYBOARD_AI\\dist\\StoryboardAI-MultiGPU-Candidate-Setup.exe",
+    "D:\\STORYBOARD_AI\\dist\\Storyboard_AI_Studio_Pro_v1.0",
+    "D:\\STORYBOARD_AI\\dist\\Storyboard_AI_Studio_Pro_MultiGPU_Candidate",
+    "D:\\STORYBOARD_AI\\dist.zip"
+  ],
+  "estimated_freed_mb": 2143.0,
+  "estimated_archived_mb": 718.6
+}
