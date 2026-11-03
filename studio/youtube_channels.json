@@ -26,7 +26,8 @@
         "default_language": "en-US",
         "default_audio_language": "en-US",
         "default_privacy": "unlisted",
-        "default_playlist_id": "auto"
+        "default_playlist_id": "auto",
+        "shorts_remix": "none"
       },
       "token_expired": false
     },
@@ -53,7 +54,8 @@
         "default_language": "en-US",
         "default_audio_language": "en-US",
         "default_privacy": "unlisted",
-        "default_playlist_id": "PLE3KGzHvqsOA"
+        "default_playlist_id": "PLE3KGzHvqsOA",
+        "shorts_remix": "none"
       },
       "token_expired": false
     },
@@ -71,7 +73,8 @@
       "client_id": "894760520356-3u0poico0ctgpfbcpdmsp8ke32nkq7ur.apps.googleusercontent.com",
       "client_secret": "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",
       "publish_settings": {
-        "default_privacy": "unlisted"
+        "default_privacy": "unlisted",
+        "shorts_remix": "none"
       },
       "token_expired": false
     },
@@ -99,7 +102,8 @@
         "default_language": "es",
         "default_audio_language": "es",
         "default_privacy": "unlisted",
-        "default_playlist_id": "PLdSMj8NAPdmw"
+        "default_playlist_id": "PLdSMj8NAPdmw",
+        "shorts_remix": "none"
       }
     },
     {
@@ -125,7 +129,8 @@
         "default_language": "en-US",
         "default_audio_language": "en-US",
         "default_privacy": "unlisted",
-        "default_playlist_id": "auto"
+        "default_playlist_id": "auto",
+        "shorts_remix": "none"
       },
       "token_expired": false
     }

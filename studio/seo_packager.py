@@ -12745,8 +12745,10 @@ def format_upload_settings_checklist_txt(seo_package=None):
 1. PHỐI LẠI CÁC ĐOẠN PHIM NGẮN (SHORTS REMIXING):
    [•] Không cho phép phối lại (Don't allow remixing) — KHUYÊN CHỌN
        Lý do: Bảo vệ bản quyền video phim AI, tránh bị các kênh khác cắt trộm nội dung làm Shorts.
-   [ ] Chỉ cho phép phối lại âm thanh
-   [ ] Cho phép phối lại video và âm thanh
+       * CÁCH THIẾT LẬP MẶC ĐỊNH 1 LẦN DUY NHẤT CHO TOÀN BỘ VIDEO TRÊN KÊNH:
+         Vào YouTube Studio (studio.youtube.com) -> Cài đặt (Bánh răng góc dưới trái) -> Chế độ mặc định cho video tải lên -> Cài đặt nâng cao -> Phối lại Shorts -> Chọn "Không cho phép phối lại" -> Bấm Lưu. (Sau khi lưu, mọi video tải lên sẽ tự động áp dụng chính sách này).
+       * CÁCH ĐỔI HÀNG LOẠT CHO TẤT CẢ VIDEO ĐÃ ĐĂNG TRONG 5 GIÂY:
+         Vào YouTube Studio -> Nội dung -> Tích ô vuông chọn tất cả video -> Bấm 'Chỉnh sửa' -> Chọn 'Phối lại Shorts' -> Chọn 'Không cho phép phối lại' -> Bấm 'Cập nhật video'.
 
 2. TUYÊN BỐ NỘI DUNG ĐÃ QUA CHỈNH SỬA (SYNTHETIC / ALTERED CONTENT):
    [•] CÓ (Bắt buộc theo chính sách YouTube 2024+ đối với video chứa hình ảnh hoặc giọng nói do AI tạo)

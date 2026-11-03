@@ -99081,7 +99081,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-                    "default_playlist_id": playlist_id if playlist_id not in ("none", "__new__") else (ch_settings.get("default_playlist_id") or "auto")
+                    "default_playlist_id": playlist_id if playlist_id not in ("none", "__new__") else (ch_settings.get("default_playlist_id") or "auto"),
+                    "shorts_remix": str(body.get("shorts_remix") or body.get("shortsRemixing") or "none").strip()
 
 
 
@@ -106378,6 +106379,9 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
                 "score": live_score,
+                "default_language": snippet.get("defaultLanguage", ""),
+                "default_audio_language": snippet.get("defaultAudioLanguage", ""),
+                "has_custom_thumbnail": v.get("contentDetails", {}).get("hasCustomThumbnail", False),
 
 
 
@@ -107561,390 +107565,55 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
+            # Resolve language from pack or plan
+            pack_lang = pack.get("language", "")
+            eff_lang = youtube_manager.to_youtube_bcp47(pack_lang) or "es"
+            eff_audio = eff_lang
+
+            # Channel ID from query if provided
+            target_ch_id = str(query.get("channel_id", [""])[0] or query.get("channelId", [""])[0]).strip() or None
+
             res = youtube_manager.update_live_video_metadata(
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 video_id=video_id,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 title=title,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 description=desc,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 tags=tags,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                channel_id=target_ch_id,
+                default_language=eff_lang,
+                default_audio_language=eff_audio,
             )
 
+            # Also sync custom thumbnail if present in ep_dir
+            thumb_updated = False
+            candidate_thumbs = [
+                ep_dir / "thumbnail_seo.jpg",
+                ep_dir / "thumbnail.jpg",
+                ep_dir / "thumbnail_16x9.jpg",
+                ep_dir / "thumbnail_flow.jpg",
+                ep_dir / "stoi_ep002_gold_red_white_thumbnail.jpg"
+            ]
+            target_thumb = None
+            for ct in candidate_thumbs:
+                if ct.is_file():
+                    target_thumb = ct
+                    break
+            if target_thumb:
+                try:
+                    access_token = youtube_manager.get_fresh_access_token(target_ch_id or "")
+                    thumb_updated = youtube_manager.set_video_thumbnail(video_id, target_thumb, access_token)
+                except Exception as t_err:
+                    logger.warning(f"Khong the cap nhat thumbnail khi dong bo SEO: {t_err}")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            extra_msg = " & ảnh Thumbnail HD" if thumb_updated else ""
             return self.end_json({
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 "ok": True,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                "message": f"Đã đồng bộ thành công toàn bộ {len(tags)} thẻ tags và mô tả chuẩn SEO lên YouTube!",
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                "message": f"Đã đồng bộ thành công tiêu đề, {len(tags)} thẻ tags, mô tả, ngôn ngữ ({eff_lang}){extra_msg} lên YouTube!",
                 "video_id": video_id,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                "thumbnail_updated": thumb_updated,
+                "default_language": eff_lang,
+                "default_audio_language": eff_audio,
                 "updated_snippet": res.get("snippet", {}),
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         except Exception as exc:
 
 

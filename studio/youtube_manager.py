@@ -228,7 +228,8 @@ def get_channel_publish_settings(channel_id: str) -> Dict[str, Any]:
                 "default_privacy": saved.get("default_privacy", ch.get("default_privacy", "unlisted")),
                 "default_language": saved.get("default_language", ""),
                 "default_audio_language": saved.get("default_audio_language", ""),
-                "default_playlist_id": saved.get("default_playlist_id", "auto")
+                "default_playlist_id": saved.get("default_playlist_id", "auto"),
+                "shorts_remix": saved.get("shorts_remix", "none")
             }
     return {
         "category_id": "1",
@@ -240,7 +241,8 @@ def get_channel_publish_settings(channel_id: str) -> Dict[str, Any]:
         "default_privacy": "unlisted",
         "default_language": "",
         "default_audio_language": "",
-        "default_playlist_id": "auto"
+        "default_playlist_id": "auto",
+        "shorts_remix": "none"
     }
 
 
@@ -254,7 +256,7 @@ def update_channel_publish_settings(channel_id: str, settings: Dict[str, Any]) -
                 "category_id", "contains_synthetic_media", "made_for_kids",
                 "license", "embeddable", "public_stats_viewable",
                 "default_language", "default_audio_language", "default_privacy",
-                "default_playlist_id"
+                "default_playlist_id", "shorts_remix"
             ):
                 if k in settings:
                     current[k] = settings[k]
@@ -1100,6 +1102,7 @@ def upload_video_to_youtube(
         if progress_callback:
             progress_callback(95, bytes_uploaded, file_size)
         try:
+            time.sleep(2.0)  # Allow YouTube backend to register video entity before receiving thumbnail bytes
             thumb_uploaded = set_video_thumbnail(video_id, thumbnail_path, access_token)
         except Exception as tex:
             logger.warning(f"Không thể gắn ảnh thumbnail: {tex}")
@@ -1187,8 +1190,8 @@ def upload_video_to_youtube(
     }
 
 
-def set_video_thumbnail(video_id: str, thumbnail_path: Path, access_token: str) -> bool:
-    """Upload custom 1280x720 thumbnail for the published video."""
+def set_video_thumbnail(video_id: str, thumbnail_path: Path, access_token: str, retries: int = 4, retry_delay: float = 3.0) -> bool:
+    """Upload custom 1280x720 thumbnail for the published video with exponential backoff retries."""
     thumb_url = f"https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId={video_id}"
     mime = "image/jpeg"
     if thumbnail_path.suffix.lower() == ".png":
@@ -1198,11 +1201,29 @@ def set_video_thumbnail(video_id: str, thumbnail_path: Path, access_token: str) 
         "Authorization": f"Bearer {access_token}",
         "Content-Type": mime
     }
-    with open(thumbnail_path, "rb") as tf:
-        thumb_bytes = tf.read()
+    try:
+        with open(thumbnail_path, "rb") as tf:
+            thumb_bytes = tf.read()
+    except Exception as read_err:
+        logger.warning(f"Không thể đọc file thumbnail {thumbnail_path}: {read_err}")
+        return False
 
-    resp = requests.post(thumb_url, headers=headers, data=thumb_bytes, timeout=30)
-    return resp.status_code in (200, 201)
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.post(thumb_url, headers=headers, data=thumb_bytes, timeout=35)
+            if resp.status_code in (200, 201):
+                logger.info(f"Đã tải thành công ảnh thumbnail lên video {video_id} (Lần thử {attempt}).")
+                return True
+            err_text = resp.text
+            if "uploadForbidden" in err_text or "intermediateFeatures" in err_text or resp.status_code == 403:
+                logger.warning(f"Kênh chưa xác minh số điện thoại trên YouTube (Intermediate Features). YouTube API từ chối tải thumbnail tùy chỉnh (HTTP 403: {err_text}). Vui lòng vào YouTube Studio -> Cài đặt -> Kênh -> Điều kiện sử dụng tính năng -> Tính năng bậc trung để kích hoạt.")
+                return False
+            logger.warning(f"Lỗi tải thumbnail (lần {attempt}/{retries}) cho video {video_id}: HTTP {resp.status_code} {err_text}")
+        except Exception as err:
+            logger.warning(f"Ngoại lệ khi tải thumbnail (lần {attempt}/{retries}): {err}")
+        if attempt < retries:
+            time.sleep(retry_delay * attempt)
+    return False
 
 
 def fetch_live_video_details(video_id: str, channel_id: Optional[str] = None) -> Dict[str, Any]:
@@ -1232,8 +1253,10 @@ def update_live_video_metadata(
     tags: List[str],
     channel_id: Optional[str] = None,
     category_id: str = "1",
+    default_language: Optional[str] = None,
+    default_audio_language: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Update title, description, and tags on an existing live YouTube video via official API."""
+    """Update title, description, tags, and languages on an existing live YouTube video via official API."""
     cfg = load_youtube_config()
     target_ch_id = channel_id or cfg.get("active_channel_id")
     if not target_ch_id and cfg.get("channels"):
@@ -1245,14 +1268,22 @@ def update_live_video_metadata(
 
     clean_tags = sanitize_youtube_tags(tags, max_yt_chars=485)
 
+    snippet_payload: Dict[str, Any] = {
+        "title": (title or "")[:100],
+        "description": (description or "")[:5000],
+        "tags": clean_tags,
+        "categoryId": category_id or "1",
+    }
+    bcp47_lang = to_youtube_bcp47(default_language)
+    bcp47_audio = to_youtube_bcp47(default_audio_language or default_language)
+    if bcp47_lang:
+        snippet_payload["defaultLanguage"] = bcp47_lang
+    if bcp47_audio:
+        snippet_payload["defaultAudioLanguage"] = bcp47_audio
+
     payload = {
         "id": video_id,
-        "snippet": {
-            "title": (title or "")[:100],
-            "description": (description or "")[:5000],
-            "tags": clean_tags,
-            "categoryId": category_id or "1",
-        }
+        "snippet": snippet_payload
     }
     url = "https://www.googleapis.com/youtube/v3/videos?part=snippet"
     resp = requests.put(url, headers=headers, json=payload, timeout=30)
@@ -1668,16 +1699,27 @@ def resolve_episode_media(ep_dir: Path, media_type: str = "long") -> Dict[str, A
 
     # Video thumbnail resolution (honoring vertical Shorts vs 16:9)
     thumb_path = None
-    if pack_data.get("thumbnail_file") and Path(pack_data["thumbnail_file"]).is_file():
-        thumb_path = Path(pack_data["thumbnail_file"])
-    elif (ep_dir / "thumbnail_shorts.jpg").is_file() and (pack_data.get("is_short") or pack_data.get("is_vertical_short")):
-        thumb_path = ep_dir / "thumbnail_shorts.jpg"
-    elif (ep_dir / "thumbnail_seo.jpg").is_file():
-        thumb_path = ep_dir / "thumbnail_seo.jpg" 
-    elif (ep_dir / "00_DANG_BAI_YOUTUBE").is_dir():
-        for jpg in (ep_dir / "00_DANG_BAI_YOUTUBE").glob("*.jpg"):
-            thumb_path = jpg
+    candidate_thumbnails = [
+        pack_data.get("thumbnail_file"),
+        ep_dir / "thumbnail_seo.jpg",
+        ep_dir / "thumbnail.jpg",
+        ep_dir / "thumbnail_16x9.jpg",
+        ep_dir / "thumbnail_flow.jpg",
+        ep_dir / "stoi_ep002_gold_red_white_thumbnail.jpg",
+    ]
+    if (pack_data.get("is_short") or pack_data.get("is_vertical_short")):
+        candidate_thumbnails.insert(0, ep_dir / "thumbnail_shorts.jpg")
+
+    for cand in candidate_thumbnails:
+        if cand and Path(cand).is_file():
+            thumb_path = Path(cand)
             break
+
+    if not thumb_path and (ep_dir / "00_DANG_BAI_YOUTUBE").is_dir():
+        for f in (ep_dir / "00_DANG_BAI_YOUTUBE").iterdir():
+            if f.suffix.lower() in (".jpg", ".jpeg", ".png"):
+                thumb_path = f
+                break
 
     series_fallback = ep_dir.parent.name if ep_dir else "Tập Phim Mới"
     return {
@@ -1742,6 +1784,26 @@ def auto_upload_episode(
     license_type = ch_settings.get("license", "youtube")
     pinned_comment = media_info.get("pinned_comment")
 
+    # Resolve accurate languages according to channel and episode configuration
+    raw_lang = language or media_info.get("language") or ch_settings.get("default_language") or "es"
+    eff_lang = to_youtube_bcp47(raw_lang) or "es"
+    eff_audio_lang = to_youtube_bcp47(ch_settings.get("default_audio_language") or eff_lang) or eff_lang
+
+    # Ensure thumbnail exists before upload: auto-generate SEO package if missing
+    if not thumb or not Path(thumb).is_file():
+        try:
+            from studio.seo_packager import generate_seo_package
+            logger.info(f"Đang tự động khởi tạo Thumbnail/SEO package chuẩn bị tải lên YouTube cho tập {episode_dir.name}...")
+            generate_seo_package(episode_dir, language=eff_lang)
+            media_info = resolve_episode_media(episode_dir, media_type="long")
+            thumb = media_info.get("thumbnail_path")
+            title = media_info.get("title") or title
+            desc = media_info.get("description") or desc
+            tags = media_info.get("tags") or tags
+            pinned_comment = media_info.get("pinned_comment") or pinned_comment
+        except Exception as se_err:
+            logger.warning(f"Không thể tự động sinh SEO/Thumbnail trước khi upload: {se_err}")
+
     def _prog(pct, sent, total):
         if pct % 25 == 0 or pct == 100:
             print(f"   [YOUTUBE UPLOAD] {pct}% ({round(sent / (1024*1024), 1)} MB / {round(total / (1024*1024), 1)} MB)...", flush=True)
@@ -1751,6 +1813,7 @@ def auto_upload_episode(
         print(f"[YOUTUBE] Bắt đầu tự động tải video lên kênh '{ch_name}'...", flush=True)
         print(f"   Tiêu đề: {title[:75]}...", flush=True)
         print(f"   Trạng thái: Không công khai (Unlisted)", flush=True)
+        print(f"   Ngôn ngữ metadata: {eff_lang} | Giọng đọc: {eff_audio_lang}", flush=True)
         res = upload_video_to_youtube(
             video_path=Path(video_path),
             channel_id=channel_id,
@@ -1766,7 +1829,9 @@ def auto_upload_episode(
             made_for_kids=made_for_kids,
             license_type=license_type,
             pinned_comment=pinned_comment,
-            new_playlist_title=None
+            new_playlist_title=None,
+            default_language=eff_lang,
+            default_audio_language=eff_audio_lang,
         )
         if res.get("ok"):
             record = {
