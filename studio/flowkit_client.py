@@ -86,16 +86,59 @@ def cleanup_stale_flowkit_jobs():
 
 def ensure_flowkit_running(max_wait_seconds: int = 15) -> bool:
     """Ensure FlowKit API is running; if down, attempt background launch."""
+    import sys
     cleanup_stale_flowkit_jobs()
     if is_flowkit_alive():
         return True
 
-    python_exe = FLOWKIT_ROOT / "engines" / "muse" / "runtime" / "muse" / "python" / "python.exe"
-    app_dir = FLOWKIT_ROOT / "app"
-    vbs = FLOWKIT_ROOT / "Start_API.vbs"
+    flowkit_root = _resolve_flowkit_root()
+    if not flowkit_root.is_dir():
+        logger.warning(f"FLOWKIT_ROOT does not exist: {flowkit_root}")
+        return False
 
-    # Attempt launch via python uvicorn
-    if python_exe.is_file() and app_dir.is_dir():
+    vbs = flowkit_root / "Start_API.vbs"
+    app_dir = flowkit_root / "app"
+    launcher_py = app_dir / "launcher.py"
+    start_cmd = flowkit_root / "START.cmd"
+
+    candidates_py = [
+        flowkit_root / "engines" / "muse" / "runtime" / "muse" / "python" / "python.exe",
+        flowkit_root / "engines" / "muse" / "runtime" / "muse" / "python" / "pythonw.exe",
+        flowkit_root / "runtime" / "python" / "python.exe",
+        flowkit_root / ".venv" / "Scripts" / "python.exe",
+        Path(sys.executable),
+    ]
+    python_exe = next((p for p in candidates_py if p.is_file()), None)
+
+    # 1. First priority: Start_API.vbs (silent background via wscript.exe)
+    if vbs.is_file():
+        try:
+            subprocess.Popen(
+                ["wscript.exe", str(vbs)],
+                cwd=str(flowkit_root),
+                creationflags=0x08000000 if os.name == "nt" else 0
+            )
+            logger.info("Triggered FlowKit startup via Start_API.vbs")
+        except Exception as e:
+            logger.warning(f"Could not launch Start_API.vbs: {e}")
+
+    # 2. Second priority: launcher.py with python
+    if not is_flowkit_alive() and launcher_py.is_file() and python_exe:
+        try:
+            cmd = [str(python_exe), "-B", str(launcher_py)]
+            subprocess.Popen(
+                cmd,
+                cwd=str(flowkit_root),
+                creationflags=0x08000000 if os.name == "nt" else 0,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            logger.info(f"Triggered FlowKit startup via launcher.py using {python_exe}")
+        except Exception as e:
+            logger.warning(f"Could not launch launcher.py: {e}")
+
+    # 3. Third priority: direct uvicorn gateway:app
+    if not is_flowkit_alive() and python_exe and app_dir.is_dir():
         cmd = [
             str(python_exe), "-B", "-m", "uvicorn", "gateway:app",
             "--host", str(FLOWKIT_HOST), "--port", str(FLOWKIT_PORT),
@@ -104,18 +147,26 @@ def ensure_flowkit_running(max_wait_seconds: int = 15) -> bool:
         try:
             subprocess.Popen(
                 cmd,
-                cwd=str(FLOWKIT_ROOT),
+                cwd=str(flowkit_root),
                 creationflags=0x08000000 if os.name == "nt" else 0,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+            logger.info(f"Triggered FlowKit startup via uvicorn gateway:app")
         except Exception as e:
-            logger.warning(f"Could not spawn FlowKit directly: {e}")
-            if vbs.is_file():
-                try:
-                    os.startfile(str(vbs))
-                except Exception:
-                    pass
+            logger.warning(f"Could not spawn uvicorn directly: {e}")
+
+    # 4. Fourth priority: START.cmd
+    if not is_flowkit_alive() and start_cmd.is_file():
+        try:
+            subprocess.Popen(
+                ["cmd.exe", "/c", str(start_cmd)],
+                cwd=str(flowkit_root),
+                creationflags=0x08000000 if os.name == "nt" else 0
+            )
+            logger.info("Triggered FlowKit startup via START.cmd")
+        except Exception as e:
+            logger.warning(f"Could not spawn START.cmd: {e}")
 
     # Wait for ready
     deadline = time.monotonic() + max_wait_seconds
