@@ -150,13 +150,16 @@ def image_prompt(scene,bible):
         if is_stoic:
             clean_clone = (
                 "Monumental heroic classical sculpted Carrara marble and antique bronze statue of Stoic philosopher emperor Marcus Aurelius, "
-                "deeply chiseled stone anatomy, massive sculpted bare stone shoulder and pectoral chest, thick muscular stone neck, "
-                "deeply carved curly stone beard and hair, sculpted stone eyes, "
-                "wearing royal crimson red draped toga (chlamys) carved cascading over one stone shoulder. "
+                "intact complete head with deeply carved curly stone beard and hair, sculpted stone eyes, dignified stoic expression, "
+                "deeply chiseled stone anatomy, massive sculpted broad stone shoulders and pectoral chest, thick muscular stone neck, "
+                "intact stone arms, wearing royal crimson red draped toga (chlamys) carved cascading over one stone shoulder. "
                 "Authentic weathered Carrara marble texture with subtle historical fissure lines and smooth chisel marks. "
-                "100% pure carved classical stone sculpture throughout, never living human flesh, never real skin pores, never vascular veins, never modern clothes"
+                "100% pure carved classical stone sculpture throughout, never living human flesh, never real skin pores, never vascular veins, "
+                "never headless, never severed head, never missing face, never cut off at neck, never modern clothes"
             )
             scene_desc = re.sub(r'(?i)\b(a\s+)?(living\s+)?(man|person|figure)\b', 'the classical marble statue', scene_desc)
+            if rules:
+                rules = re.sub(r'(?i)\b(living|human\s+flesh|bronze\s+skin|real\s+skin|skin\s+pores|vascular|veins)\b', '', rules).strip(', ')
         
         prompt_parts = [
             f"Cinematic {ratio_tag} photograph, {aspect_desc}",
@@ -202,10 +205,10 @@ def image_prompt(scene,bible):
         # 1. Strip any close-up, side profile, or severed head framing commands
         txt = re.sub(r'(?i)\b(a\s+)?close[- ]up,?\s*(side[- ])?profile\s*view\s*of\s*(a\s+)?', 'heroic medium shot torso composition of ', txt)
         txt = re.sub(r'(?i)\bdramatic\s+close[- ]up,?\s*(side[- ])?profile\s*(angle)?', 'heroic cinematic medium shot, athletic muscular torso framing', txt)
-        txt = re.sub(r'(?i)\bclose[- ]up\s+of\s+(the\s+)?(marble\s+)?statue[^\,\.]*', 'cinematic medium shot of hyper-muscular classical Carrara marble statue with colossal broad shoulders, sculpted chest pecs, and 6-pack abs', txt)
+        txt = re.sub(r'(?i)\bclose[- ]up\s+of\s+(the\s+)?(marble\s+)?statue[^\,\.]*', 'cinematic medium shot of classical Carrara marble statue of Marcus Aurelius with intact bearded head, sculpted stone eyes, colossal broad stone shoulders, and sculpted chest pecs', txt)
         txt = re.sub(r'(?i)\bfocusing\s+on\s+the\s+statue\'?s\s+face\b', 'framing the imposing muscular chest, broad shoulders, and dignified bearded face', txt)
         txt = re.sub(r'(?i)\bclose[- ]up\s+of\s+the\s+statue\'?s\s+eyes\b', 'heroic medium shot showing dignified warrior face, massive broad shoulders, and sculpted pectoral chest', txt)
-        txt = re.sub(r'(?i)\b(classical\s+)?(marble\s+)?busts?\b', 'hyper-muscular marble statue with sculpted pectoral chest, striated deltoids, and 6-pack abs', txt)
+        txt = re.sub(r'(?i)\b(classical\s+)?(marble\s+)?busts?\b', 'magnificent intact classical Carrara marble statue with sculpted bearded head, stone eyes, broad stone shoulders, and draped crimson toga', txt)
         txt = re.sub(r'(?i)\b(tượng\s+)?bán\s+thân\b', 'tượng cơ bắp vạm vỡ ngực nở vai rộng', txt)
         txt = re.sub(r'(?i)\bfull[- ]length\s+standing\s+(classical\s+)?(marble\s+)?statue\b', 'heroic medium torso shot of hyper-muscular Roman philosopher emperor statue with massive broad shoulders and sculpted pecs', txt)
         txt = re.sub(r'(?i)\bstanding\s+resolute\s+on\s+its\s+weathered\s+stone\s+pedestal\b', 'heroic athletic demigod physique in ancient Roman forum', txt)

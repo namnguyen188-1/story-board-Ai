@@ -795,47 +795,23 @@ def format_real_acting_prompt(scene: dict[str, Any], bible: dict[str, Any]) -> s
 
     elif is_stoic:
         chars_preview = "; ".join(chars_info) if chars_info else ""
-        is_statue = any(k in f"{chars_preview} {visual_setup} {master_setting}".lower() for k in [
-            "statue", "sculpture", "tượng", "marble", "carrara", "bronze statue", "đá cẩm thạch",
-            "stone figure", "carved marble", "ancient bust", "monumental statue"
-        ])
-
-        if is_statue:
-            default_chars = "Monumental classical Greco-Roman weathered marble philosopher statue (hyper-muscular chiseled demigod build, massive broad shoulders, deeply sculpted chest pecs, six-pack abs, vascular stone arms, thick carved beard, draped cloth at hips). Solid carved marble sculpture, lips and mouth strictly closed, calm severe stone contemplation. ABSOLUTELY NO LIP MOVEMENT, NO SPEAKING, NO TALKING HEAD."
-            chars_str = "; ".join(chars_info) if chars_info else default_chars
-            parts = [
-                "FORMAT & STYLE: Cinematic monumental classical sculpture film still. Masterful cinematic footage of an imposing classical weathered marble statue with deeply carved muscular anatomy, authentic weathered stone texture, fine fissures, and dramatic low-angle chiaroscuro museum lighting. Grand illuminated ancient Roman forum, majestic marble colonnades, and distant Acropolis at twilight under a starry sky with glowing torches and floating golden embers.",
-                f"CHARACTERS: {chars_str}.",
-                f"SETTING & VISUAL SETUP: {visual_setup or master_setting}.",
-                "LIGHTING & COLOR: Dramatic cinematic chiaroscuro, warm amber golden key light with deep sapphire teal fill, delicate volumetric rim light outlining the massive sculpted marble shoulders, chiseled pecs, and stone curls. Never pitch black.",
-                f"CAMERA: {camera}, slow motivated cinematic camera push-in, low-angle tracking shot, natural depth of field with soft bokeh ancient colonnade background.",
-                "PERFORMANCE & PRESENCE: Pure cinematic sculpture presence. The statue remains majestic and unmoving like a classical masterwork; motion comes strictly from cinematic camera tracking and flickering torchlight casting shifting shadows across the carved stone muscles. MOUTH IS STRICTLY CLOSED. NO LIP SYNC, NO TALKING MOUTH.",
-            ]
-            if action:
-                parts.append(f"TIMED ACTION: {action}.")
-            if dialogue:
-                parts.append(f"AUDIO: Deep resonant, dignified stoic philosophical off-screen voiceover narration: \"{dialogue}\". Atmospheric ancient temple room tone, distant night breeze, subtle torch fire crackles. Voice is strictly an off-screen voiceover. NO ON-SCREEN SPEECH, NO MOVING LIPS.")
-            else:
-                parts.append("AUDIO: Atmospheric ancient forum room tone, distant night breeze, subtle torch fire crackles.")
-            parts.append("CONSTRAINTS: BANNED: live-action human talking head, moving mouth, lip syncing, talking lips, rubbery skin, cartoon, modern clothing, flat plastic CGI, flat unmuscular chest, ugly artifacts, watermark.")
+        default_chars = "Monumental classical Greco-Roman carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius (deeply sculpted stone anatomy, broad stone shoulders, sculpted stone pectorals, thick carved curly beard, sculpted stone eyes, royal crimson draped toga cascading over one stone shoulder). Solid carved marble sculpture, lips and mouth strictly closed, calm severe stone contemplation. ABSOLUTELY NO LIP MOVEMENT, NO SPEAKING, NO TALKING HEAD."
+        chars_str = "; ".join(chars_info) if chars_info else default_chars
+        parts = [
+            "FORMAT & STYLE: Cinematic monumental classical sculpture film still. Masterful cinematic footage of an imposing classical weathered Carrara marble statue with deeply carved muscular anatomy, authentic weathered stone texture, fine fissures, and dramatic low-angle chiaroscuro museum lighting. Grand illuminated ancient Roman forum, majestic marble colonnades, and distant Acropolis at twilight under a starry sky with glowing torches and floating golden embers.",
+            f"CHARACTERS: {chars_str}.",
+            f"SETTING & VISUAL SETUP: {visual_setup or master_setting}.",
+            "LIGHTING & COLOR: Dramatic cinematic chiaroscuro, warm amber golden key light with deep sapphire teal fill, delicate volumetric rim light outlining the massive sculpted marble shoulders, chiseled pecs, and stone curls. Never pitch black.",
+            f"CAMERA: {camera}, slow motivated cinematic camera push-in, low-angle tracking shot, natural depth of field with soft bokeh ancient colonnade background.",
+            "PERFORMANCE & PRESENCE: Pure cinematic sculpture presence. The statue remains majestic and unmoving like a classical masterwork; motion comes strictly from cinematic camera tracking and flickering torchlight casting shifting shadows across the carved stone muscles. MOUTH IS STRICTLY CLOSED. NO LIP SYNC, NO TALKING MOUTH.",
+        ]
+        if action:
+            parts.append(f"TIMED ACTION: {action}.")
+        if dialogue:
+            parts.append(f"AUDIO: Deep resonant, dignified stoic philosophical off-screen voiceover narration: \"{dialogue}\". Atmospheric ancient temple room tone, distant night breeze, subtle torch fire crackles. Voice is strictly an off-screen voiceover. NO ON-SCREEN SPEECH, NO MOVING LIPS.")
         else:
-            default_chars = "Marcus Aurelius / Classical Roman Philosopher Emperor (hyper-muscular chiseled demigod warrior build, massive broad shoulders, thick muscular neck, sculpted chest pecs, striated deltoids, vascular arms, weathered bronze skin, piercing contemplative gaze, salt-and-pepper curly beard, royal crimson draped toga draped over one shoulder leaving muscular chest and arm bare)"
-            chars_str = "; ".join(chars_info) if chars_info else default_chars
-            parts = [
-                "FORMAT & STYLE: Cinematic 16:9 historical epic film still. Masterful live-action Greco-Roman cinematography with natural skin pores, realistic wrinkles, expressive eye gaze, and lifelike presence. Grand illuminated ancient Roman forum, majestic marble colonnades, and distant Acropolis at twilight under a starry sky with glowing torches and floating golden embers.",
-                f"CHARACTERS: {chars_str}.",
-                f"SETTING & VISUAL SETUP: {visual_setup or master_setting}.",
-                "LIGHTING & COLOR: Dramatic cinematic chiaroscuro, warm amber golden key light with deep sapphire teal fill, delicate volumetric rim light outlining actor's massive muscular shoulders, sculpted pecs, and curls. Vibrant imperial crimson red and warm ivory textile togas. Never pitch black.",
-                f"CAMERA: {camera}, smooth motivated cinematic tracking shot, natural depth of field with soft bokeh background.",
-                "PERFORMANCE & PRESENCE: Commanding imperial warrior-philosopher presence, imposing athletic posture, organic subtle breathing and expressive eye gaze, natural contemplative movement (slow deliberate walking, gesturing thoughtfully, gazing out over the city). Authentic live-action dramatic performance.",
-            ]
-            if action:
-                parts.append(f"TIMED ACTION: {action}.")
-            if dialogue:
-                parts.append(f"AUDIO & DIALOGUE: Deep resonant, dignified stoic philosophical narration echoing through ancient colonnades: \"{dialogue}\". Rich vocal warmth, subtle wind and ambient forum echoes.")
-            else:
-                parts.append("AUDIO: Atmospheric ancient forum room tone, distant night breeze, subtle torch fire crackles.")
-            parts.append("CONSTRAINTS: BANNED: scrawny, skinny, frail, weak, unmuscular, flat chest, lifeless stone statue, severed torso, blank white eyes, plastic CGI render, cartoon, modern clothing, ugly artifacts, watermark.")
+            parts.append("AUDIO: Atmospheric ancient forum room tone, distant night breeze, subtle torch fire crackles.")
+        parts.append("CONSTRAINTS: BANNED: living human flesh, real skin pores, vascular veins, half-human half-statue, modern human, live-action human talking head, moving mouth, lip syncing, talking lips, rubbery skin, cartoon, modern clothing, flat plastic CGI, flat unmuscular chest, severed head, headless torso, broken statue, mutilated limbs, ugly artifacts, watermark.")
     elif is_whiteboard:
 
         default_chars = "Expressive hand-drawn whiteboard marker character sketches"
