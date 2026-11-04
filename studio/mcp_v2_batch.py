@@ -122,6 +122,16 @@ def image_prompt(scene,bible):
             p = p.rstrip(". ") + ". No text overlays, no watermarks, photorealistic 8k."
         return p[:1000]
 
+    # Determine genre early
+    genre = str(bible.get("production_genre") or bible.get("genre") or "").strip().lower()
+    series_name = str(bible.get("series") or scene.get("series") or "").strip().lower()
+    scene_desc_low = (str(scene.get("description", "")) + " " + str(scene.get("visual_setup", ""))).lower()
+    is_stoic = (
+        genre in ("stoic", "philosophy", "history")
+        or "stoi" in series_name
+        or any(kw in scene_desc_low for kw in ("statue", "sculpture", "monument", "tượng", "carrara", "marcus", "stoic", "philosopher"))
+    )
+
     # ACCURATE VIDEO CLONING MODE: 100% faithful replication of competitor reference video
     if has_clone:
         c = bible["characters"][0]
@@ -135,6 +145,18 @@ def image_prompt(scene,bible):
         bad_words_pattern = r'(?i)\b(mirrored|symmetrical|mirror|kaleidoscope|dual|twin|two statues|two men|double|split|collage|diptych|pedestal|severed bust)\b'
         scene_desc = re.sub(bad_words_pattern, '', scene_desc).strip(', ')
         setup = re.sub(bad_words_pattern, '', setup).strip(', ')
+
+        # STOIC SPECIFIC ENFORCEMENT: Never mix statue and living human! All Stoic scenes are 100% pure classical marble statue!
+        if is_stoic:
+            clean_clone = (
+                "Monumental heroic classical sculpted Carrara marble and antique bronze statue of Stoic philosopher emperor Marcus Aurelius, "
+                "deeply chiseled stone anatomy, massive sculpted bare stone shoulder and pectoral chest, thick muscular stone neck, "
+                "deeply carved curly stone beard and hair, sculpted stone eyes, "
+                "wearing royal crimson red draped toga (chlamys) carved cascading over one stone shoulder. "
+                "Authentic weathered Carrara marble texture with subtle historical fissure lines and smooth chisel marks. "
+                "100% pure carved classical stone sculpture throughout, never living human flesh, never real skin pores, never vascular veins, never modern clothes"
+            )
+            scene_desc = re.sub(r'(?i)\b(a\s+)?(living\s+)?(man|person|figure)\b', 'the classical marble statue', scene_desc)
         
         prompt_parts = [
             f"Cinematic {ratio_tag} photograph, {aspect_desc}",
@@ -192,12 +214,15 @@ def image_prompt(scene,bible):
         txt = re.sub(r'(?i)\b(broken|ruined|headless|armless|damaged|fragmented|amputated)\s+(statue|sculpture|marble|torso|limbs?)\b', 'magnificent intact unbroken \\2', txt)
         txt = re.sub(r'(?i)\b(severed|broken|missing)\s+(arms?|hands?|limbs?)\b', 'fully sculpted unbroken arms', txt)
 
-        # 2. Inject explicit hyper-muscular demigod physique attributes
+        # 2. Inject explicit classical marble statue attributes (NO living human flesh/veins!)
         muscular_traits = (
-            "hyper-muscular chiseled demigod physique, colossal broad shoulders, thick muscular neck, "
-            "powerfully sculpted pectoral chest muscles, striated deltoids, vascular arms, 6-pack abs, "
-            "both arms fully intact and unbroken, complete sculpted arms attached, "
-            "royal crimson red toga draped over one shoulder leaving the bare muscular chest and muscular arm proudly displayed"
+            "Monumental classical carved Carrara marble statue, deeply chiseled stone anatomy, "
+            "colossal broad stone shoulders, thick muscular stone neck, powerfully sculpted pectoral chest, "
+            "deeply carved curly stone beard and hair, sculpted stone eyes, "
+            "powerfully carved muscular stone arms, both stone arms fully intact and unbroken, "
+            "royal crimson red draped toga carved over one stone shoulder. "
+            "Authentic weathered Carrara marble texture with subtle historical fissure lines and smooth chisel marks, "
+            "100% pure classical carved stone sculpture, never living human flesh, never real skin pores, never vascular veins"
         )
         if "muscular" not in txt.lower() and "pectoral" not in txt.lower():
             txt = f"{muscular_traits}, {txt}"

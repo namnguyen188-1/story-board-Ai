@@ -9978,12 +9978,26 @@ async function refreshAutoFlowStatus() {
       node.style.borderColor = "rgba(239,68,68,0.3)";
       if (statusBox) statusBox.style.color = "#f87171";
     }
-    if (statusBox && data.status_text) {
-      const emailInfo = data.email ? ` (${data.email})` : "";
-      if (data.ready_accounts > 1) {
-        statusBox.textContent = `✓ Web Tool đã kết nối${emailInfo} · ${data.ready_accounts} TK Đa luồng Round-Robin`;
+    if (statusBox) {
+      if (data.connected || data.ready) {
+        const emailInfo = data.email ? ` (${data.email})` : "";
+        if (data.ready_accounts > 1) {
+          statusBox.textContent = `✓ Web Tool đã kết nối${emailInfo} · ${data.ready_accounts} TK Đa luồng Round-Robin`;
+        } else {
+          statusBox.textContent = `✓ Web Tool đã kết nối${emailInfo}`;
+        }
       } else {
-        statusBox.textContent = `✓ Web Tool đã kết nối${emailInfo}`;
+        statusBox.textContent = data.status_text || "Chưa kết nối Web Tool Google Flow.";
+      }
+    }
+    const topBarFk = document.getElementById("statusFlowKit");
+    if (topBarFk) {
+      if (data.connected || data.ready) {
+        topBarFk.textContent = "🟢 Sẵn sàng";
+        topBarFk.style.color = "#10b981";
+      } else {
+        topBarFk.textContent = "🔴 Offline";
+        topBarFk.style.color = "#ef4444";
       }
     }
     const robotFlow = document.getElementById("robotStatusFlow");

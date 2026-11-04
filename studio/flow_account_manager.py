@@ -867,8 +867,15 @@ def get_flow_account_for_scene(scene_number: int, exclude_ids: list[str] | None 
 
 def get_ui_status() -> Dict[str, Any]:
     """Return unified status for the Studio Settings Section 3 UI with multi-account support."""
-    from flowkit_client import is_flowkit_alive, get_webtool_status
+    from flowkit_client import is_flowkit_alive, get_webtool_status, ensure_flowkit_running
     gw_alive = is_flowkit_alive()
+
+    # If FlowKit is not alive, attempt background launch without blocking UI response
+    if not gw_alive:
+        try:
+            threading.Thread(target=ensure_flowkit_running, kwargs={"max_wait_seconds": 3}, daemon=True).start()
+        except Exception:
+            pass
 
     _sanitize_accounts_db()
 
@@ -889,20 +896,28 @@ def get_ui_status() -> Dict[str, Any]:
     total_cnt = len(all_accounts) if all_accounts else 1
     ready_cnt = len(real_ready)
     emails = [a.get("email") for a in real_ready if a.get("email")]
-    if not emails and is_port_listening(9461):
+
+    # Direct live check on port 9461
+    chrome_port_alive = is_port_listening(9461)
+    live_em = ""
+    if chrome_port_alive:
         live_em = get_logged_in_email(9461)
-        if live_em:
-            emails = [live_em]
-            ready_cnt = 1
+        if live_em and live_em not in emails:
+            emails.append(live_em)
+            ready_cnt = max(ready_cnt, 1)
+
+    # Check if Chrome is actively on Google Flow / signed in
+    c_login = check_login_status(9461) if chrome_port_alive else {"logged_in": False, "on_webtool": False}
+    chrome_active_on_flow = bool(c_login.get("logged_in") or c_login.get("on_webtool") or (chrome_port_alive and emails))
 
     short_emails = [e.split("@")[0] for e in emails]
     emails_tag = ", ".join(short_emails) if short_emails else "Chưa có"
 
     if _LOGIN_STATE.get("watcher_active"):
         return {
-            "ready": gw_alive,
-            "connected": False,
-            "email": _LOGIN_STATE.get("email", ""),
+            "ready": gw_alive or chrome_active_on_flow,
+            "connected": chrome_active_on_flow,
+            "email": _LOGIN_STATE.get("email", "") or live_em,
             "emails": emails,
             "total_accounts": total_cnt,
             "ready_accounts": ready_cnt,
@@ -914,23 +929,24 @@ def get_ui_status() -> Dict[str, Any]:
 
     wt = get_webtool_status("hidden") if gw_alive else {"connected": False}
     connected = wt.get("connected", False)
-    email = _LOGIN_STATE.get("email") or get_logged_in_email(9461) or (emails[0] if emails else "")
+    email = _LOGIN_STATE.get("email") or live_em or (emails[0] if emails else "")
 
-    if connected or gw_alive:
+    if connected or gw_alive or chrome_active_on_flow or (ready_cnt > 0):
         _set_chrome_visibility_win32(port=9461, show=False)
+        display_cnt = max(ready_cnt, 1 if chrome_active_on_flow else 0)
         return {
             "ready": True,
             "connected": True,
-            "email": email,
-            "emails": emails,
+            "email": email or (emails[0] if emails else "Google Flow"),
+            "emails": emails if emails else ([email] if email else ["Google Flow"]),
             "total_accounts": total_cnt,
-            "ready_accounts": ready_cnt,
+            "ready_accounts": display_cnt,
             "accounts": all_accounts,
             "active_id": active_account_id,
             "dispatch_mode": "round_robin",
-            "badge_text": f"🟢 {ready_cnt}/{total_cnt} Đa luồng" if ready_cnt > 1 else f"🟢 {ready_cnt} TK Sẵn sàng",
-            "badge_type": "success" if ready_cnt > 0 else "warning",
-            "status_text": f"● {ready_cnt} tài khoản sẵn sàng ({emails_tag}) · Đa luồng Round-Robin" if ready_cnt > 1 else f"✓ Web Tool đã kết nối ({emails[0] if emails else 'Sẵn sàng'})",
+            "badge_text": f"🟢 {display_cnt}/{total_cnt} Đa luồng" if display_cnt > 1 else "🟢 Sẵn sàng",
+            "badge_type": "success",
+            "status_text": f"● {display_cnt} tài khoản sẵn sàng ({emails_tag}) · Đa luồng Round-Robin" if display_cnt > 1 else f"✓ Web Tool đã kết nối ({email or 'Sẵn sàng'})",
             "watcher_active": False
         }
     else:
@@ -943,6 +959,6 @@ def get_ui_status() -> Dict[str, Any]:
             "ready_accounts": 0,
             "badge_text": "🔴 Chưa kết nối",
             "badge_type": "error",
-            "status_text": "FlowKit Gateway chưa hoạt động. Bấm [Đăng Nhập Google Flow] để khởi động.",
+            "status_text": "Chưa kết nối Web Tool Google Flow. Bấm [Đăng Nhập] để kết nối.",
             "watcher_active": False
         }
