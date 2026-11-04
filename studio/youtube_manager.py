@@ -989,6 +989,20 @@ def upload_video_to_youtube(
     clean_d = str(description or "").strip()
     if clean_d.lower() in ("none", "null", "undefined"):
         clean_d = ""
+
+    # Strict YouTube hashtag enforcement: YouTube reads hashtags directly from description!
+    # If description lacks hashtags, extract from tags list or synthesize
+    if "#" not in clean_d and tags:
+        synthesized_hashes = []
+        for t in tags:
+            clean_tag = re.sub(r'[^a-zA-Z0-9_\u00C0-\u1EF9]', '', str(t)).strip()
+            if len(clean_tag) >= 3 and f"#{clean_tag.lower()}" not in [h.lower() for h in synthesized_hashes]:
+                synthesized_hashes.append(f"#{clean_tag}")
+            if len(synthesized_hashes) >= 5:
+                break
+        if synthesized_hashes:
+            clean_d = f"{clean_d}\n\n{' '.join(synthesized_hashes)}".strip()
+
     safe_desc = clean_d[:5000]
     safe_tags = sanitize_youtube_tags(tags, max_yt_chars=485)
     if privacy_status not in ("private", "unlisted", "public"):
@@ -1722,11 +1736,19 @@ def resolve_episode_media(ep_dir: Path, media_type: str = "long") -> Dict[str, A
                 break
 
     series_fallback = ep_dir.parent.name if ep_dir else "Tập Phim Mới"
+    # Guarantee hashtags are embedded in description for YouTube
+    desc_val = pack_data.get("description", "")
+    hashes_list = pack_data.get("hashtags") or []
+    if hashes_list:
+        h_str = " ".join([h if h.startswith("#") else f"#{h}" for h in hashes_list if h])
+        if h_str and h_str not in desc_val:
+            desc_val = f"{desc_val}\n\n{h_str}".strip()
+
     return {
         "video_path": video_path,
         "thumbnail_path": thumb_path,
         "title": pack_data.get("best_title") or series_fallback,
-        "description": pack_data.get("description", ""),
+        "description": desc_val,
         "tags": pack_data.get("tags", []),
         "vidiq_score": pack_data.get("vidiq_score", 100),
         "language": pack_data.get("language", ""),

@@ -22657,13 +22657,14 @@ window.renderSeoPackageUI = function (data) {
 
 
   if (descArea) {
+    let fullDesc = data.description || "";
+    const hashes = Array.isArray(data.hashtags) ? data.hashtags.join(" ") : (data.hashtags_line || "");
+    if (hashes && !fullDesc.includes(hashes)) {
+      fullDesc = (fullDesc.trim() + "
 
-
-
-    descArea.value = data.description || "";
-
-
-
+" + hashes).trim();
+    }
+    descArea.value = fullDesc;
   }
 
 

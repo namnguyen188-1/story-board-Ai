@@ -96144,6 +96144,13 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 upload_desc = fallback_desc
 
+            # Critical Hashtag Guarantee: Ensure all 5 hashtags are attached at bottom of upload_desc
+            pub_hashes = pub_pack.get("hashtags") or []
+            if pub_hashes:
+                hash_line = " ".join([h if h.startswith("#") else f"#{h}" for h in pub_hashes if h])
+                if hash_line and hash_line not in upload_desc:
+                    upload_desc = upload_desc.strip() + "\n\n" + hash_line
+
 
 
 

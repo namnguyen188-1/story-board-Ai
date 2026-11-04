@@ -11667,15 +11667,13 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
-    desc_parts.extend([loc[2], ' '.join(hashes)])
-
-
-
-
-
-
-
-    description = clean_competitor_links('\n\n'.join(desc_parts))
+    desc_parts.append(loc[2])
+    cleaned_body = clean_competitor_links('\n\n'.join(desc_parts))
+    hash_str = ' '.join(hashes)
+    if hash_str and hash_str not in cleaned_body:
+        description = f"{cleaned_body}\n\n{hash_str}".strip()
+    else:
+        description = cleaned_body
 
 
 
@@ -12381,7 +12379,7 @@ def format_publish_pack_txt(seo_package):
 
 
 
-        '', '3. MÔ TẢ VIDEO',p.get('description',''),'', '4. TAGS',', '.join(p.get('tags') or []),
+        '', '3. MÔ TẢ VIDEO (ĐÃ GẮN KÈM HASHTAGS)',(p.get('description','') + ('\n\n' + ' '.join(p.get('hashtags') or []) if p.get('hashtags') and ' '.join(p.get('hashtags') or []) not in p.get('description','') else '')).strip(),'', '4. TAGS',', '.join(p.get('tags') or []),
 
 
 
