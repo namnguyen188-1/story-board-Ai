@@ -106,7 +106,13 @@ def sanitize_statue_terms(text: str) -> str:
 
 def image_prompt(scene,bible):
     characters=[]
-    has_clone = bool(bible.get("characters") and isinstance(bible["characters"][0], dict) and (bible["characters"][0].get("clone_prompt") or bible["characters"][0].get("appearance")))
+    genre_hint = str(bible.get("production_genre") or bible.get("genre") or "").strip().lower()
+    has_clone = bool(bible.get("characters") and isinstance(bible["characters"][0], dict) and (
+        bible["characters"][0].get("clone_prompt")
+        or (str(bible["characters"][0].get("personality", "")).startswith("Cloned protagonist:")
+            and bible["characters"][0].get("appearance"))
+        or (genre_hint in ("", "auto", "stoic", "philosophy") and bible["characters"][0].get("appearance"))
+    ))
 
     is_vert = bool(bible.get("is_vertical") or bible.get("aspect_ratio") == "9:16" or str(scene.get("aspect_ratio","")).strip() == "9:16")
     aspect_desc = "vertical 9:16 mobile portrait." if is_vert else "wide 16:9 landscape."
@@ -119,7 +125,12 @@ def image_prompt(scene,bible):
         if "16:9" not in p and "9:16" not in p:
             p = f"Cinematic {ratio_tag}, {p}"
         if "no text" not in p.lower() and "no watermark" not in p.lower():
-            p = p.rstrip(". ") + ". No text overlays, no watermarks, photorealistic 8k."
+            if genre_hint == "animation":
+                p = p.rstrip(". ") + ". No text overlays, no watermarks, stylized animation."
+            elif genre_hint in ("whiteboard", "colored_marker"):
+                p = p.rstrip(". ") + ". No text overlays, no watermarks, hand-drawn marker illustration."
+            else:
+                p = p.rstrip(". ") + ". No text overlays, no watermarks, photorealistic 8k."
         return p[:1000]
 
     # Determine genre early
@@ -127,9 +138,11 @@ def image_prompt(scene,bible):
     series_name = str(bible.get("series") or scene.get("series") or "").strip().lower()
     scene_desc_low = (str(scene.get("description", "")) + " " + str(scene.get("visual_setup", ""))).lower()
     is_stoic = (
-        genre in ("stoic", "philosophy", "history")
-        or "stoi" in series_name
-        or any(kw in scene_desc_low for kw in ("statue", "sculpture", "monument", "tượng", "carrara", "marcus", "stoic", "philosopher"))
+        genre in ("stoic", "philosophy")
+        or (genre in ("", "auto") and (
+            "stoi" in series_name
+            or any(kw in scene_desc_low for kw in ("statue", "sculpture", "monument", "tượng", "carrara", "marcus", "stoic", "philosopher"))
+        ))
     )
 
     # ACCURATE VIDEO CLONING MODE: 100% faithful replication of competitor reference video
@@ -196,9 +209,11 @@ def image_prompt(scene,bible):
     scene_desc_low = (str(scene.get("description", "")) + " " + str(scene.get("visual_setup", ""))).lower()
 
     is_stoic = (
-        genre in ("stoic", "philosophy", "history")
-        or "stoi" in series_name
-        or any(kw in scene_desc_low for kw in ("statue", "sculpture", "monument", "tượng", "carrara", "marcus", "stoic", "philosopher", "demigod", "rome", "roman"))
+        genre in ("stoic", "philosophy")
+        or (genre in ("", "auto") and (
+            "stoi" in series_name
+            or any(kw in scene_desc_low for kw in ("statue", "sculpture", "monument", "tượng", "carrara", "marcus", "stoic", "philosopher", "demigod", "rome", "roman"))
+        ))
     )
 
     def _stoic_enhance(txt: str) -> str:

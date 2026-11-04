@@ -28,13 +28,13 @@ def resolve_skill_name(genre: str = "documentary", production_mode: str = "auto"
     g = str(genre or "documentary").strip().lower()
     pm = str(production_mode or "auto").strip().lower()
 
-    # 1. Stoic benchmark branch (user mandate: benchmark stable branch, keep 100% intact)
-    if g == "stoic":
-        return "write-video-scene-prompts"
-
-    # 2. Short-form (strictly 9:16, explicit shorts genre, or explicit is_short)
+    # 1. Short-form (strictly 9:16, explicit shorts genre, or explicit is_short)
     if is_short or aspect_ratio == "9:16" or g.endswith("_shorts"):
         return "write-viral-shorts-prompts"
+
+    # 2. Stoic benchmark branch (long-form 16:9 benchmark stable branch, keep 100% intact)
+    if g == "stoic":
+        return "write-video-scene-prompts"
 
     # 3. Cinematic Drama (multi-role drama)
     if pm == "cinematic_drama" or g in ("drama", "family_drama", "theatrical_drama", "mafia_thriller",
@@ -52,7 +52,7 @@ def installed_skill(skill_name: str = "write-video-scene-prompts") -> dict:
     """
     target_root = SKILLS_DIR / skill_name
     if not target_root.is_dir():
-        target_root = SKILLS_DIR / "write-video-scene-prompts"
+        raise RuntimeError(f"SKILL_MISSING: {skill_name}")
 
     if skill_name == "write-video-scene-prompts" or target_root == SKILL_ROOT:
         required = ("SKILL.md", "references/FORMAT_CONTRACT.md",
@@ -109,7 +109,7 @@ def skill_prompt(genre: str = "documentary", production_mode: str = "auto",
             "(scene_number, summary, narration, description, visual_setup, text_overlay).\n"
             "- Spoken line ('narration'): Single voiceover narrator (thuyết minh), eloquent and immersive.\n"
             "- Visual description ('description' & 'visual_setup'): PURE VISUAL PROMPT in English (40-80 words). "
-            "Describe the subject, camera angle, atmospheric lighting, and photorealistic details. "
+            "Describe the subject, camera angle, atmospheric lighting, and details consistent with the selected visual style. "
             "DO NOT include dialogue lines, acting cues, or 9-field labels inside the visual prompt!\n"
             "- Dynamic visual variety: Alternate between wide establishing landscapes, aerial views, and detailed close-ups.\n"
             "- Visual continuity: Align faithfully with the topic and Series Bible.\n"
@@ -144,6 +144,23 @@ def _clean(value, fallback="", limit=1200) -> str:
 
 def _clock(seconds: int) -> str:
     return f"{seconds // 60:02d}:{seconds % 60:02d}"
+
+
+def _validate_narrative_export(scenes: list, length: int, is_short: bool) -> list:
+    """Check only measurable text requirements; do not claim content or render QC."""
+    errors = []
+    if is_short and len(scenes) * length > 58:
+        errors.append("shorts_total_duration_exceeds_58_seconds")
+    for i, scene in enumerate(scenes, 1):
+        if not isinstance(scene, dict):
+            errors.append(f"scene_{i}:invalid_scene")
+            continue
+        if not str(scene.get("narration") or "").strip():
+            errors.append(f"scene_{i}:missing_narration")
+        description = str(scene.get("description") or scene.get("visual_setup") or scene.get("summary") or "").strip()
+        if not description:
+            errors.append(f"scene_{i}:missing_visual_description")
+    return errors
 
 
 def export_idea_scenes(scenes: list, bible: dict, scene_seconds: int,
@@ -191,15 +208,16 @@ def export_idea_scenes(scenes: list, bible: dict, scene_seconds: int,
             blocks.append(scene_block)
 
         text = "\n\n".join(blocks) + "\n"
+        errors = _validate_narrative_export(scenes, length, is_short=False)
         report = {
-            "pass": True,
-            "errors": [],
-            "warnings": [],
+            "pass": not errors,
+            "errors": errors,
+            "warnings": ["structural checks only; content and rendered media not verified"],
             "scene_count": len(scenes),
             "total_seconds": len(scenes) * length,
             "skill_name": "write-narrative-scene-prompts",
             "skill_sha256": pack["sha256"],
-            "validation_scope": "text_only_narrative_qc"
+            "validation_scope": "structural_text_checks_only"
         }
         return text, report
 
@@ -232,15 +250,16 @@ def export_idea_scenes(scenes: list, bible: dict, scene_seconds: int,
             blocks.append(scene_block)
 
         text = "\n\n".join(blocks) + "\n"
+        errors = _validate_narrative_export(scenes, length, is_short=True)
         report = {
-            "pass": True,
-            "errors": [],
-            "warnings": [],
+            "pass": not errors,
+            "errors": errors,
+            "warnings": ["structural checks only; content and rendered media not verified"],
             "scene_count": len(scenes),
             "total_seconds": len(scenes) * length,
             "skill_name": "write-viral-shorts-prompts",
             "skill_sha256": pack["sha256"],
-            "validation_scope": "text_only_shorts_qc"
+            "validation_scope": "structural_text_checks_only"
         }
         return text, report
 

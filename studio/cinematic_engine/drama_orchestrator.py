@@ -1314,6 +1314,7 @@ def run_cinematic_drama(args: Any) -> int:
         raw_plan, episode_dir, genre=genre, visual_style=visual_style,
 
         language=language, aspect=aspect_ratio, seconds=10,
+        preserve_dialogue=(input_mode == "script"),
 
     )
 
@@ -1688,6 +1689,11 @@ def run_cinematic_drama(args: Any) -> int:
 
 
         if getattr(args, "resume", False) and final_scene_mp4.exists() and final_scene_mp4.stat().st_size > 100000:
+            from audio_signal_guard import require_cached_scene_audio
+            require_cached_scene_audio(
+                final_scene_mp4, sc_data,
+                muse_original=muse_clip if image_provider == "muse_video" else None
+            )
 
 
 
@@ -3265,6 +3271,12 @@ def export_legacy_compatibility_bridge(
 
 
         if is_scene_done:
+            from audio_signal_guard import require_cached_scene_audio
+            checked_video = scene_mp4 if scene_mp4.is_file() and scene_mp4.stat().st_size > 100000 else final_mp4
+            require_cached_scene_audio(
+                checked_video, sc,
+                muse_original=muse_original if image_provider == "muse_video" else None
+            )
 
 
 

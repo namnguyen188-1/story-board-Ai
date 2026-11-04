@@ -4670,10 +4670,30 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
                          f"This batch is part of a {args.minutes}-minute episode.")
 
-                    is_short_mode = (getattr(args, "aspect_ratio", "") == "9:16") or str(args.genre).endswith("_shorts") or bool(getattr(args, "is_short", False))
+                    # Keep the writing skill aligned with the actual output dimensions,
+                    # including direct CLI calls that specify size without aspect-ratio.
+                    size_parts = str(getattr(args, "size", "") or "").lower().split("x")
+                    portrait_size = (len(size_parts) == 2 and all(part.isdigit() for part in size_parts)
+                                     and int(size_parts[1]) > int(size_parts[0]))
+                    is_short_mode = (getattr(args, "aspect_ratio", "") == "9:16") or portrait_size or str(args.genre).endswith("_shorts") or bool(getattr(args, "is_short", False))
                     is_drama_mode = (getattr(args, "production_mode", "") == "cinematic_drama") or (args.genre in ("drama", "family_drama", "theatrical_drama", "mafia_thriller", "romance_melodrama", "psychological_horror", "western", "action"))
 
-                    if args.genre == "stoic":
+                    if is_short_mode:
+                        # Shorts branch: write-viral-shorts-prompts blueprint (9:16 vertical retention hook)
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. ACT 1: VIRAL SHORTS SUPER HOOK (0.0s – 3.5s): Arrest viewer attention in first 1.5 seconds. "
+                            "Visual Hook: an extraordinary expression or in medias res moment. Audio Hook: a shocking curiosity-gap statement. "
+                            "Text overlay: punchy 2-3 word curiosity trigger in ALL CAPS.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. ACT 3: VIRAL CLIMAX & INFINITE SEAMLESS LOOP (45.0s – 58.0s): Deliver a punchy climax resolution, and craft the final spoken sentence "
+                            "to grammatically and conceptually flow seamlessly back into the very first sentence of Scene 1 for infinite autoplay loop.\n",
+                            request, flags=re.S)
+                        request += ("\nSHORTS OVERRIDE: Pacing is 2.0s - 3.5s per scene. Keep spoken narration concise (~2.5 words/sec), "
+                                    "visual prompts focused on central 9:16 safe-zone framing. Total duration must remain under 58 seconds.")
+                    elif args.genre == "stoic":
                         # Stoic benchmark branch: Keep 100% UNTOUCHED for proven stability
                         request = re.sub(
                             r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
@@ -4709,6 +4729,52 @@ def produce_plan(args, series_dir, episode_dir, prompt):
                             request, flags=re.S)
                         request += ("\nFAMILY DRAMA OVERRIDE: Authentic Vietnamese/cultural family dynamics. "
                                     "Real human relationships, generational conflict, tears, emotional warmth and drama. Zero armed violence.")
+                    elif args.genre == "mafia_thriller":
+                        # Mafia / Detective / Noir thriller: gritty investigation, intellectual duel, high-stakes standoff
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. MAFIA THRILLER COLD OPEN (HIGH-STAKES INTELLECTUAL CONFRONTATION OR CRIME ENIGMA): "
+                            "Open in medias res with a tense standoff, an illicit late-night negotiation, discovering a critical piece of incriminating evidence, "
+                            "or a narrow escape from shadowy pursuers in rain-slicked neon alleys. "
+                            "Spoken line ('narration') MUST be sharp, razor-tense character dialogue or gritty internal detective monologue.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. MAFIA THRILLER FINAL SCENE (DEVASTATING BETRAYAL & CLIFFHANGER TWIST): "
+                            "Deliver an explosive realization: an undercover identity blown, a trusted ally turning out to be the informant, or walking into a masterfully orchestrated trap. "
+                            "Leave viewers desperate for the retribution in the next episode.\n",
+                            request, flags=re.S)
+                        request += ("\nMAFIA THRILLER OVERRIDE: Neo-noir gritty cinematic atmosphere. High-contrast chiaroscuro shadows, "
+                                    "rain-slicked urban textures, tailored suits, smoky rooms, tense psychological chess. Authentic adult crime drama.")
+                    elif args.genre == "action":
+                        # Action / Adventure: dynamic kinetic energy, narrow escapes, adrenaline pacing
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. ACTION COLD OPEN (HEART-POUNDING KINETIC ESCAPE & HIGH STAKES): "
+                            "Plunge straight into a high-octane pursuit, a desperate tactical breach, or a breathless physical confrontation against overwhelming odds. "
+                            "Spoken line ('narration') MUST be urgent, visceral, in-the-moment spoken command or gasping realization.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. ACTION FINAL SCENE (MOMENTUM CLIFFHANGER): "
+                            "End at the brink of an even greater catastrophe or impossible showdown (e.g. cornered against a collapsing bridge, timer ticking down, enemy reinforcements arriving). "
+                            "Leave viewers gasping for the next chapter.\n",
+                            request, flags=re.S)
+                        request += ("\nACTION OVERRIDE: Fast kinetic momentum, dynamic camera movements, physical environment interactions, relentless pacing.")
+                    elif args.genre == "western":
+                        # Western / Frontier: sun-scorched tension, moral dilemma, frontier standoff
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. WESTERN COLD OPEN (DUST-CHOKED STANDOFF & MORAL CROSSROADS): "
+                            "Open with a high-noon frontier showdown, entering a hostile saloon, or a wounded lone rider discovering an abandoned outpost under a blazing sun. "
+                            "Spoken line ('narration') MUST be laconic, steely frontier dialogue or weathered traveler monologue.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. WESTERN FINAL SCENE (FRONTIER RECKONING): "
+                            "End on an ominous distant dust cloud signaling approaching outlaws, a drawn gun at twilight, or a hard-bitten choice between gold and honor.\n",
+                            request, flags=re.S)
+                        request += ("\nWESTERN OVERRIDE: Gritty 1880s American frontier. Wide vistas, leather, spurs, dust devils, golden hour sun, weathered wooden structures.")
                     elif args.genre == "romance_melodrama":
                         # Romance: emotional heartache and longing, zero armed violence
                         request = re.sub(
@@ -4773,21 +4839,20 @@ def produce_plan(args, series_dir, episode_dir, prompt):
                             "3. HORROR FINAL SCENE (CHILLING ZEIGARNIK OPEN LOOP): "
                             "End on a hair-raising revelation or unsettling twist that leaves the viewer questioning what was real, desperate to see what lurks next.\n",
                             request, flags=re.S)
-                    elif is_short_mode:
-                        # Shorts branch: write-viral-shorts-prompts blueprint
+                    elif args.genre == "history":
+                        # History: authentic period accuracy, monumental turning point
                         request = re.sub(
                             r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
-                            "1. ACT 1: VIRAL SHORTS SUPER HOOK (0.0s – 3.5s): Arrest viewer attention in first 1.5 seconds. "
-                            "Visual Hook: an extraordinary expression or in medias res moment. Audio Hook: a shocking curiosity-gap statement. "
-                            "Text overlay: punchy 2-3 word curiosity trigger in ALL CAPS.\n",
+                            "1. HISTORICAL EPIC COLD OPEN (CRITICAL HISTORICAL PIVOT & MAJESTIC SCALE): "
+                            "Open at the fateful eve of a monumental historical turning point (e.g. an empire on the brink of collapse, signing a secret decree, an army gathering on the misty plains). "
+                            "Spoken line ('narration') MUST be authoritative, deeply immersive period narration or authentic historical speech.\n",
                             request, flags=re.S)
                         request = re.sub(
                             r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
-                            "3. ACT 3: VIRAL CLIMAX & INFINITE SEAMLESS LOOP (45.0s – 58.0s): Deliver a punchy climax resolution, and craft the final spoken sentence "
-                            "to grammatically and conceptually flow seamlessly back into the very first sentence of Scene 1 for infinite autoplay loop.\n",
+                            "3. HISTORICAL FINAL SCENE (EPOCHAL LEGACY & UNANSWERED MYSTERY): "
+                            "Conclude with the profound impact of this event echoing across centuries, leaving an unsolved riddle or inspiring question for the next chapter.\n",
                             request, flags=re.S)
-                        request += ("\nSHORTS OVERRIDE: Pacing is 2.0s - 3.5s per scene. Keep spoken narration concise (~2.5 words/sec), "
-                                    "visual prompts focused on central 9:16 safe-zone framing. Total duration must remain under 58 seconds.")
+                        request += ("\nHISTORY OVERRIDE: Strict period accuracy, authentic architecture, ceremonial attire, dignified pacing, majestic cinematic visuals. Single authoritative Voiceover Narrator.")
                     elif not is_drama_mode:
                         # Narrative Storytelling / Documentary / History branch: write-narrative-scene-prompts blueprint
                         request = re.sub(
@@ -6599,6 +6664,10 @@ def render_one(job_path):
 
 
 
+        if str(scene.get("narration") or "").strip():
+            from audio_signal_guard import require_audible_if_spoken
+            require_audible_if_spoken(audio, scene["narration"])
+
         if scene.get("locked_script"):
 
 
@@ -7566,6 +7635,9 @@ def render_one(job_path):
 
 
     qc=qc_clip(final,True,(width,height))
+    if str(scene.get("narration") or "").strip():
+        from audio_signal_guard import require_audible_if_spoken
+        require_audible_if_spoken(final, scene["narration"])
 
 
 

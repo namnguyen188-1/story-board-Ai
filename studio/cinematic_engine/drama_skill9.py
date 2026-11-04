@@ -325,7 +325,7 @@ def build_scene(scene, cast, previous, *, genre, visual_style, language, aspect,
     return header + "\n" + "\n".join(f"{k}: {v}" for k, v in sections)
 
 
-def export_episode(raw_plan, folder: Path, *, genre, visual_style, language, aspect, seconds=10):
+def export_episode(raw_plan, folder: Path, *, genre, visual_style, language, aspect, seconds=10, preserve_dialogue=False):
     """Fail closed BEFORE provider calls; do not touch narration engine or Muse CLI."""
     _skill_files()
     scenes = raw_plan.get("scenes") or []
@@ -342,7 +342,19 @@ def export_episode(raw_plan, folder: Path, *, genre, visual_style, language, asp
         block = raw_existing or build_scene(scene, cast, previous, genre=genre, visual_style=visual_style,
                                              language=language, aspect=aspect, seconds=seconds, index=index)
         from .drama_auto_repair import sanitize_forbidden_words
+        original_block = block
         block = sanitize_forbidden_words(block)
+        if preserve_dialogue:
+            def audio_section(text):
+                fields = "|".join(re.escape(label) for label in LABELS)
+                match = re.search(r"(?ms)^AUDIO:.*?(?=^(?:" + fields + r"):|\Z)", text)
+                return match.group(0) if match else None
+            if audio_section(original_block) != audio_section(block):
+                raise RuntimeError(
+                    f"DRAMA_LOCKED_DIALOGUE_CHANGED: scene {index}; "
+                    "original dialogue conflicts with the scene prompt filter. "
+                    "Review required; no dialogue was replaced."
+                )
         scene["raw_9_fields"] = block
         words = sum(len(str(b.get("text", "")).split()) for b in scene.get("dialogue_beats", []) if isinstance(b, dict))
         if words > seconds*3.5:

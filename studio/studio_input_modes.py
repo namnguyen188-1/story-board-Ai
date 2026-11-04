@@ -27,7 +27,18 @@ def youtube_url(raw):
     return "https://www.youtube.com/watch?v="+vid
 
 def analyze_reference(client,model,url):
-    from google.genai import types
+    try:
+        from google.genai import types
+    except ImportError:
+        class _Shim:
+            class FileData:
+                def __init__(self, file_uri): self.file_uri = file_uri
+            class Part:
+                def __init__(self, text=None, file_data=None):
+                    self.text = text; self.file_data = file_data
+            class Content:
+                def __init__(self, parts=None): self.parts = parts or []
+        types = _Shim()
     from studio_modes import GENRES
     canonical=youtube_url(url)
     try:
@@ -471,6 +482,15 @@ def parse_locked_screenplay(script, scene_seconds=7):
     scenes = []
     for idx, m in enumerate(markers):
         scene_num = idx + 1
+        # Explicit three-digit skill scene IDs are authoritative. Refuse gaps,
+        # duplicates or non-1 starts instead of silently renumbering locked scenes.
+        # Keep legacy SHOT / CẢNH / plain-numbered headers compatible.
+        skill_id = re.match(r"(?i)^[ \t=*-]*(?:#{1,4}[ \t]*)?SCENE_(\d{3})(?!\d)", m.group(0))
+        if skill_id and int(skill_id.group(1)) != scene_num:
+            raise ValueError(
+                f"SCENE_SEQUENCE_INVALID: expected SCENE_{scene_num:03d}, "
+                f"found SCENE_{int(skill_id.group(1)):03d}; locked scene IDs were not renumbered"
+            )
         body = script[m.end():markers[idx+1].start() if idx+1 < len(markers) else len(script)]
         body = re.sub(r'^[\s=\-\*]+', '', body).strip()
         if not body:
@@ -509,6 +529,15 @@ def parse_locked_screenplay(script, scene_seconds=7):
                     speech = [cleaned_audio]
         if re.search(r'(?i)no spoken dialogue|không có lời thoại|no dialogue',audio):
             speech=[]
+
+        # Unstructured scene scripts often put a quoted spoken line on its own
+        # line after the visual description. Do not interpret quoted text in a
+        # structured visual field as dialogue, or override an explicit silence.
+        if not audio and not speech and not (format_style or camera_str or timed_action or setting_str):
+            if not re.search(r'(?i)no spoken dialogue|không có lời thoại|no dialogue', body):
+                speech = [m.group(1).strip() for m in re.finditer(
+                    r'(?m)^[ \t]*["“]([^\r\n]+?)["”][ \t]*$', body
+                ) if m.group(1).strip()]
 
         # Parse dialogue beats with speaker identification
         dialogue_beats = []

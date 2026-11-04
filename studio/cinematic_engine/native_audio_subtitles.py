@@ -114,7 +114,7 @@ def validate_vad_anchor(words, speech_intervals, tolerance=0.12):
         midpoint = (float(word["start"]) + float(word["end"])) / 2
         if not any(float(s["start"]) - tolerance <= midpoint <= float(s["end"]) + tolerance
                    for s in speech_intervals):
-            pass
+            raise RuntimeError(f"WORD_IN_SILENCE: speech anchor absent at {midpoint:.3f}s")
     return words
 
 def chunk_words(words):

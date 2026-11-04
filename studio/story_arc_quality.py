@@ -2,7 +2,10 @@
 from __future__ import annotations
 import re
 
-DYNAMIC_GENRES = {"family_drama","western","action","animation"}
+DYNAMIC_GENRES = {
+    "drama", "family_drama", "mafia_thriller", "psychological_horror",
+    "romance_melodrama", "theatrical_drama", "western", "action", "animation"
+}
 EARLY_CLOSURE = re.compile(
     r"^\s*(?:conclusion\b|final message\b|final lesson\b|"
     r"moral lesson\b|in conclusion\b|conclusi[oó]n\b|"

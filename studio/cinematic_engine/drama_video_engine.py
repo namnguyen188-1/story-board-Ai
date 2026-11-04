@@ -729,6 +729,8 @@ class DramaVideoEngine:
 
 
 
+        from audio_signal_guard import expected_scene_speech, require_audible_if_spoken
+        expected_spoken_text = expected_scene_speech(scene)
         is_muse = str(image_provider).lower() == "muse_video"
         # Once an episode has an approved character asset pack, refuse unanchored
         # character scenes instead of silently falling back to text-to-video.
@@ -904,6 +906,8 @@ class DramaVideoEngine:
 
 
             clip_dur = get_media_duration(muse_clip)
+            if expected_spoken_text:
+                require_audible_if_spoken(muse_clip, expected_spoken_text)
 
             print(f"[DRAMA_VIDEO] 🎥 Sử dụng VIDEO & ÂM THANH GỐC từ Muse ({muse_clip.stat().st_size / 1024 / 1024:.2f} MB, {clip_dur:.2f}s, KHÔNG ghép giọng ngoài)...", flush=True)
 
@@ -1055,6 +1059,9 @@ class DramaVideoEngine:
 
 
 
+            if expected_spoken_text:
+                require_audible_if_spoken(final_mp4, expected_spoken_text)
+
             # Save render style metadata for cache invalidation & UI tracking
 
             (s_dir / "render_style.json").write_text(
@@ -1157,6 +1164,8 @@ class DramaVideoEngine:
 
 
 
+        if expected_spoken_text:
+            require_audible_if_spoken(master_audio, expected_spoken_text)
         total_dur = get_wav_duration(master_audio)
 
         if total_dur <= 0.5:
@@ -1263,6 +1272,9 @@ class DramaVideoEngine:
             height=height
 
         )
+
+        if expected_spoken_text:
+            require_audible_if_spoken(final_mp4, expected_spoken_text)
 
         (s_dir / "render_style.json").write_text(
 

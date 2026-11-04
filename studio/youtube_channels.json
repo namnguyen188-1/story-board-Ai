@@ -1,7 +1,7 @@
 {
   "client_id": "341593599251-qn8c7sr8ift35lu86t1h430kjdf8o653.apps.googleusercontent.com",
   "client_secret": "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",
-  "active_channel_id": "UCGVB1jPZ1xV8NpiFX9OX1HA",
+  "active_channel_id": "UC1qwHXvdmXZZLpfMCGj8d9g",
   "channels": [
     {
       "id": "UCs-WLAlCU7uDSc5LyLSrmog",
@@ -11,9 +11,9 @@
       "subscriber_count": "2",
       "default_privacy": "unlisted",
       "added_at": "2026-10-22 18:49:56",
-      "access_token": "ya29.a0AehfTOkPuZwMWJvtdBna8CtnDVU30Ejit3W7pRK5hBp8cI60iLigk48tkO8FGYGEBeCkw71F3OBb7XvWeEDcpq539Q0k2CqxAjUZpqiRHSnghAp1pnB_i5QZUCJI7x9i14mHpWMAvlBR856T4ELGMl1d2krHXoCbX-xpIT5Ol9ndHkoyfz_HHR5UBZEYjpr77YNKFQ2paCgYKAYcSARcSFQHGX2Mi59VK0Q0FWoLI9yLt03ICXA0207",
+      "access_token": "ya29.a0AehfTOkXViH-FF6S4H1PTsGoV88USsaPM6C7vMI5cULz7vE_T_Zj2SEa3zWjlnDGl2Y9YoqLZpvFzDra4Adqi_qC_eJmOOJR-tU2zf-pG-xyDvmdZX8XOKPOnxE3CK9k-Llin_DNDBJVD44ReQL-igE0HWQEbVxKW8kshyYMzLYuN63rfhqTrQOIYzgYV8cslDPxKrDGaCgYKAWUSARcSFQHGX2MixGs1DxV4n2ppkqdjNty8uQ0207",
       "refresh_token": "1//0eftS4O7lILXMCgYIARAAGA4SNwF-L9IrlipQ3IPjDK4zVXUMjA8o9zJB2s1Uyxh-K1kn7HsnHNBDUhekBJRXJeft2Mj8ChAujLU",
-      "token_expiry": 1793706770,
+      "token_expiry": 1793817845,
       "client_id": "341593599251-530q6j0gjed4lsstnlnk6ht592nefps2.apps.googleusercontent.com",
       "client_secret": "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",
       "publish_settings": {
@@ -152,6 +152,7 @@
     "Stoic-Philosophy-Full-Guides": "UCGVB1jPZ1xV8NpiFX9OX1HA",
     "Stoic Philosophy & Full Guides": "UCGVB1jPZ1xV8NpiFX9OX1HA",
     "documentary": "UCpgp2_TWkaDnpxJJCa_Nm7A",
-    "stoi 1": "UCGVB1jPZ1xV8NpiFX9OX1HA"
+    "stoi 1": "UCGVB1jPZ1xV8NpiFX9OX1HA",
+    "will": "UC1qwHXvdmXZZLpfMCGj8d9g"
   }
 }

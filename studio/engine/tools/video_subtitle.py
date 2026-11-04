@@ -248,8 +248,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         if audio_timed:
                             w_end = float(w_info["end"])
 
-                        # Viral Shorts: ALL words in chunk stay visible on 2 balanced lines; active word hops in yellow!
-                        line_text = build_viral_karaoke_line(line_w, w_pos, is_vertical)
+                        # Native audio must not reveal words before their spoken timestamps.
+                        # Preserve the existing full-chunk karaoke layout for legacy timing.
+                        visible_words = line_w[:w_pos + 1] if audio_timed else line_w
+                        line_text = build_viral_karaoke_line(visible_words, w_pos, is_vertical)
                         dialogues.append(f"Dialogue: 0,{format_ass_ts(w_start)},{format_ass_ts(w_end)},StudioSub,,0,0,0,,{line_text}")
             else:
                 # Fallback: Proportional distribution when word timestamps are absent

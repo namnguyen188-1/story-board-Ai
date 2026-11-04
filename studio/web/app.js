@@ -6727,6 +6727,15 @@ function switchPlayerMode(mode) {
 
 
 const GENRE_PROMPT_PRESETS = {
+  auto: [
+    { label: "💡 Ý tưởng kịch tính", text: "Bí mật gia tộc và sự thật bị chôn giấu: Cuộc đối đầu nghẹt thở giữa các thế hệ khi bức màn bí mật 20 năm về trước bất ngờ bị hé lộ." },
+    { label: "🏛️ Triết lý nội tâm", text: "Nghệ thuật buông bỏ và tĩnh lặng: Bí quyết giữ tâm bất biến giữa dòng đời vạn biến, đánh thức sức mạnh nội tâm phi thường." }
+  ],
+  drama: [
+    { label: "💔 Bữa cơm chia tài sản", text: "Bữa cơm gia đình định mệnh: Đêm họp mặt đầy sóng gió của ba thế hệ khi bức di chúc bí mật của người cha bất ngờ được mở ra. Những mâu thuẫn âm ỉ bùng nổ, sự thật cay đắng về lòng hiếu thảo và bài học xót xa về tình thân." },
+    { label: "⚖️ Bí mật của người cha", text: "Gánh nặng của người cha thợ may: 30 năm hy sinh thầm lặng của người cha nghèo nuôi hai đứa con ăn học thành tài, chỉ đến ngày con thành đạt mới thấu hiểu vết sẹo hằn sâu trên lưng cha và bài học nghẹn ngào về sự tha thứ." },
+    { label: "🏡 Căn nhà cổ 3 đời", text: "Trận chiến giữ căn nhà từ đường: Mối giằng xé giữa người con cả muốn bảo tồn cội nguồn gia tộc và các em muốn bán đất đổi đời. Cuộc đối đầu đẫm nước mắt trong ngày giỗ mẹ." }
+  ],
   stoic: [
     { label: "🏛️ Làm chủ tâm trí", text: "Làm chủ tâm trí: Khám phá triết lý Khắc kỷ của hoàng đế Marcus Aurelius. Nghệ thuật giữ tâm bất biến giữa dòng đời vạn biến, buông bỏ những điều nằm ngoài tầm kiểm soát và đánh thức sức mạnh nội tâm vững vàng như tượng đá cẩm thạch trước bão giông." },
     { label: "⚡ Nghệ thuật buông bỏ", text: "Nghệ thuật buông bỏ và tĩnh lặng: Bí quyết người thông thái im lặng rút lui khỏi những ồn ào vô nghĩa, thanh lọc các mối quan hệ độc hại và tìm thấy tự do đích thực trong tâm hồn." },
