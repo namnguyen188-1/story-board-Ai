@@ -31384,6 +31384,43 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
+        elif path == "/api/system/cleanup":
+            try:
+                import subprocess, shutil
+                freed_mb = 0.0
+                cleaned_items = []
+                # 1. Prune localappdata updater backups keeping only 1 latest
+                localapp = os.environ.get("LOCALAPPDATA", "")
+                backups_root = Path(localapp) / "StoryboardAI" / "Updater" / "backups"
+                if backups_root.is_dir():
+                    b_folders = sorted([f for f in backups_root.iterdir() if f.is_dir()], key=lambda p: p.stat().st_mtime, reverse=True)
+                    if len(b_folders) > 1:
+                        for bf in b_folders[1:]:
+                            try:
+                                sz = sum(f.stat().st_size for f in bf.rglob("*") if f.is_file())
+                                shutil.rmtree(bf, ignore_errors=True)
+                                freed_mb += sz / (1024 * 1024)
+                                cleaned_items.append(f"Backup cũ: {bf.name} ({round(sz / (1024*1024), 2)} MB)")
+                            except Exception:
+                                pass
+                # 2. Clean temp update folders
+                temp_dir = Path(os.environ.get("TEMP", ""))
+                if temp_dir.is_dir():
+                    for tf in temp_dir.glob("StoryboardAI-Update-*"):
+                        try:
+                            sz = sum(f.stat().st_size for f in tf.rglob("*") if f.is_file()) if tf.is_dir() else tf.stat().st_size
+                            if tf.is_dir():
+                                shutil.rmtree(tf, ignore_errors=True)
+                            else:
+                                tf.unlink(missing_ok=True)
+                            freed_mb += sz / (1024 * 1024)
+                            cleaned_items.append(f"Temp: {tf.name} ({round(sz / (1024*1024), 2)} MB)")
+                        except Exception:
+                            pass
+                return self.end_json({"ok": True, "freed_mb": round(freed_mb, 2), "cleaned_items": cleaned_items})
+            except Exception as exc:
+                return self.end_json({"ok": False, "error": str(exc)}, 500)
+
         elif path == "/api/update/status":
 
 

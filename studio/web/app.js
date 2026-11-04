@@ -34799,3 +34799,34 @@ window.confirmCreateSatelliteShort = async function() {
     }
   }
 };
+
+
+// 🧹 Dọn dẹp bản sao lưu cũ, file tạm cập nhật và bộ nhớ cache (Áp dụng cả Máy Chính & Máy Phụ)
+async function cleanOldVersionsAndCache() {
+  const btn = document.getElementById("btnCleanOldVersions");
+  const origText = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Đang dọn dẹp...";
+  }
+  try {
+    const res = await fetch("/api/system/cleanup");
+    const data = await res.json();
+    if (data.ok) {
+      if (data.freed_mb > 0) {
+        showToast(`✓ Đã dọn dẹp ${data.freed_mb} MB dữ liệu bản cũ và file tạm!`, "success");
+      } else {
+        showToast("✓ Hệ thống sạch sẽ! Không có dữ liệu bản cũ thừa cần dọn.", "info");
+      }
+    } else {
+      showToast("Lỗi dọn dẹp: " + (data.error || "Không rõ nguyên nhân"), "error");
+    }
+  } catch (err) {
+    showToast("Không thể kết nối máy chủ để dọn dẹp.", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+  }
+}
