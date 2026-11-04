@@ -1,15 +1,16 @@
 {
-  "version": "1.3.12",
-  "release_name": "Storyboard_AI_Studio_Pro_v1.3.12",
-  "installer": "https://github.com/anma8802-create/AI-tool/releases/latest/download/Storyboard_AI_Studio_Pro_v1.3.12.zip",
-  "bytes": 286396672,
-  "sha256": "3DF0DE3795FE2E8A3A9305E10ACB72156241FA8579AD448AC93EA218D1D3C343",
-  "release_notes": [
-    "Hỗ trợ phân cảnh 5 giây (5s Pacing) cho chế độ Kể Chuyện (Narrative) cả video ngắn 1 phút và video dài.",
-    "Tự động tính toán đúng số cảnh và ngân sách ảnh theo thời lượng (1 phút = 12 ảnh, 5 phút = 60 ảnh, 10 phút = 120 ảnh).",
-    "Đồng bộ trọn bộ 7 kỹ năng AI chuyên biệt độc lập (.agents/skills) cho Kể Chuyện, Phim Kịch, Shorts 9:16 và Thumbnail 3D.",
-    "Thiết kế Thumbnail 3D màu vàng kim hoàng gia / cam hổ phách rực rỡ bắt mắt, Google Flow tự vẽ 3D và tự khử watermark.",
-    "Chuẩn hóa cấu hình đăng bài YouTube: đúng ngôn ngữ và chứng nhận phụ đề FCC.",
-    "Tích hợp bộ kiểm thử E2E tự động xác thực toàn diện tiến trình sản xuất."
+  "version": "1.3.17",
+  "app_name": "Storyboard AI Studio Pro",
+  "release_date": "2026-11-04",
+  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.17/Storyboard_AI_Studio_Pro_v1.3.17.zip",
+  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.17/Storyboard_AI_Studio_Pro_v1.3.17.zip",
+  "sha256": "ed1bd51260c7f75ceabde06e93793cf6a110516a1161bb71411971083d54ca0b",
+  "size_bytes": 286452671,
+  "bytes": 286452671,
+  "changelog": [
+    "Sua triet de loi Che do kich ban khong chay duoc: Mo rong nhan dien linh hoat tat ca cac kieu phan canh (CANH, SHOT, SCENE, PHAN, DOAN, 1., 2...), tu dong phan tach doan van thanh cac canh hoan chinh khop voi thoi luong (7s) neu dan van ban tu do.",
+    "Khac phuc loi co dinh 20 anh: Dong bo dong thoi luong va so canh theo thoi gian moi canh (7s/canh), So Anh (inMcpMaxImages) tu dong tinh toan chinh xac khong con bi dong bang o so 20.",
+    "Ngan chan co che tu dong resume de len kich ban moi: Dam bao tap moi hoac kich ban moi luon chay dung tu canh 1.",
+    "Tich hop nut 1-Click Don dep ban cu va bo nho tam ngay trong cai dat giup giai phong dung luong o cung tren ca may chinh va may phu."
   ]
 }

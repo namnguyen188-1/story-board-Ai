@@ -47,6 +47,8 @@ studio_updates = [
     "studio/web/index.html",
     "studio/flow_account_manager.py",
     "studio/mcp_v2_batch.py",
+    "studio/studio_modes.py",
+    "studio/muse_video_provider.py",
     "studio/youtube_channels.json",
     "tools/Clean-OldVersions.ps1",
     "tools/Update-StoryboardAI.ps1",
