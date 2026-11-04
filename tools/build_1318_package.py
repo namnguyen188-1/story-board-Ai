@@ -1,12 +1,12 @@
 """Build and verify Storyboard_AI_Studio_Pro_v1.3.18.zip from 1.3.17 baseline.
 
 Includes:
-- Complete genre-alignment for Idea Mode:
-  1. Injected genre specification (ART[genre]) directly into make_bible() for authentic character and world generation.
-  2. Isolated Scene 1 Cold Open and Final Scene rules per genre: Family Drama (domestic conflict/will/dinner confrontation, zero weapons/blood), Romance Melodrama (heartbreaking crossroads, longing, zero violence), Whiteboard (After Skool intellectual hook, witty voiceover, marker drawings), Animation (Pixar/Disney 3D adventure hook, family-friendly cartoon acting), Psychological Horror (atmospheric dread, chilling suspense, paranoia), Stoic (intact marble statue, philosophical reflection).
-  3. Image prompt genre isolation in mcp_v2_batch.py: Whiteboard strictly renders colored markers on white background, Animation renders 3D stylized CGI, Drama renders authentic cinematic film stills.
-  4. Web UI Dynamic Hint Chips: chips change dynamically based on inGenre dropdown.
-  5. 1-Click AI Idea Generator button (btnSuggestIdea) to cycle viral high-retention premises per genre.
+- Complete genre-alignment for Idea Mode (Scene 1 & Final scene isolation per genre, ART[genre] in make_bible).
+- Strict Image Prompt genre branching in mcp_v2_batch.py (Whiteboard After Skool chisel markers on white background, 3D Pixar animation, 8k cinematic drama, Carrara marble statue).
+- Dynamic Hint Chips + 1-Click "✨ Gợi Ý Ý Tưởng" button in Web UI.
+- Strict YouTube Hashtag Guarantee: Ensure at least 3-5 high-ranking topic hashtags on both Long videos and Shorts.
+- Automated FlowKit Engine Installer (flowkit_installer.py, Install-FlowKit.ps1, /api/flowkit/install_engine) for seamless 1-click engine setup on secondary machines.
+- Portable launch_flow_9461.bat and removal of hardcoded username paths.
 """
 import hashlib
 import json
@@ -48,10 +48,14 @@ studio_updates = [
     "studio/web/app.js",
     "studio/web/index.html",
     "studio/flow_account_manager.py",
+    "studio/flowkit_client.py",
+    "studio/flowkit_installer.py",
+    "studio/youtube_manager.py",
+    "studio/flow_accounts/launch_flow_9461.bat",
     "studio/mcp_v2_batch.py",
     "studio/studio_modes.py",
     "studio/muse_video_provider.py",
-    "studio/youtube_channels.json",
+    "tools/Install-FlowKit.ps1",
     "tools/Clean-OldVersions.ps1",
     "tools/Update-StoryboardAI.ps1",
 ]
@@ -102,20 +106,26 @@ with zipfile.ZipFile(OUT, "r") as z:
     for check in [
         "studio/version.json",
         "studio/series_studio.py",
+        "studio/flowkit_installer.py",
+        "studio/youtube_manager.py",
+        "studio/flow_accounts/launch_flow_9461.bat",
         "studio/mcp_v2_batch.py",
         "studio/web/app.js",
         "studio/web/index.html",
+        "tools/Install-FlowKit.ps1",
     ]:
         if check in names:
-            print(f" Verified in zip: {check}")
+            print(f"  Verified in zip: {check}")
         else:
-            print(f" MISSING in zip: {check}")
+            print(f"  MISSING in zip: {check}")
 
 # 6. Generate latest.json
 latest_data = {
     "version": "1.3.18",
+    "app_name": "Storyboard AI Studio Pro",
     "release_date": "2026-11-04",
     "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.18/Storyboard_AI_Studio_Pro_v1.3.18.zip",
+    "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.18/Storyboard_AI_Studio_Pro_v1.3.18.zip",
     "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.18/Storyboard_AI_Studio_Pro_v1.3.18.zip",
     "fallback_urls": [
         "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.3.18/Storyboard_AI_Studio_Pro_v1.3.18.zip"
@@ -123,13 +133,25 @@ latest_data = {
     "sha256": sha256_hash,
     "size_bytes": file_size,
     "bytes": file_size,
+    "release_notes": [
+        "Chuan hoa 100% Muc Y Tuong theo The Loai: Tach rieng logic Hook Mo Man Canh 1 & Canh Ket theo tung the loai (Family Drama, Romance, Whiteboard, Animation, Crime Mafia, Horror, Stoic).",
+        "Khu triet de hien tuong ep vu khi dao sung mau me, danh dam vao Drama gia dinh va Ngon tinh lang man.",
+        "Nap truc tiep dac ta chuan the loai (ART[genre]) vao ham make_bible() giup AI tao nhan vat va the gioi dong bo 100% tu Canh 1 den Canh cuoi.",
+        "Phan luong prompt ve anh doc lap trong mcp_v2_batch.py: Whiteboard khoa net but da tren bang trang After Skool (khu anh chup nguoi that 8k), Animation khoa net 3D Pixar/Disney CGI.",
+        "Tich hop Bo Cai Dat Dong Co FlowKit Tu Dong (flowkit_installer.py, Install-FlowKit.ps1) va nut 1-Click tren Web giup may phu setup dong co 100% tron goi khong bi thieu phu thuoc.",
+        "Bao ve tuyet doi Hashtag YouTube: Luon tu dong day du 3-5 hashtag chu de chat luong cao vao noi dung mo ta cho ca video dai 16:9 va Shorts 9:16, khong con bi thieu hashtag khi dang.",
+        "The goi y cot truyen dong (Dynamic Hint Chips) tren Web UI tu dong bien doi theo The Loai da chon.",
+        "Tich hop nut 1-Click 'Goi Y Y Tuong' tu dong dien cot truyen trieu view chuan the loai vao o nhap lieu."
+    ],
     "changelog": [
-        "Chuẩn hóa 100% Mục Ý Tưởng theo Thể Loại: Tách riêng cấu trúc Hook Mở Màn Cảnh 1 và Kết Thúc cho Drama Gia Đình, Ngôn Tình, Bảng Trắng After Skool, Hoạt Hình, Trinh Thám Mafia, Kinh Dị, Khắc Kỷ.",
-        "Khử triệt để hiện tượng ép dao súng máu me, la hét kinh hoàng vào Drama gia đình và Ngôn tình lãng mạn.",
-        "Nạp trực tiếp bản đặc tả chuẩn thể loại (ART[genre]) vào hàm make_bible() để AI xây dựng nhân vật và thế giới câu chuyện đúng 100% phong cách thể loại.",
-        "Phân luồng prompt vẽ ảnh trong mcp_v2_batch.py: Whiteboard khóa cứng nét vẽ bút dạ nét sketch trên nền trắng After Skool (loại bỏ ảnh chụp người thật 8k), Animation khóa chuẩn 3D Pixar/Disney.",
+        "Chuẩn hóa 100% Mục Ý Tưởng theo Thể Loại: Tách riêng logic Hook Mở Màn Cảnh 1 & Cảnh Kết theo từng thể loại (Family Drama, Romance, Whiteboard, Animation, Crime Mafia, Horror, Stoic).",
+        "Khử triệt để hiện tượng ép vũ khí dao súng máu me, đánh đấm vào Drama gia đình và Ngôn tình lãng mạn.",
+        "Nạp trực tiếp đặc tả chuẩn thể loại (ART[genre]) vào hàm make_bible() giúp AI tạo nhân vật và thế giới đồng bộ 100% từ Cảnh 1 đến Cảnh cuối.",
+        "Phân luồng prompt vẽ ảnh độc lập trong mcp_v2_batch.py: Whiteboard khóa nét bút dạ trên bảng trắng After Skool (khử ảnh chụp người thật 8k), Animation khóa nét 3D Pixar/Disney CGI.",
+        "Tích hợp Bộ Cài Đặt Động Cơ FlowKit Tự Động (flowkit_installer.py, Install-FlowKit.ps1) và nút 1-Click trên Web giúp máy phụ setup động cơ 100% trọn gói không bị thiếu phụ thuộc.",
+        "Bảo đảm tuyệt đối Hashtag YouTube: Luôn tự động đẩy đủ 3-5 hashtag chủ đề chất lượng cao vào nội dung mô tả cho cả video dài 16:9 và Shorts 9:16, không còn bị thiếu hashtag khi đăng.",
         "Thẻ gợi ý cốt truyện động (Dynamic Hint Chips) trên Web UI tự động biến đổi theo Thể Loại đã chọn.",
-        "Tích hợp nút 1-Click '✨ Gợi Ý Ý Tưởng' tự động sinh cốt truyện triệu view chuẩn thể loại vào ô nhập liệu."
+        "Tích hợp nút 1-Click '✨ Gợi Ý Ý Tưởng' tự động điền cốt truyện triệu view chuẩn thể loại vào ô nhập liệu."
     ]
 }
 
@@ -137,3 +159,13 @@ latest_path = DIST / "latest.json"
 with open(latest_path, "w", encoding="utf-8") as f:
     json.dump(latest_data, f, indent=2, ensure_ascii=False)
 print(f"Generated {latest_path}")
+
+latest_path_root = ROOT / "latest.json"
+with open(latest_path_root, "w", encoding="utf-8") as f:
+    json.dump(latest_data, f, indent=2, ensure_ascii=False)
+print(f"Generated {latest_path_root}")
+
+latest_v1318 = DIST / "latest_v1.3.18.json"
+with open(latest_v1318, "w", encoding="utf-8") as f:
+    json.dump(latest_data, f, indent=2, ensure_ascii=False)
+print(f"Generated {latest_v1318}")

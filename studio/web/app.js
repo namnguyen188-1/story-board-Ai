@@ -5452,6 +5452,43 @@ function setupEventHandlers() {
     });
   }
 
+  const btnInstallFkAction = document.getElementById("btnInstallFlowKit");
+  if (btnInstallFkAction) {
+    btnInstallFkAction.addEventListener("click", async () => {
+      btnInstallFkAction.disabled = true;
+      btnInstallFkAction.textContent = "⏳ Đang kết nối...";
+      const statusBox = document.getElementById("mcpAccountStatus");
+      if (statusBox) statusBox.textContent = "Đang bắt đầu tải và cài đặt động cơ FlowKit...";
+      try {
+        await fetch("/api/flowkit/install_engine", { method: "POST" });
+        const timer = setInterval(async () => {
+          try {
+            const res = await fetch("/api/flowkit/install_status");
+            const st = await res.json();
+            btnInstallFkAction.textContent = `⏳ ${st.percent || 0}%`;
+            if (statusBox) statusBox.textContent = st.message || "Đang cài đặt động cơ...";
+            if (st.success) {
+              clearInterval(timer);
+              btnInstallFkAction.disabled = false;
+              btnInstallFkAction.textContent = "🚀 Cài Đặt Động Cơ FlowKit";
+              if (typeof showToast === "function") showToast("Đã cài đặt thành công động cơ FlowKit!");
+              await refreshAutoFlowStatus();
+            } else if (st.error) {
+              clearInterval(timer);
+              btnInstallFkAction.disabled = false;
+              btnInstallFkAction.textContent = "⚠️ Thử Lại Cài Đặt";
+              if (statusBox) statusBox.textContent = "Lỗi cài đặt: " + st.error;
+            }
+          } catch (_) {}
+        }, 1500);
+      } catch (e) {
+        btnInstallFkAction.disabled = false;
+        btnInstallFkAction.textContent = "🚀 Cài Đặt Động Cơ FlowKit";
+        if (statusBox) statusBox.textContent = "Lỗi kích hoạt cài đặt: " + e.message;
+      }
+    });
+  }
+
   const btnFlowAdd = document.getElementById("btnFlowAddAccount");
   if (btnFlowAdd) {
     btnFlowAdd.addEventListener("click", async () => {
@@ -10017,6 +10054,20 @@ async function refreshAutoFlowStatus() {
     const res = await fetch("/api/flow/status", { cache: "no-store" });
     const data = await res.json();
     node.textContent = data.badge_text || (data.connected ? "🟢 Sẵn sàng" : "🟡 Chờ đăng nhập");
+    const btnInstallFk = document.getElementById("btnInstallFlowKit");
+    const btnFlowLoginEl = document.getElementById("btnFlowLogin");
+    const btnFlowAddEl = document.getElementById("btnFlowAddAccount");
+    if (btnInstallFk) {
+      if (data.flowkit_installed === false) {
+        btnInstallFk.style.display = "inline-flex";
+        if (btnFlowLoginEl) btnFlowLoginEl.style.display = "none";
+        if (btnFlowAddEl) btnFlowAddEl.style.display = "none";
+      } else {
+        btnInstallFk.style.display = "none";
+        if (btnFlowLoginEl) btnFlowLoginEl.style.display = "inline-flex";
+        if (btnFlowAddEl) btnFlowAddEl.style.display = "inline-flex";
+      }
+    }
     if (data.badge_type === "success") {
       node.style.background = "rgba(16,185,129,0.15)";
       node.style.color = "#10b981";
