@@ -2087,86 +2087,20 @@ def force_translate_chunk_to_language(client, model: str, chunk: dict, target_la
 
 
 def make_bible(client, model, prompt, series,genre="documentary",style="color_cinematic"):
-
-
-
-
-
-
-
-    request = ("Design an ORIGINAL, production-ready, viral episodic series story bible for '"+str(series)+"', with STYLE "+str(style)+" and GENRE "+str(genre)+". "
-
-
-
-
-
-
-
+    from studio_modes import ART
+    genre_spec = ART.get(genre, "")
+    genre_prompt_chunk = f"\nAUTHORITATIVE GENRE SPECIFICATION (Strictly adhere to this aesthetic, world setting, and character archetype):\n{genre_spec}\n" if genre_spec else ""
+    request = (f"Design an ORIGINAL, production-ready, viral episodic series story bible for '{series}', with STYLE '{style}' and GENRE '{genre}'.\n"
+         f"{genre_prompt_chunk}\n"
          "JSON only, with keys: "
-
-
-
-
-
-
-
-         "- world: detailed setting, geography, historical/cultural context, atmospheric palette, lighting rules. "
-
-
-
-
-
-
-
-         "- visual_style: exact art direction, cinematic camera aesthetics, color temperature. "
-
-
-
-
-
-
-
-         "- characters: array of 1-3 recurring protagonists with: name, stable_appearance (exact age, facial structure, skin tone, eye color, hairstyle), attire (signature iconic clothing, textures, colors), signature_props (iconic accessories/items), personality, immutable_rules (rules to prevent appearance drift across scenes and episodes). "
-
-
-
-
-
-
-
+         "- world: detailed setting, geography, historical/cultural context, atmospheric palette, lighting rules matching the genre specification. "
+         "- visual_style: exact art direction, cinematic camera aesthetics, color temperature matching the genre. "
+         "- characters: array of 1-3 recurring protagonists with: name, stable_appearance (exact age, facial structure, skin tone, eye color, hairstyle matching the genre), attire (signature iconic clothing, textures, colors), signature_props (iconic accessories/items), personality, immutable_rules (rules to prevent appearance drift across scenes and episodes). "
          "- continuity_rules: strict rules to preserve exact character visual DNA and world atmosphere across all episodes. "
-
-
-
-
-
-
-
-         "- narrator_style: voiceover tone, cadence, rhythm. "
-
-
-
-
-
-
-
+         "- narrator_style: voiceover tone, cadence, rhythm tailored to the genre. "
          "- core_moral_theme: profound human life lesson, emotional awakening, or moral truth. "
-
-
-
-
-
-
-
          "- series_hook_framework: central overarching mystery, quest, or dramatic stakes linking episodes together. "
-
-
-
-
-
-
-
-         "Preserve character appearance across episodes. Series: "+series+". Premise: "+prompt[:5500])
+         f"Preserve character appearance across episodes. Series: {series}. Premise: {prompt[:5500]}")
 
 
 
@@ -4756,6 +4690,89 @@ def produce_plan(args, series_dir, episode_dir, prompt):
                         request += ("\nSTOIC OVERRIDE: Prioritize philosophical clarity, source "
                                     "accuracy, calm pacing, and the saved series storyline over "
                                     "generic viral shock instructions or artificial cliffhangers.")
+                    elif args.genre == "family_drama":
+                        # Family drama: authentic domestic conflict, never weapons or blood
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. FAMILY DRAMA COLD OPEN (INTENSE DOMESTIC CROSSROADS & RAW EMOTION): "
+                            "Plunge straight into a realistic, high-stakes family crossroads (e.g. an unexpected confrontation over a hidden will, "
+                            "a painful secret discovered, a broken family dinner, or confronting a heartbreaking betrayal between loved ones). "
+                            "STRICTLY FORBIDDEN: Armed combat, weapons, blood, gore, crime syndicates, or action stunts. "
+                            "Spoken line ('narration') MUST be 100% realistic spoken dialogue between family members with authentic emotional depth.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. FAMILY DRAMA FINAL SCENE (EMOTIONAL ZEIGARNIK CLIFFHANGER): "
+                            "Deliver an emotional turning point or shocking domestic revelation (e.g. an unopened letter from the past, "
+                            "a sudden knock on the door with unexpected news, an ultimatum given). "
+                            "Leave viewers deeply invested in the family's fate for the next episode.\n",
+                            request, flags=re.S)
+                        request += ("\nFAMILY DRAMA OVERRIDE: Authentic Vietnamese/cultural family dynamics. "
+                                    "Real human relationships, generational conflict, tears, emotional warmth and drama. Zero armed violence.")
+                    elif args.genre == "romance_melodrama":
+                        # Romance: emotional heartache and longing, zero armed violence
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. ROMANCE COLD OPEN (HEARTBREAKING CROSSROADS & EMOTIONAL RUPTURE): "
+                            "Open with an intensely romantic or devastating in medias res moment (e.g. an unexpected reunion after years apart, "
+                            "a tearful confrontation in the rain, a painful broken promise, or discovering a hidden sacrifice). "
+                            "STRICTLY FORBIDDEN: Armed violence, weapons, gore, crime, or action violence. "
+                            "Spoken line ('narration') MUST be deeply emotional character dialogue filled with longing, hurt, or passionate love.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. ROMANCE FINAL SCENE (ROMANTIC CLIFFHANGER): "
+                            "End on a poignant unresolved choice or breathtaking romantic revelation (e.g. a confession interrupted at the last second, "
+                            "a departure train pulling away, an unexpected sacrifice revealed). Leave viewers desperate for reconciliation.\n",
+                            request, flags=re.S)
+                        request += ("\nROMANCE OVERRIDE: Modern aesthetic romance. Golden hour warmth, expressive character glances, "
+                                    "intimate emotional tension, beautiful cinematography. Zero physical combat.")
+                    elif args.genre in ("whiteboard", "colored_marker"):
+                        # Whiteboard: After Skool intellectual hook and visual metaphors
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. WHITEBOARD INTELLECTUAL HOOK (AFTER SKOOL PARADOX & CURIOSITY GAP): "
+                            "Open with a startling psychological paradox, counterintuitive life rule, or shocking human behavior truth. "
+                            "Single engaging, witty Voiceover Narrator (NO character acting, NO life-or-death screams). "
+                            "Visuals describe ingenious hand-drawn marker illustrations with visual metaphors sketching onto a clean white whiteboard.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. WHITEBOARD FINAL SCENE (MIND-EXPANDING PAYOFF): "
+                            "Deliver a profound mental model shift or actionable life lesson, completing the whiteboard conceptual drawing. "
+                            "End with an intriguing open question that changes how the viewer sees reality.\n",
+                            request, flags=re.S)
+                        request += ("\nWHITEBOARD OVERRIDE: After Skool style whiteboard marker art. Images MUST be colorful marker drawings on pure white background. "
+                                    "No live-action actors, no real human skin, no photorealism, no violence.")
+                    elif args.genre == "animation":
+                        # Animation: Charming adventure or heartfelt cartoon
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. ANIMATION COLD OPEN (VIBRANT INCITING INCIDENT & CHARMING HOOK): "
+                            "Plunge into a vibrant, whimsical, or thrilling animated inciting incident. "
+                            "Expressive 3D stylized cartoon characters, family-friendly humor or charming adventure stakes. "
+                            "STRICTLY FORBIDDEN: Gory blood, severed limbs, dark adult violence, or realistic photographic skin.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. ANIMATION FINAL SCENE (AWE-INSPIRING ADVENTURE CLIFFHANGER): "
+                            "Deliver a heartwarming resolution to this chapter while unveiling an exciting new magical horizon or mysterious creature for the next episode.\n",
+                            request, flags=re.S)
+                        request += ("\nANIMATION OVERRIDE: 3D Pixar/Disney style animated aesthetic. Vibrant colors, expressive cartoon acting, "
+                                    "family-friendly themes. Zero dark gore or adult horror.")
+                    elif args.genre == "psychological_horror":
+                        # Psychological horror: creeping dread and paranoia, avoid generic gunfights
+                        request = re.sub(
+                            r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
+                            "1. PSYCHOLOGICAL HORROR COLD OPEN (ATMOSPHERIC DREAD & UNSETTLING ANOMALY): "
+                            "Open with an eerie, skin-crawling anomaly (e.g. an unsettling shadow that moves on its own, a phone ringing from an empty house, "
+                            "a whisper in the dark, or a creeping sense of paranoia). Focus on atmospheric dread and chilling suspense, not generic gunfights.\n",
+                            request, flags=re.S)
+                        request = re.sub(
+                            r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
+                            "3. HORROR FINAL SCENE (CHILLING ZEIGARNIK OPEN LOOP): "
+                            "End on a hair-raising revelation or unsettling twist that leaves the viewer questioning what was real, desperate to see what lurks next.\n",
+                            request, flags=re.S)
                     elif is_short_mode:
                         # Shorts branch: write-viral-shorts-prompts blueprint
                         request = re.sub(
