@@ -5038,7 +5038,7 @@ def _check_update_status():
 
 
 
-        installer_bytes = int(manifest.get("bytes", 0))
+        installer_bytes = int(manifest.get("bytes", manifest.get("size_bytes", 0)))
 
 
 

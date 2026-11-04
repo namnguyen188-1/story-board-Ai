@@ -117,6 +117,7 @@ latest_manifest = {
     "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.16/Storyboard_AI_Studio_Pro_v1.3.16.zip",
     "sha256": sha256,
     "size_bytes": size,
+    "bytes": size,
     "changelog": [
         "Sua triet de loi nua tuong nua nguoi cho the loai Khac Ky (Stoic): Khoa 100% tat ca cac canh thanh Tuong da Carrara nguyen khoi va dong co dien, loai bo hoan toan cac thuoc tinh da nguoi/mach mau (vascular arms, real skin).",
         "Tach biet tuyet doi quy tac Khac Ky: Khong lam anh huong hay ap dat quy tac tuong da len cac the loai khac (Phim Kich Da Vai, Ke Chuyen, Bang Trang, Hoat Hinh).",
