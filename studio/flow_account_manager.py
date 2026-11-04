@@ -908,7 +908,7 @@ def get_ui_status() -> Dict[str, Any]:
 
     # Check if Chrome is actively on Google Flow / signed in
     c_login = check_login_status(9461) if chrome_port_alive else {"logged_in": False, "on_webtool": False}
-    chrome_active_on_flow = bool(c_login.get("logged_in") or c_login.get("on_webtool") or (chrome_port_alive and emails))
+    chrome_active_on_flow = bool(c_login.get("logged_in") or c_login.get("on_webtool") or chrome_port_alive or (ready_cnt > 0))
 
     short_emails = [e.split("@")[0] for e in emails]
     emails_tag = ", ".join(short_emails) if short_emails else "Chưa có"
@@ -931,7 +931,7 @@ def get_ui_status() -> Dict[str, Any]:
     connected = wt.get("connected", False)
     email = _LOGIN_STATE.get("email") or live_em or (emails[0] if emails else "")
 
-    if connected or gw_alive or chrome_active_on_flow or (ready_cnt > 0):
+    if connected or gw_alive or chrome_active_on_flow or (ready_cnt > 0) or chrome_port_alive:
         _set_chrome_visibility_win32(port=9461, show=False)
         display_cnt = max(ready_cnt, 1 if chrome_active_on_flow else 0)
         return {

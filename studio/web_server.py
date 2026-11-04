@@ -65408,7 +65408,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-                if is_incomplete and not body.get("force_new"):
+                if is_incomplete and not body.get("force_new") and (body.get("resume") or body.get("retry") or input_mode != "script"):
 
 
 
@@ -68446,7 +68446,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-                        parse_locked_screenplay(prompt)
+                        parse_locked_screenplay(prompt, scene_seconds=int(body.get("scene_seconds", 7)))
 
 
 

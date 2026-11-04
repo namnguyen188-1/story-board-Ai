@@ -2,7 +2,7 @@
 from __future__ import annotations
 import json,re
 from urllib.parse import urlsplit,parse_qs
-HEADER = re.compile(r"(?im)^[ \t=*-]*(?:#{1,4}[ \t]*)?(?:SHOT|SCENE|CẢNH|PHÂN CẢNH)[ \t_]+(\d{1,4})(?:[ \t|–—:.-][^\r\n]*)?[ \t=*-]*$", re.M)
+HEADER = re.compile(r"(?im)^[ \t=*-]*(?:#{1,4}[ \t]*)?(?:SHOT|SCENE|CẢNH|PHÂN CẢNH|PHẦN|ĐOẠN|MỤC|BƯỚC|TẬP)[ \t_:]*(\d{1,4})(?:[ \t|–—:.-][^\r\n]*)?[ \t=*-]*$", re.M)
 SPEECH=re.compile(r'(?im)(?:^|\n)[ \t]*(?:[-*][ \t]*)?(?:[^\n]{0,120}?(?:says|said|whispers?|cries out|speaks|shouts?|hét|nói|thì thầm|lời thoại|đối thoại|narration|voiceover)[^\n:]{0,90}:)[ \t]*["“]([^"”\r\n]+)["”]')
 QUOTE=re.compile(r'["“]([^"”\r\n]{2,260})["”]')
 def youtube_url(raw):
@@ -410,21 +410,71 @@ def extract_section(body,label,next_labels):
     rest=text[:end.start()].strip() if end else text.strip()
     return (same_line + "\n" + rest).strip() if rest else same_line
 
-def parse_locked_screenplay(script):
-    script=str(script or "").strip()
-    markers=list(HEADER.finditer(script))
+def auto_segment_raw_script(script: str, scene_seconds: int = 7) -> list:
+    """Tự động phân tách kịch bản tự do thành các phân cảnh hoàn chỉnh khớp thời lượng scene_seconds."""
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n+', script) if len(p.strip()) > 5]
+    if not paragraphs or len(paragraphs) <= 1:
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
+        if len(sentences) > 1:
+            chunk_size = 2
+            paragraphs = [" ".join(sentences[i:i+chunk_size]) for i in range(0, len(sentences), chunk_size)]
+        else:
+            paragraphs = [script.strip()]
+
+    scenes = []
+    sec = max(4, int(scene_seconds or 7))
+    for idx, p in enumerate(paragraphs, 1):
+        quotes = re.findall(r'["“]([^"”\r\n]{2,260})["”]', p)
+        narration = " ".join(quotes) if quotes else p
+        scenes.append({
+            "script_seconds": sec,
+            "scene_number": idx,
+            "summary": p[:180],
+            "narration": narration,
+            "dialogue": narration,
+            "dialogue_beats": [{
+                "beat_id": 1,
+                "speaker": "Narrator",
+                "text": narration,
+                "action": "",
+                "tone": "natural"
+            }],
+            "description": p[:4000],
+            "camera": "slow cinematic camera tracking",
+            "action": p[:200],
+            "setting": "cinematic scene",
+            "characters": "",
+            "visual_setup": "Cinematic visual composition matching the narration",
+            "text_overlay": "",
+            "locked_script": True,
+            "has_9_fields": False,
+            "raw_9_fields": ""
+        })
+    return scenes
+
+
+def parse_locked_screenplay(script, scene_seconds=7):
+    script = str(script or "").strip()
+    if not script or len(script) < 5:
+        raise ValueError("Vui lòng nhập nội dung kịch bản.")
+
+    markers = list(HEADER.finditer(script))
     if not markers:
-        raise ValueError("Kịch bản có sẵn cần phân cảnh rõ ràng: SHOT 1, SHOT 2... hoặc CẢNH 1, CẢNH 2... hoặc SCENE_001")
-    scenes=[]
-    expected=1
-    for idx,m in enumerate(markers):
-        scene_num=int(m.group(1))
-        if scene_num!=expected:
-            raise ValueError(f"Số thứ tự cảnh phải liên tục từ 1; dự kiến cảnh {expected}, nhận được cảnh {scene_num}")
-        expected+=1
-        body=script[m.end():markers[idx+1].start() if idx+1<len(markers) else len(script)]
-        body=re.sub(r'^[\s=\-\*]+','',body).strip()
-        if len(body)<15:raise ValueError("Thiếu nội dung cho cảnh "+str(scene_num))
+        # Thử nhận diện các dòng đánh số: 1. ... hoặc [Cảnh 1]
+        numbered_header = re.compile(r"(?im)^[ \t]*(?:\[(?:CẢNH|SCENE|SHOT)?\s*(\d{1,4})\]|(\d{1,4})[./\-)][ \t]+[^\r\n]+)$", re.M)
+        markers = list(numbered_header.finditer(script))
+
+    # Nếu kịch bản không có đánh số phân cảnh, tự động phân đoạn thông minh theo scene_seconds (mặc định 7s)
+    if not markers:
+        return auto_segment_raw_script(script, scene_seconds=scene_seconds)
+
+    scenes = []
+    for idx, m in enumerate(markers):
+        scene_num = idx + 1
+        body = script[m.end():markers[idx+1].start() if idx+1 < len(markers) else len(script)]
+        body = re.sub(r'^[\s=\-\*]+', '', body).strip()
+        if not body:
+            body = m.group(0).strip()
 
         # 9-fields extraction (100% skill write-video-scene-prompts compatible)
         format_style = extract_section(body, "FORMAT & STYLE", ["CHARACTERS", "SETTING", "LIGHTING", "CAMERA", "TIMED ACTION", "END STATE", "AUDIO", "CONSTRAINTS"])

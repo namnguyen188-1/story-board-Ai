@@ -5189,17 +5189,24 @@ function setupEventHandlers() {
 
 
   if (el.inSceneSec) {
-
-
-
-    el.inSceneSec.addEventListener("input", syncAutoImageBudget);
-
-
-
-    el.inSceneSec.addEventListener("change", syncAutoImageBudget);
-
-
-
+    el.inSceneSec.addEventListener("input", () => {
+      state.userCustomizedMaxImages = false;
+      syncAutoImageBudget();
+    });
+    el.inSceneSec.addEventListener("change", () => {
+      state.userCustomizedMaxImages = false;
+      syncAutoImageBudget();
+    });
+  }
+  if (el.inMinutes) {
+    el.inMinutes.addEventListener("input", () => {
+      state.userCustomizedMaxImages = false;
+      syncAutoImageBudget();
+    });
+    el.inMinutes.addEventListener("change", () => {
+      state.userCustomizedMaxImages = false;
+      syncAutoImageBudget();
+    });
   }
 
 
@@ -6707,85 +6714,27 @@ function applyPromptPreset(type) {
 
 
 function estimatedImageScenes() {
-
-
-
   if (el.inInputMode?.value === "script") {
-
-
-
-    const text = el.inPrompt ? el.inPrompt.value : "";
-
-
-
-    const matches = text.match(/(?:^|\n)[ \t=*-]*(?:#{1,4}[ \t]*)?(?:SHOT|SCENE|CẢNH|PHÂN CẢNH|C\u1ea2NH|PH\u00c2N C\u1ea2NH)[ \t_]+(\d{1,4})/gi);
-
-
-
-    return matches && matches.length > 0 ? matches.length : null;
-
-
-
+    const txt = el.inPrompt ? el.inPrompt.value.trim() : "";
+    if (txt) {
+      const matches = txt.match(/(?:^|\n)[ \t=*-]*(?:#{1,4}[ \t]*)?(?:SHOT|SCENE|CẢNH|PHÂN CẢNH|PHẦN|ĐOẠN|C\u1ea2NH|PH\u00c2N C\u1ea2NH)[ \t_:]*(\d{1,4})/gi);
+      if (matches && matches.length > 0) return matches.length;
+      const paras = txt.split(/\n\s*\n+/).filter(p => p.trim().length > 5);
+      if (paras.length > 0) return paras.length;
+    }
   }
-
-
-
   const mins = Math.max(0.1, Number(el.inMinutes?.value) || 1.0);
-
-
-
-  const seconds = Math.max(4, Number(el.inSceneSec?.value) || 25);
-
-
-
+  const seconds = Math.max(4, Number(el.inSceneSec?.value) || 7);
   return mins > 0 && seconds > 0 && Number.isFinite(mins / seconds)
-
-
-
     ? Math.ceil(mins * 60 / seconds) : null;
-
-
-
 }
 
-
-
-
-
-
-
 function syncAutoImageBudget() {
-
-
-
   const n = estimatedImageScenes();
-
-
-
   if (n && n > 0 && el.inMcpMaxImages) {
-
-
-
-    if (el.inInputMode?.value === "link" || !state.userCustomizedMaxImages) {
-
-
-
-      el.inMcpMaxImages.value = String(n);
-
-
-
-    }
-
-
-
+    el.inMcpMaxImages.value = String(n);
   }
-
-
-
   updateImageBudgetHint();
-
-
-
 }
 
 
@@ -9869,8 +9818,14 @@ async function refreshFlowKitStatus(isManual = false) {
     }
     if (box) box.textContent = "⚠️ Không thể kết nối với FlowKit Gateway (Port 18110): " + e.message;
     if (statusFk) {
-      statusFk.textContent = "🔴 Offline";
-      statusFk.style.color = "#ef4444";
+      const autoBadge = document.getElementById("autoFlowManagerStatus");
+      if (autoBadge && autoBadge.textContent.includes("🟢")) {
+        statusFk.textContent = "🟢 Sẵn sàng";
+        statusFk.style.color = "#10b981";
+      } else {
+        statusFk.textContent = "🔴 Offline";
+        statusFk.style.color = "#ef4444";
+      }
     }
   }
 }
@@ -9948,8 +9903,14 @@ function updateFlowKitUI(data) {
       box.textContent = "⚠️ FlowKit Gateway chưa được kích hoạt. Hãy bấm Khởi Động Lại Gateway.";
     }
     if (statusFk) {
-      statusFk.textContent = "🔴 Offline";
-      statusFk.style.color = "#ef4444";
+      const autoBadge = document.getElementById("autoFlowManagerStatus");
+      if (autoBadge && autoBadge.textContent.includes("🟢")) {
+        statusFk.textContent = "🟢 Sẵn sàng";
+        statusFk.style.color = "#10b981";
+      } else {
+        statusFk.textContent = "🔴 Offline";
+        statusFk.style.color = "#ef4444";
+      }
     }
   }
 }

@@ -2452,7 +2452,7 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
 
-    supplied_scenes = parse_locked_screenplay(prompt) if args.input_mode=="script" else None
+    supplied_scenes = parse_locked_screenplay(prompt, scene_seconds=getattr(args, "scene_seconds", 7)) if args.input_mode=="script" else None
 
 
 
@@ -4527,7 +4527,7 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
                     stoic_hero_desc = (
-                        "- When portraying Stoic philosophical scenes or classical heroes: Depict the protagonist as a HYPER-MUSCULAR CHISELED ROMAN PHILOSOPHER EMPEROR / WARRIOR (Marcus Aurelius archetype) with an imposing athletic demigod build: massive broad shoulders, thick muscular neck, sculpted chest pecs, striated deltoids, vascular arms, wearing a royal crimson red toga draped across one shoulder leaving the muscular chest and arm exposed. NEVER prompt a tiny distant statue on a plaza base from head to toe; alternate between dramatic chest-up medium close-ups, intense medium 3/4 portraits, and grand atmospheric forum settings.\n"
+                        "- When portraying Stoic philosophical scenes or classical heroes (Marcus Aurelius archetype): The protagonist is a 100% PURE CLASSICAL SCULPTED CARRARA MARBLE STATUE, completely intact from head, curly carved beard, sculpted stone eyes, down to broad chiseled stone chest and intact stone arms, wearing a royal crimson red toga draped across one stone shoulder. NEVER depict living human flesh, real skin pores, vascular veins, or modern people; NEVER produce headless, severed, or fragmented bodies. Alternate between dramatic chest-up medium close-ups of the magnificent intact marble statue and grand atmospheric classical Roman colonnades.\n"
                         if (args.genre == "stoic" or str(getattr(args, "series", "")).lower().startswith("stoi"))
                         else ""
                     )
@@ -9164,7 +9164,7 @@ def run(args):
 
 
 
-        parse_locked_screenplay(prompt) # fail before ANY AI or new media
+        parse_locked_screenplay(prompt, scene_seconds=getattr(args, "scene_seconds", 7)) # validate or auto-segment
 
 
 
@@ -10615,7 +10615,7 @@ def run(args):
 
 
 
-        scripted = parse_locked_screenplay(prompt) if args.input_mode=="script" else None
+        scripted = parse_locked_screenplay(prompt, scene_seconds=getattr(args, "scene_seconds", 7)) if args.input_mode=="script" else None
 
 
 

@@ -583,31 +583,18 @@ def build_prompts(prompt: str, visual_style: str = "whiteboard", genre: str = "d
         )
 
     elif is_statue or genre == "stoic":
-
         positive = (
-
-            f"Cinematic live-action 16:9 historical epic film still, heroic Roman philosopher emperor (Marcus Aurelius archetype), "
-
-            f"hyper-muscular chiseled Greek demigod physique, massive broad shoulders, thick muscular neck, sculpted pectoral chest muscles, striated deltoids, powerful vascular arms, weathered sun-kissed bronze skin with realistic pores, intense piercing dark eyes with living expressive pupils, "
-
-            f"distinguished salt-and-pepper curly hair and thick groomed beard, royal crimson red draped toga (chlamys) draped across one shoulder leaving sculpted muscular chest and arm bare, "
-
-            f"standing in ancient Roman forum with illuminated marble pillars, sweeping view of distant Acropolis at twilight, "
-
-            f"dramatic chiaroscuro lighting, warm amber golden key light, deep sapphire teal shadows, soft volumetric rim glow, "
-
-            f"photorealistic 8k, master cinematography, shot on 35mm lens: {clean_prompt}"
-
+            f"Cinematic 16:9 masterpiece photograph, monumental classical Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, "
+            f"magnificent intact classical stone sculpture, deeply carved stone anatomy, colossal broad stone shoulders, sculpted stone pectorals, "
+            f"deeply chiseled curly stone beard and hair, sculpted stone eyes, royal crimson red draped toga carved cascading over one stone shoulder, "
+            f"authentic weathered Carrara marble texture with subtle historical fissure lines and fine chisel marks, "
+            f"standing resolute among ancient classical Roman colonnades under dramatic golden chiaroscuro twilight lighting, "
+            f"photorealistic 8k, master cinematography: {clean_prompt}"
         )
-
         negative = (
-
-            "scrawny, skinny, frail, weak, unmuscular, flat chest, narrow shoulders, lifeless stone statue, severed bust, tabletop pedestal, blank carved eyes, white stone skin, statue stand, "
-
-            "zombie, deformed, cartoon, 3d cgi render, anime, modern clothes, t-shirt, plastic, blurry, low quality, "
-
-            "ugly, bad anatomy, bad eyes, extra limbs, watermark, text, signature"
-
+            "living human flesh, real skin pores, vascular veins, half-human half-statue, modern human, "
+            "headless, missing head, severed head, decapitated, broken limbs, armless, ruined statue, mutilated, tabletop pedestal, "
+            "deformed, ugly, bad anatomy, cartoon, anime, 3d cgi render, modern clothes, watermark, text, signature"
         )
 
     else:  # color_cinematic, anime, noir, or other movie genres
