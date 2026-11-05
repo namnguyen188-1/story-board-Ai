@@ -71014,7 +71014,7 @@ def worker_thread(cmd: list[str], series_slug_name: str, episode_num: int, produ
 
 
 
-        import threading
+        # global threading used
 
 
 
@@ -206392,7 +206392,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-        global job_process, subprocess
+        global job_process, subprocess, threading
 
 
 
@@ -213820,7 +213820,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             try:
 
-                import threading
+                # global threading used
 
                 from flowkit_installer import install_flowkit_engine, get_install_status
 
