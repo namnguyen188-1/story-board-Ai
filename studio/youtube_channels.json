@@ -1,7 +1,7 @@
 {
   "client_id": "341593599251-qn8c7sr8ift35lu86t1h430kjdf8o653.apps.googleusercontent.com",
   "client_secret": "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",
-  "active_channel_id": "UC1qwHXvdmXZZLpfMCGj8d9g",
+  "active_channel_id": "UCGVB1jPZ1xV8NpiFX9OX1HA",
   "channels": [
     {
       "id": "UCs-WLAlCU7uDSc5LyLSrmog",
@@ -11,9 +11,9 @@
       "subscriber_count": "2",
       "default_privacy": "unlisted",
       "added_at": "2026-10-22 18:49:56",
-      "access_token": "ya29.a0AehfTOkXViH-FF6S4H1PTsGoV88USsaPM6C7vMI5cULz7vE_T_Zj2SEa3zWjlnDGl2Y9YoqLZpvFzDra4Adqi_qC_eJmOOJR-tU2zf-pG-xyDvmdZX8XOKPOnxE3CK9k-Llin_DNDBJVD44ReQL-igE0HWQEbVxKW8kshyYMzLYuN63rfhqTrQOIYzgYV8cslDPxKrDGaCgYKAWUSARcSFQHGX2MixGs1DxV4n2ppkqdjNty8uQ0207",
+      "access_token": "ya29.a0AehfTOltZMIc_UPgVkhU4_uLk8iqIFvBuHZi_rDq8tE4tpG8WU7OiIzngpv5xfg-UrUY3JAIBFn1pNR-gycaT_9GDcDnDuRdW-4LvzKvrl3bNhI1urNUHnIaO4J0Jqru3BWWyivi7Af5aEIyoES37OwRWBbiiCD8qHm5g1zxoR8cwnvfclTtQ-C7IjqB2wZY7miC9KeXaCgYKAVsSARcSFQHGX2MiQIlzksgjVkLO10PH_5eeyA0207",
       "refresh_token": "1//0eftS4O7lILXMCgYIARAAGA4SNwF-L9IrlipQ3IPjDK4zVXUMjA8o9zJB2s1Uyxh-K1kn7HsnHNBDUhekBJRXJeft2Mj8ChAujLU",
-      "token_expiry": 1793817845,
+      "token_expiry": 1793850593,
       "client_id": "341593599251-530q6j0gjed4lsstnlnk6ht592nefps2.apps.googleusercontent.com",
       "client_secret": "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",
       "publish_settings": {
@@ -39,9 +39,9 @@
       "subscriber_count": "13",
       "default_privacy": "unlisted",
       "added_at": "2026-10-30 09:27:40",
-      "access_token": "ya29.a0AehfTOnWvvv3w_AVcUWPQZAKgKfkTZZd9dk7AJVL_hungVp-gXECWwrgLZyEGMx6mRKFKw-041KG98AAClH7QsNh7s114wfQ1FUpvuReiaq_6SdXKY6fLC58tjapPjnqwlZOF1z1DZ5tvD0987vrY4rFh0j4cKhtlrY-JoRA77MrBkimA2vbjfhCUmB7K1QLWjRg0NmyaCgYKAUASARYSFQHGX2Mifv3jy4GDwVcFlhNWjG3M_A0207",
+      "access_token": "ya29.a0AehfTOk87631qbPfNoO7xiYc2vAa1qKES-bCEqMpjwJv-e5aOESxMi0XuAIW57tHPD7AeE1dYSIvnS_v3n-drmz_RgX-M-jVKglXc0Gw5vXMZr082-OPnQ-_q_VbLjFpEhTuUcoPy67w_wv2rlqUjlew6EYTS_dEqxkLGeSpGile7XREL-pCPPd5aWuboGnBA3R5qOFDaCgYKAUoSARYSFQHGX2MiWuhyO0eXmhvq2M_Y4Drj7Q0207",
       "refresh_token": "1//0g1gcK7dOOvXoCgYIARAAGBASNwF-L9IrwHdcf1Cz5N_kMSn3mAhDoABOsOInPL_x5MAh-Gn1RV8BKdQ3vKjOH68e5A8XdAAR7Uw",
-      "token_expiry": 1793754715,
+      "token_expiry": 1793831356,
       "client_id": "169194859475-ouajtv391tsb4it6krv7c9vjqp79h7t6.apps.googleusercontent.com",
       "client_secret": "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",
       "publish_settings": {
@@ -67,14 +67,23 @@
       "subscriber_count": "63",
       "default_privacy": "unlisted",
       "added_at": "2026-10-30 18:24:54",
-      "access_token": "ya29.a0AehfTOmIzupzObzuI3X2wZ8MprtkVuflJNfew8W3CnhHY-RP3eHMKZaVBmYKQz-0OCVgHYOiNS9pLf8JB3ZfYuSPgLvS06-hsMyOYt5kEgWQ0Mm1Sv13ViQc7rcMmIOvjUxywbFAmtrzZoazUZ7jfEr2_7OzMJ5cJdZjSlxSkkOLnpzc6sTQVIXkaWPzOz7k6FTknA__aCgYKASsSAQ4SFQHGX2MiRHiogZWAkvjmtTHV9F5hcA0207",
+      "access_token": "ya29.a0AehfTOnlhUQyPqzqZ1AGzt3TRE0ydWLNmDzB-VIKhPrDrB3TlQu8T6oy2GIUbtqwtWIA4RGFJeyruHmeFr12A-bP8-0dRobRmrSyj52djxHYuPYyiVWTht3BasNuxeADAOSDpTawGrpUjUYx0MiaKyH8R6YE6rstYkpOubM7JLQvybT8v_WxkikLkkwqonKIzNFQOhf1aCgYKAekSAQ4SFQHGX2MiCsrINTgG2V2M1jVdJMqCmw0207",
       "refresh_token": "1//0gz6mevPRC8XhCgYIARAAGBASNwF-L9Irsv8LZCxUlc5DoDM_9257SbEGpr0WKDDnthLVxBdPM8Wx5dH3L0Qq4sUKPUA8Y_BYgsE",
-      "token_expiry": 1793721909,
+      "token_expiry": 1793848008,
       "client_id": "894760520356-3u0poico0ctgpfbcpdmsp8ke32nkq7ur.apps.googleusercontent.com",
       "client_secret": "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",
       "publish_settings": {
         "default_privacy": "unlisted",
-        "shorts_remix": "none"
+        "shorts_remix": "none",
+        "category_id": "1",
+        "contains_synthetic_media": true,
+        "made_for_kids": false,
+        "license": "youtube",
+        "embeddable": true,
+        "public_stats_viewable": true,
+        "default_language": "en-US",
+        "default_audio_language": "en-US",
+        "default_playlist_id": "PLbON0xKDYLsU"
       },
       "token_expired": false
     },
@@ -86,9 +95,9 @@
       "subscriber_count": "72",
       "default_privacy": "unlisted",
       "added_at": "2026-11-01 09:31:35",
-      "access_token": "ya29.a0AehfTOle3u-MrkBuF5qpU5_fdWM76Izck8sBuG2X45ChClbRx-_7cGgjRXtkSgDXPst7XhxbmVNP4suAMeAWUfd-uvcLNHXCNhZfOlseqFMsTyW8K2EMbXzSV_0EYzCDe_zPtJW9NV5EtAq4qY0zhC1A1vw6AbHahl8ciKgWPvrxVYBLZXwYthen8aZlAzcAlUVqkmk8S18YdeI9ugaCgYKASASARASFQHGX2MisH9RYSrDSn1UttExQrC0QA0217",
+      "access_token": "ya29.a0AehfTOmVB5ouyqhYAk9pQQUQpUWHcWo0QqhYmU1inAWkH9htWshl7WeB5H7ACrroABhRYxGHcQ_adyNf51QYmlo7iDF5X-C4UJbYOHldPQgPGMvQQdovXn2DFp-xClTu5_zx_djJuL6mTx4aDNbB4RX-MJ0Ckol4GWfh0GTjA-xfY3FYahzYa__aFkrPYW6x1iqy2X29ETfQvWFVTgaCgYKAdMSARASFQHGX2MiAAA2hTDDWmdhPRRaAn4S8w0217",
       "refresh_token": "1//0gcXTjCTr4tyHCgYIARAAGBASNwF-L9Irbko5UlGh65sKdhH5kWYZ4mwG8nbsbOc3GmxjR1LYb7HwhrzVsxWpovHOYrxax02uENM",
-      "token_expiry": 1793758883,
+      "token_expiry": 1793849602,
       "client_id": "201041090275-v30c40g1mtnovpbsuiihg2rc3o58qedn.apps.googleusercontent.com",
       "client_secret": "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",
       "token_expired": false,
@@ -114,9 +123,9 @@
       "subscriber_count": "0",
       "default_privacy": "unlisted",
       "added_at": "2026-11-02 16:12:04",
-      "access_token": "ya29.a0AehfTOmP7_Jaw2iJT7plNTHs9gHUz7D3ByIJ1bQVRNlzSACtgHOzV2bZXJ3nWB3v5nJxakk6BAUDu-0FfPmgNtdk1lVKnucy5E0nMxPzNiJu9jkH0koc9KQEKzMgUM4cNd1OC1D7AsaY0EmyZi15hjUa8s5AhYHms5ye3bnVC1GIp4o_-k6F-R4nT1WpMTwWTCSCPlo-3V4nrgFnDAaCgYKAaoSARcSFQHGX2Mic92lILL7rXxaWpTIOwbL7Q0217",
+      "access_token": "ya29.a0AehfTOlf4vnB00MQtNPYhT2YTQlva_7hk8aKo_NvqdnODXH6xzxwxKS1hjtiZWWZZ391_6TC6oEH7vW0wGWKhWpXGjDJ6h-1iF24d12oWaZuk7e7ZV3Feqor2L2ElBOCG5N9GW8E-VeZg_3JKUwwwbEYZQXW-QntBqMDBV08E9whcGfvAcOJs8syfqwNG6JTpBppM1kby1klmc3JjAaCgYKAT0SARcSFQHGX2MiDv0gHCe2TTdFT0LBAw9HQg0217",
       "refresh_token": "1//0gwZs4XZb7wp2CgYIARAAGBASNwF-L9IrCVnWn4jP610xu3Hr4vCsa0jMUu_uy3a2nDiawds3qOdufeejNnWZSNzfOZwTgonl2so",
-      "token_expiry": 1793758372,
+      "token_expiry": 1793853651,
       "client_id": "341593599251-qn8c7sr8ift35lu86t1h430kjdf8o653.apps.googleusercontent.com",
       "client_secret": "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",
       "publish_settings": {
@@ -139,7 +148,7 @@
     "hoa drama": "UC1qwHXvdmXZZLpfMCGj8d9g",
     "Stoic-Sovereign": "UCGVB1jPZ1xV8NpiFX9OX1HA",
     "DRAMA": "UCpgp2_TWkaDnpxJJCa_Nm7A",
-    "stoi": "UCGVB1jPZ1xV8NpiFX9OX1HA",
+    "stoi": "UCpgp2_TWkaDnpxJJCa_Nm7A",
     "phim": "UC588zrH-yBxihJGbFtMAgJg",
     "phim động vật": "UC588zrH-yBxihJGbFtMAgJg",
     "khám phá": "UCmyfUM1RQcQPcs2Tdd6cPmA",
@@ -153,6 +162,7 @@
     "Stoic Philosophy & Full Guides": "UCGVB1jPZ1xV8NpiFX9OX1HA",
     "documentary": "UCpgp2_TWkaDnpxJJCa_Nm7A",
     "stoi 1": "UCGVB1jPZ1xV8NpiFX9OX1HA",
-    "will": "UC1qwHXvdmXZZLpfMCGj8d9g"
+    "will": "UC1qwHXvdmXZZLpfMCGj8d9g",
+    "kham phá 1": "UCmyfUM1RQcQPcs2Tdd6cPmA"
   }
 }
