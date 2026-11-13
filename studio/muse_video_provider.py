@@ -795,14 +795,14 @@ def format_real_acting_prompt(scene: dict[str, Any], bible: dict[str, Any]) -> s
 
     elif is_stoic:
         chars_preview = "; ".join(chars_info) if chars_info else ""
-        default_chars = "Monumental classical Greco-Roman carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius (deeply sculpted stone anatomy, broad stone shoulders, sculpted stone pectorals, thick carved curly beard, sculpted stone eyes, royal crimson draped toga cascading over one stone shoulder). Solid carved marble sculpture, lips and mouth strictly closed, calm severe stone contemplation. ABSOLUTELY NO LIP MOVEMENT, NO SPEAKING, NO TALKING HEAD."
+        default_chars = "Monumental heroic classical carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius (deeply sculpted hyper-muscular anatomy, colossal broad stone shoulders, powerfully chiseled pectoral chest, thick curly stone beard, royal crimson draped toga, both muscular stone arms fully sculpted and unbroken). Solid classical stone sculpture, lips and mouth strictly closed, calm severe stone contemplation. ABSOLUTELY NO LIP MOVEMENT, NO SPEAKING, NO TALKING HEAD."
         chars_str = "; ".join(chars_info) if chars_info else default_chars
         parts = [
-            "FORMAT & STYLE: Cinematic monumental classical sculpture film still. Masterful cinematic footage of an imposing classical weathered Carrara marble statue with deeply carved muscular anatomy, authentic weathered stone texture, fine fissures, and dramatic low-angle chiaroscuro museum lighting. Grand illuminated ancient Roman forum, majestic marble colonnades, and distant Acropolis at twilight under a starry sky with glowing torches and floating golden embers.",
+            "FORMAT & STYLE: Cinematic monumental classical sculpture film still. Masterful 35mm cinematic footage of an imposing classical Carrara marble statue with deeply carved muscular anatomy, authentic weathered stone texture, fine fissures, and dramatic low-angle chiaroscuro lighting. Grand illuminated ancient Roman forum, majestic marble colonnades at twilight under an evening sky with glowing torches and floating golden embers.",
             f"CHARACTERS: {chars_str}.",
             f"SETTING & VISUAL SETUP: {visual_setup or master_setting}.",
             "LIGHTING & COLOR: Dramatic cinematic chiaroscuro, warm amber golden key light with deep sapphire teal fill, delicate volumetric rim light outlining the massive sculpted marble shoulders, chiseled pecs, and stone curls. Never pitch black.",
-            f"CAMERA: {camera}, slow motivated cinematic camera push-in, low-angle tracking shot, natural depth of field with soft bokeh ancient colonnade background.",
+            f"CAMERA: {camera}, medium heroic torso framing, slow motivated cinematic camera tracking, natural depth of field with soft bokeh ancient colonnade background.",
             "PERFORMANCE & PRESENCE: Pure cinematic sculpture presence. The statue remains majestic and unmoving like a classical masterwork; motion comes strictly from cinematic camera tracking and flickering torchlight casting shifting shadows across the carved stone muscles. MOUTH IS STRICTLY CLOSED. NO LIP SYNC, NO TALKING MOUTH.",
         ]
         if action:
@@ -811,7 +811,7 @@ def format_real_acting_prompt(scene: dict[str, Any], bible: dict[str, Any]) -> s
             parts.append(f"AUDIO: Deep resonant, dignified stoic philosophical off-screen voiceover narration: \"{dialogue}\". Atmospheric ancient temple room tone, distant night breeze, subtle torch fire crackles. Voice is strictly an off-screen voiceover. NO ON-SCREEN SPEECH, NO MOVING LIPS.")
         else:
             parts.append("AUDIO: Atmospheric ancient forum room tone, distant night breeze, subtle torch fire crackles.")
-        parts.append("CONSTRAINTS: BANNED: living human flesh, real skin pores, vascular veins, half-human half-statue, modern human, live-action human talking head, moving mouth, lip syncing, talking lips, rubbery skin, cartoon, modern clothing, flat plastic CGI, flat unmuscular chest, severed head, headless torso, broken statue, mutilated limbs, ugly artifacts, watermark.")
+        parts.append("CONSTRAINTS: BANNED: living human flesh, real skin pores, vascular veins, severed limbs, amputated arms, half-body busts, tabletop pedestals, cartoon, anime, 3d cgi render, modern clothes, ugly artifacts, watermark.")
     elif is_whiteboard:
 
         default_chars = "Expressive hand-drawn whiteboard marker character sketches"

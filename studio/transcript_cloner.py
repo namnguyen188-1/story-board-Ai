@@ -174,6 +174,85 @@ def fetch_youtube_transcript(canonical_url: str, preferred_lang: str = "") -> di
         return {"ok": False, "error": str(exc)}
 
 
+def _generate_scenes_for_slice(
+    slice_speech: str,
+    start_scene: int,
+    end_scene: int,
+    target_language: str,
+    scene_seconds: int,
+    char_desc: str,
+    genre_rule: str,
+    aspect_rule: str,
+    client,
+) -> list[dict]:
+    batch_count = end_scene - start_scene + 1
+    prompt = f"""You are an elite literary film adapter and screenplay translator.
+Your task is to take the following spoken transcript section and adapt it into EXACTLY {batch_count} sequential cinema scenes numbered {start_scene} through {end_scene} in {target_language}.
+
+CRITICAL MANDATES:
+1. 100% FAITHFUL TRANSLATION & HIGH-STAKES RETENTION:
+   - Do NOT summarize, sanitize, or dilute the dramatic intensity!
+   - Translate the actual spoken dialogue, internal monologues, and escalating tension word-for-word into dignified, deeply evocative {target_language}.
+   - Preserve somatic sensory details (trembling hands, freezing wind, painful sprained foot, clock ticking down) that create deep visceral empathy.
+   - Pacing & Word Density: Each scene's narration MUST contain approximately {int(scene_seconds * 2.7)} words (minimum {int(scene_seconds * 2.2)} words). This ensures a rich, full spoken narration that precisely matches the full duration of each scene without being cut short.
+   - Breathing Pauses: Use natural punctuation (commas, em-dashes —, periods) between clauses to give the speaker breathing space and deliberate dramatic pauses.
+
+2. VISUAL CONTINUITY & WORLD:
+   - {char_desc or "Preserve character and environment continuity described in the narration."}
+   - {genre_rule}
+   - {aspect_rule}
+   - SINGLE SUBJECT MANDATE: Describe a single solitary subject. NEVER describe mirrored, symmetrical, twin, or split-screen figures. Ignore all post-production video editing artifacts.
+
+3. SCENE VISUAL VARIETY MANDATE (PREVENT STATIC MONOTONY):
+   - Every scene MUST depict a unique, visually captivating composition directly connected to the specific spoken narration.
+   - Alternate camera compositions logically:
+     * Establishing Wide Shots: Grand environment, mood, architecture, landscape.
+     * Medium Shots: Character action, holding objects, writing, walking, interacting.
+     * Close-Up Shots: Expressive facial contemplation, intense emotion, symbolic objects (scroll, book, torch, scale of justice, tools, documents).
+   - NEVER repeat the exact same static pose or subject framing across consecutive scenes. Keep the visual journey moving forward dynamically like a real cinematic film!
+
+[ORIGINAL SPOKEN SPEECH CHUNK TO ADAPT]:
+{slice_speech}
+
+Return JSON ONLY with this exact structure:
+{{
+  "scenes": [
+    {{
+      "scene_number": {start_scene},
+      "summary": "Brief summary of Scene {start_scene} in {target_language}",
+      "narration": "Exact translated spoken script in {target_language} for Scene {start_scene}...",
+      "description": "Visual scene description in English for AI image generator matching the scene narration, character, and visual style (varied composition, camera shot type, distinct action/setting)",
+      "visual_setup": "Camera angle and cinematic composition in English (e.g. Medium shot / Close-up / Low angle, natural cinematic lighting)",
+      "image_prompt": "Pure visual image generation prompt in English (40-60 words). Must specify aspect ratio, character DNA, pose, lighting, and background. Single solitary subject, never mirrored, no text overlays, photorealistic 8k.",
+      "text_overlay": "Short high-impact hook phrase in {target_language} (3-5 words, UPPERCASE)"
+    }}
+  ]
+}}
+"""
+
+    for model_name in ("gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"):
+        try:
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={"response_mime_type": "application/json", "temperature": 0.2},
+            )
+            data = json.loads(resp.text)
+            scenes = data.get("scenes", [])
+            if len(scenes) == batch_count:
+                for idx, sc in enumerate(scenes, start_scene):
+                    sc["scene_number"] = idx
+                return scenes
+            elif scenes:
+                for idx, sc in enumerate(scenes[:batch_count], start_scene):
+                    sc["scene_number"] = idx
+                return scenes[:batch_count]
+        except Exception as e:
+            print(f"[TRANSCRIPT_CLONER] Gemini translation error ({model_name}) on scenes {start_scene}-{end_scene}: {e}", flush=True)
+
+    raise RuntimeError(f"Failed to translate scenes {start_scene}-{end_scene}")
+
+
 def translate_and_split_scenes(
     raw_lines: list[dict],
     target_language: str = "Vietnamese",
@@ -183,6 +262,7 @@ def translate_and_split_scenes(
     genre: str = "stoic",
 ) -> list[dict]:
     """Translates original spoken transcript into target language and aligns into scenes."""
+    import math
     from resilient_gemini import ResilientClient, get_all_api_keys
     from google import genai
 
@@ -194,7 +274,7 @@ def translate_and_split_scenes(
 
     target_duration_sec = target_minutes * 60.0
     if scene_seconds <= 0:
-        scene_seconds = 7 if target_duration_sec <= 90 else 25
+        scene_seconds = 4 if target_duration_sec <= 90 else (6 if any(k in str(genre).lower() for k in ("whiteboard", "colored_marker")) else (9 if any(k in str(genre).lower() for k in ("stoic", "philosophy")) else 8))
     scene_count = max(1, int(round(target_duration_sec / scene_seconds)))
 
     # Select lines covering the target duration
@@ -216,8 +296,7 @@ def translate_and_split_scenes(
     if genre_key == "stoic":
         genre_rule = """For Stoic Philosophy: Epic cinematic Greco-Roman classical world with high-contrast chiaroscuro lighting.
 Create FAITHFUL CINEMATIC VISUALS matching the reference video:
-- If the reference video features a classical marble statue (Marcus Aurelius, Epictetus, Seneca): FAITHFULLY preserve the majestic classical Carrara marble statue with intense gaze, weathered stone texture, sculpted beard, and chiaroscuro lighting against dramatic dark lightning storm skies. Use dynamic cinematic close-ups and medium chest-up angles.
-- If the competitor video features living actors or philosophers, accurately preserve them as living humans with natural skin tones and historical Roman togas.
+- PROTAGONIST AS LIVING HUMAN: Always portray the Stoic philosopher emperor (Marcus Aurelius / Seneca archetype) as a DIGNIFIED LIVING HUMAN with weathered Mediterranean bronze skin tone, expressive eyes, curly beard, authentic royal crimson draped linen toga, and 100% complete intact arms with five fingers. NEVER portray as a cold stone statue, NEVER a marble bust, NEVER a pedestal, NEVER severed limbs.
 - Atmospheric scenes: dramatic stormy skies, temple architecture, stone colonnades, and thoughtful contemplative moods."""
     elif genre_key == "family_drama":
         genre_rule = """For Modern / Family Drama: Photorealistic contemporary live-action film cinematography.
@@ -240,71 +319,60 @@ Authentic historical or real-world locations, period-accurate wardrobe and props
     is_vertical = bool(target_duration_sec <= 90 or target_minutes <= 1.05)
     aspect_rule = "Vertical 9:16 mobile portrait framing (YouTube Shorts / TikTok / Reels). Every visual description must strictly be 9:16 vertical composition, NEVER 16:9." if is_vertical else "Widescreen 16:9 landscape cinematic cinematography."
 
-    prompt = f"""You are an elite literary film adapter and screenplay translator.
-Your task is to take the EXACT spoken transcript from a competitor video and adapt it into EXACTLY {scene_count} sequential cinema scenes in {target_language}.
+    BATCH_SIZE = 8
+    if scene_count <= BATCH_SIZE:
+        print(f"[TRANSCRIPT_CLONER] PLAN_BATCH_START 1/1 scenes 1-{scene_count}", flush=True)
+        res = _generate_scenes_for_slice(
+            slice_speech=original_speech,
+            start_scene=1,
+            end_scene=scene_count,
+            target_language=target_language,
+            scene_seconds=scene_seconds,
+            char_desc=char_desc,
+            genre_rule=genre_rule,
+            aspect_rule=aspect_rule,
+            client=client,
+        )
+        print(f"[TRANSCRIPT_CLONER] PLAN_BATCH_DONE 1/1", flush=True)
+        return res
+    else:
+        tot_batches = math.ceil(scene_count / BATCH_SIZE)
+        all_scenes = []
+        for b in range(tot_batches):
+            s_idx = b * BATCH_SIZE + 1
+            e_idx = min(scene_count, (b + 1) * BATCH_SIZE)
+            t_start = (s_idx - 1) * scene_seconds
+            t_end = min(target_duration_sec, e_idx * scene_seconds)
 
-CRITICAL MANDATES:
-1. 100% FAITHFUL TRANSLATION:
-   - Do NOT summarize or invent a different story!
-   - Translate the actual spoken dialogue, thoughts, narrative events, and rhetoric of the speaker word-for-word into dignified, deeply evocative {target_language}.
-   - Pacing & Word Density: Each scene's narration MUST contain approximately {int(scene_seconds * 2.7)} words (minimum {int(scene_seconds * 2.2)} words). This ensures a rich, full spoken narration that precisely matches the full duration of each scene without being cut short.
-   - Breathing Pauses: Use natural punctuation (commas, em-dashes —, periods) between clauses to give the speaker breathing space and deliberate pauses.
+            slice_lines = [l for l in capped_lines if t_start - 5.0 <= float(l.get("start", 0)) <= t_end + 5.0]
+            if not slice_lines:
+                prop_start = int((s_idx - 1) / scene_count * len(capped_lines))
+                prop_end = max(prop_start + 1, int(e_idx / scene_count * len(capped_lines)))
+                slice_lines = capped_lines[prop_start:prop_end]
 
-2. VISUAL CONTINUITY & WORLD:
-   - {char_desc or "Preserve character and environment continuity described in the narration."}
-   - {genre_rule}
-   - {aspect_rule}
-   - SINGLE SUBJECT MANDATE: Describe a single solitary subject. NEVER describe mirrored, symmetrical, twin, or split-screen figures. Ignore all post-production video editing artifacts.
+            slice_speech = " ".join(str(l.get("text", "")).strip() for l in slice_lines if str(l.get("text", "")).strip())
+            if not slice_speech.strip():
+                slice_speech = original_speech[:500]
 
-3. SCENE VISUAL VARIETY MANDATE (PREVENT STATIC MONOTONY):
-   - Every scene MUST depict a unique, visually captivating composition directly connected to the specific spoken narration.
-   - Alternate camera compositions logically:
-     * Establishing Wide Shots: Grand environment, mood, architecture, landscape.
-     * Medium Shots: Character action, holding objects, writing, walking, interacting.
-     * Close-Up Shots: Expressive facial contemplation, intense emotion, symbolic objects (scroll, book, torch, scale of justice, tools, documents).
-   - NEVER repeat the exact same static pose or subject framing across consecutive scenes. Keep the visual journey moving forward dynamically like a real cinematic film!
-
-Original Spoken Speech to translate:
-\"\"\"
-{original_speech}
-\"\"\"
-
-Return JSON ONLY with this exact structure:
-{{
-  "scenes": [
-    {{
-      "scene_number": 1,
-      "summary": "Brief summary of Scene 1 in {target_language}",
-      "narration": "Exact translated spoken script in {target_language} for Scene 1...",
-      "description": "Visual scene description in English for AI image generator matching the scene narration, character, and visual style (varied composition, camera shot type, distinct action/setting)",
-      "visual_setup": "Camera angle and cinematic composition in English (e.g. Medium shot / Close-up / Low angle / Medium shot / Close-up, eye-level framing, natural cinematic lighting)",
-      "image_prompt": "Pure visual image generation prompt in English (40-60 words). Must specify aspect ratio, character DNA, pose, lighting, and background. Single solitary subject, never mirrored, no text overlays, photorealistic 8k.",
-      "text_overlay": "Short high-impact hook phrase in {target_language} (3-5 words, UPPERCASE)"
-    }}
-  ]
-}}
-"""
-
-    for model_name in ("gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"):
-        try:
-            resp = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config={"response_mime_type": "application/json", "temperature": 0.2},
+            print(f"[TRANSCRIPT_CLONER] PLAN_BATCH_START {b+1}/{tot_batches} scenes {s_idx}-{e_idx}", flush=True)
+            batch_scenes = _generate_scenes_for_slice(
+                slice_speech=slice_speech,
+                start_scene=s_idx,
+                end_scene=e_idx,
+                target_language=target_language,
+                scene_seconds=scene_seconds,
+                char_desc=char_desc,
+                genre_rule=genre_rule,
+                aspect_rule=aspect_rule,
+                client=client,
             )
-            data = json.loads(resp.text)
-            scenes = data.get("scenes", [])
-            if len(scenes) == scene_count:
-                return scenes
-            elif scenes:
-                # Fill or adjust scene numbers
-                for idx, sc in enumerate(scenes, 1):
-                    sc["scene_number"] = idx
-                return scenes[:scene_count]
-        except Exception as e:
-            print(f"[TRANSCRIPT_CLONER] Gemini translation error with {model_name}: {e}", flush=True)
+            all_scenes.extend(batch_scenes)
+            print(f"[TRANSCRIPT_CLONER] PLAN_BATCH_DONE {b+1}/{tot_batches}", flush=True)
 
-    raise RuntimeError("Failed to translate and adapt competitor transcript into scenes.")
+        for idx, sc in enumerate(all_scenes, 1):
+            sc["scene_number"] = idx
+        return all_scenes[:scene_count]
+
 
 
 def get_cloned_screenplay(
@@ -368,7 +436,7 @@ def get_cloned_screenplay(
                 if target_dur_sec < duration:
                     duration = target_dur_sec
             client = ResilientClient(api_keys=keys)
-            eff_scene_seconds = scene_seconds if (scene_seconds > 0) else (7 if (duration <= 90 or target_minutes <= 1.05) else 25)
+            eff_scene_seconds = scene_seconds if (scene_seconds > 0) else (4 if (duration <= 90 or target_minutes <= 1.05) else (6 if any(k in str(genre).lower() for k in ("whiteboard", "colored_marker")) else (9 if any(k in str(genre).lower() for k in ("stoic", "philosophy")) else 8)))
             active_lines = [l for l in subtitles.get("lines", []) if float(l.get("start", 0)) <= duration + 5.0] if (subtitles.get("lines") and duration < float(subtitles.get("duration_seconds", 999999))) else subtitles.get("lines", [])
             verified_scenes = build_source_storyboard(
                 canonical_url, active_lines or subtitles.get("lines", []), video_path=reference_video,
@@ -385,7 +453,7 @@ def get_cloned_screenplay(
             target_dur_sec = float(target_minutes * 60.0)
             if target_dur_sec < duration:
                 duration = target_dur_sec
-        eff_scene_seconds = scene_seconds if (scene_seconds > 0) else (7 if (duration <= 90 or target_minutes <= 1.05) else 25)
+        eff_scene_seconds = scene_seconds if (scene_seconds > 0) else (4 if (duration <= 90 or target_minutes <= 1.05) else (6 if any(k in str(genre).lower() for k in ("whiteboard", "colored_marker")) else (9 if any(k in str(genre).lower() for k in ("stoic", "philosophy")) else 8)))
         active_lines = [l for l in subtitles.get("lines", []) if float(l.get("start", 0)) <= duration + 5.0] if (subtitles.get("lines") and duration < float(subtitles.get("duration_seconds", 999999))) else subtitles.get("lines", [])
         adapted_scenes = translate_and_split_scenes(
             active_lines or subtitles.get("lines", []),

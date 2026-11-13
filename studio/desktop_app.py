@@ -4,6 +4,12 @@ powered by Edge/Chrome Chromium App Mode with automatic failover and port manage
 """
 from __future__ import annotations
 
+try:
+    import silent_subprocess
+except ImportError:
+    pass
+
+
 import os
 import subprocess
 import sys

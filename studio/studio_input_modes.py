@@ -7,6 +7,9 @@ SPEECH=re.compile(r'(?im)(?:^|\n)[ \t]*(?:[-*][ \t]*)?(?:[^\n]{0,120}?(?:says|sa
 QUOTE=re.compile(r'["“]([^"”\r\n]{2,260})["”]')
 def youtube_url(raw):
     url=str(raw or "").strip()
+    m=re.search(r'https?://(?:www\.|m\.)?(?:youtube\.com/(?:watch\?v=|shorts/|live/|embed/)|youtu\.be/)[A-Za-z0-9_-]+', url)
+    if m:
+        url=m.group(0)
     p=urlsplit(url)
     host=(p.hostname or "").lower()
     if p.scheme!="https" or p.username or p.password or p.port not in (None,443):

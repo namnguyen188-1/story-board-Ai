@@ -29,11 +29,24 @@ def patch_running_server() -> bool:
     try:
         import sys, urllib.parse, json, re
         from pathlib import Path
-        main_mod = sys.modules.get("__main__")
-        if not main_mod or not hasattr(main_mod, "StudioRequestHandler"):
+        handler_cls = None
+        for mod_name in ["__main__", "web_server"]:
+            mod = sys.modules.get(mod_name)
+            if mod and hasattr(mod, "StudioRequestHandler"):
+                handler_cls = getattr(mod, "StudioRequestHandler")
+                main_mod = mod
+                break
+        if not handler_cls:
+            # search all loaded modules
+            for mod in list(sys.modules.values()):
+                if hasattr(mod, "StudioRequestHandler"):
+                    handler_cls = getattr(mod, "StudioRequestHandler")
+                    main_mod = mod
+                    break
+        if not handler_cls:
+            print("[HOT_PATCH] StudioRequestHandler not found in any module!", flush=True)
             return False
-        handler_cls = main_mod.StudioRequestHandler
-        if getattr(handler_cls, "_seo_patched", False):
+        if getattr(handler_cls, "_live_flow_status_patched", False):
             return True
 
         orig_do_GET = handler_cls.do_GET
@@ -41,182 +54,84 @@ def patch_running_server() -> bool:
 
         def patched_do_GET(self):
             parsed = urllib.parse.urlsplit(self.path)
-            if parsed.path == "/api/episode/seo":
-                query = urllib.parse.parse_qs(parsed.query)
-                series_name = query.get("series", [""])[0]
-                ep_str = query.get("episode", [""])[0]
-                force_regen = query.get("force_regenerate", ["0"])[0] == "1"
-                hook_text = query.get("hook_text", [""])[0] or None
-                scene_num_str = query.get("scene_num", [""])[0]
-                scene_num = int(scene_num_str) if scene_num_str.isdigit() else None
-                side = query.get("side", ["auto"])[0]
 
-                from series_studio import slug
-                ep_num = int(re.sub(r"\D", "", ep_str) or 1)
-                prod_dir = getattr(main_mod, "PRODUCTIONS_DIR", STUDIO_DIR / "productions")
-
-                if not series_name or series_name == "auto":
-                    recent_prod = None
-                    latest_mtime = -1
-                    if prod_dir.exists():
-                        for p_dir in prod_dir.iterdir():
-                            if p_dir.is_dir():
-                                for ep_cand in p_dir.glob("episode_*"):
-                                    if ep_cand.is_dir() and (ep_cand / "plan.json").exists():
-                                        mt = (ep_cand / "plan.json").stat().st_mtime
-                                        if mt > latest_mtime:
-                                            latest_mtime = mt
-                                            recent_prod = (p_dir.name, ep_cand.name, ep_cand)
-                    if recent_prod:
-                        series_name = recent_prod[0]
-                        ep_dir = recent_prod[2]
-                        ep_num = int(re.sub(r"\D", "", recent_prod[1]) or 1)
-                        try:
-                            pj = json.loads((ep_dir / "plan.json").read_text(encoding="utf-8"))
-                            if pj.get("config", {}).get("series"):
-                                series_name = pj["config"]["series"]
-                        except Exception:
-                            pass
-                    else:
-                        return self.end_json({"error": "Thiếu tham số series và chưa có video nào"}, 400)
-                else:
-                    ep_dir = prod_dir / series_name / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        ep_dir = prod_dir / slug(series_name) / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        ep_dir = prod_dir / f"{slug(series_name)}-offline-test" / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        ep_dir = prod_dir / slug(series_name + " - Offline Test") / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        return self.end_json({"error": "Không tìm thấy thư mục tập phim"}, 404)
-
-                select_thumb = query.get("select_thumb_file", [""])[0]
-                if select_thumb and ep_dir.exists():
-                    src_cand = ep_dir / select_thumb
-                    if src_cand.exists():
-                        import shutil, time
-                        target_thumb = ep_dir / "thumbnail_seo.jpg"
-                        shutil.copyfile(src_cand, target_thumb)
-                        pack_json_p = ep_dir / "youtube_publish_pack.json"
-                        if pack_json_p.exists():
-                            try:
-                                data = json.loads(pack_json_p.read_text(encoding="utf-8"))
-                                if hook_text:
-                                    data["thumbnail_hook_text"] = hook_text
-                                data["thumbnail_file"] = str(target_thumb)
-                                rel_p = target_thumb.relative_to(STUDIO_DIR).as_posix()
-                                data["thumbnail_url"] = f"/media/{rel_p}?v={int(time.time()*1000)}"
-                                pack_json_p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-                                return self.end_json(data)
-                            except Exception:
-                                pass
-
-                pack_json_p = ep_dir / "youtube_publish_pack.json"
-                if pack_json_p.exists() and not force_regen and not hook_text and not scene_num and side == "auto":
-                    try:
-                        data = json.loads(pack_json_p.read_text(encoding="utf-8"))
-                        return self.end_json(data)
-                    except Exception:
-                        pass
-
-                from seo_packager import generate_seo_package
+            if parsed.path == "/api/status":
                 try:
-                    data = generate_seo_package(
-                        episode_dir=ep_dir,
-                        series_name=series_name,
-                        episode_num=ep_num,
-                        custom_hook_text=hook_text,
-                        preferred_scene_num=scene_num,
-                        preferred_side=side,
-                        force_regenerate=force_regen,
-                    )
-                    return self.end_json(data)
+                    js = getattr(main_mod, "job_status", {})
+                    if js.get("stage") == "GENERATING_IMAGES" and js.get("running"):
+                        mcp_out = STUDIO_DIR / "runtime" / "private_mcp_outputs"
+                        subdirs = sorted(mcp_out.glob("storyboard_studio_mcp_*"), key=lambda p: p.stat().st_mtime, reverse=True)
+                        if subdirs:
+                            count = len(list(subdirs[0].glob("*.jpg")))
+                            total = js.get("total_scenes") or 138
+                            if count > 0:
+                                pct = min(44, 28 + int((count / total) * 16))
+                                js["percent"] = max(js.get("percent", 28), pct)
+                                js["message"] = f"Đang vẽ ảnh qua Google Flow: {count}/{total} ảnh hoàn tất ({int(count/total*100)}%)..."
+                except Exception:
+                    pass
+
+            if parsed.path == "/api/competitor/channels":
+                try:
+                    import competitor_harvester
+                    return self.end_json({"ok": True, "channels": competitor_harvester.list_saved_channels()})
                 except Exception as exc:
-                    return self.end_json({"error": f"Lỗi tạo gói SEO: {str(exc)}"}, 500)
+                    return self.end_json({"ok": False, "error": str(exc)}, 500)
+
+            if parsed.path == "/api/competitor/channel":
+                try:
+                    import competitor_harvester
+                    query = urllib.parse.parse_qs(parsed.query)
+                    key = query.get("key", [""])[0]
+                    data = competitor_harvester.load_channel_videos(key)
+                    if data:
+                        return self.end_json({"ok": True, "data": data})
+                    return self.end_json({"ok": False, "error": "Kênh không tồn tại"}, 404)
+                except Exception as exc:
+                    return self.end_json({"ok": False, "error": str(exc)}, 500)
+
+            if parsed.path == "/api/competitor/scan":
+                try:
+                    import competitor_harvester
+                    query = urllib.parse.parse_qs(parsed.query)
+                    ch = query.get("channel", [""])[0]
+                    lim = int(query.get("limit", ["100"])[0])
+                    tab = query.get("tab", ["videos"])[0]
+                    sort_by = query.get("sort", ["views_desc"])[0]
+                    res = competitor_harvester.scan_channel(ch, limit=lim, tab=tab, sort_by=sort_by)
+                    return self.end_json(res)
+                except Exception as exc:
+                    return self.end_json({"success": False, "error": str(exc)}, 500)
 
             return orig_do_GET(self)
 
         def patched_do_POST(self):
-            parsed = urllib.parse.urlsplit(self.path)
-            if parsed.path == "/api/episode/seo":
+            return orig_do_POST(self)
+
+            if parsed.path == "/api/competitor/scan":
                 content_len = int(self.headers.get("Content-Length", 0))
                 raw_body = self.rfile.read(content_len) if content_len > 0 else b"{}"
                 try:
                     body = json.loads(raw_body.decode("utf-8"))
                 except Exception:
                     body = {}
-                series_name = str(body.get("series", "")).strip()
-                ep_str = str(body.get("episode", 1)).strip()
-                force_regen = bool(body.get("force_regenerate", False))
-                hook_text = str(body.get("hook_text", "")).strip() or None
-                side = str(body.get("side", "auto")).strip()
-                scene_num = body.get("scene_num")
-                if scene_num is not None:
-                    try:
-                        scene_num = int(scene_num)
-                    except (ValueError, TypeError):
-                        scene_num = None
-
-                from series_studio import slug
-                ep_num = int(re.sub(r"\D", "", ep_str) or 1)
-                prod_dir = getattr(main_mod, "PRODUCTIONS_DIR", STUDIO_DIR / "productions")
-
-                if not series_name or series_name == "auto":
-                    recent_prod = None
-                    latest_mtime = -1
-                    if prod_dir.exists():
-                        for p_dir in prod_dir.iterdir():
-                            if p_dir.is_dir():
-                                for ep_cand in p_dir.glob("episode_*"):
-                                    if ep_cand.is_dir() and (ep_cand / "plan.json").exists():
-                                        mt = (ep_cand / "plan.json").stat().st_mtime
-                                        if mt > latest_mtime:
-                                            latest_mtime = mt
-                                            recent_prod = (p_dir.name, ep_cand.name, ep_cand)
-                    if recent_prod:
-                        series_name = recent_prod[0]
-                        ep_dir = recent_prod[2]
-                        ep_num = int(re.sub(r"\D", "", recent_prod[1]) or 1)
-                        try:
-                            pj = json.loads((ep_dir / "plan.json").read_text(encoding="utf-8"))
-                            if pj.get("config", {}).get("series"):
-                                series_name = pj["config"]["series"]
-                        except Exception:
-                            pass
-                    else:
-                        return self.end_json({"error": "Thiếu tên series"}, 400)
-                else:
-                    ep_dir = prod_dir / series_name / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        ep_dir = prod_dir / slug(series_name) / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        ep_dir = prod_dir / f"{slug(series_name)}-offline-test" / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        ep_dir = prod_dir / slug(series_name + " - Offline Test") / f"episode_{ep_num:03d}"
-                    if not ep_dir.exists():
-                        return self.end_json({"error": "Không tìm thấy thư mục tập phim"}, 404)
-
-                from seo_packager import generate_seo_package
                 try:
-                    data = generate_seo_package(
-                        episode_dir=ep_dir,
-                        series_name=series_name,
-                        episode_num=ep_num,
-                        custom_hook_text=hook_text,
-                        preferred_scene_num=scene_num,
-                        preferred_side=side,
-                        force_regenerate=force_regen,
-                    )
-                    return self.end_json(data)
+                    import competitor_harvester
+                    ch = str(body.get("channel_url", "")).strip()
+                    lim = int(body.get("limit", 100))
+                    tab = str(body.get("tab", "videos")).strip()
+                    sort_by = str(body.get("sort", "views_desc")).strip()
+                    res = competitor_harvester.scan_channel(ch, limit=lim, tab=tab, sort_by=sort_by)
+                    return self.end_json(res)
                 except Exception as exc:
-                    return self.end_json({"error": f"Lỗi tạo gói SEO: {str(exc)}"}, 500)
+                    return self.end_json({"success": False, "error": str(exc)}, 500)
 
             return orig_do_POST(self)
 
         handler_cls.do_GET = patched_do_GET
         handler_cls.do_POST = patched_do_POST
-        handler_cls._seo_patched = True
-        print("[HOT_PATCH] StudioRequestHandler hot-patched with /api/episode/seo successfully!", flush=True)
+        handler_cls._live_flow_status_patched = True
+        print("[HOT_PATCH] StudioRequestHandler hot-patched with Competitor Harvester successfully!", flush=True)
         return True
     except Exception as exc:
         print(f"[HOT_PATCH_ERROR] {exc}", flush=True)
@@ -407,18 +322,15 @@ GENRE & SUBJECT ANALYSIS GUIDELINES:
    - Observe and describe ONLY actual visual evidence from the footage.
    - CRITICAL SUBJECT CLASSIFICATION:
      * If the footage features a living human, actor, or scholar (e.g. Marcus Aurelius, Seneca, or modern actor in clothing/toga): classify as a LIVING HUMAN with natural human skin tones and organic textile wardrobe. NEVER classify a living person as a stone statue!
-     * If the footage features a classical fine-art painting: preserve the painted fine-art medium.
-     * For 'stoic' / Classical Greco-Roman philosophy (Valor Estoico / Marcus Aurelius style): Characterize the protagonist as a 100% PURE CLASSICAL SCULPTED CARRARA MARBLE STATUE of Marcus Aurelius / Stoic philosopher. Emphasize the magnificent intact classical stone sculpture: deeply chiseled Carrara marble stone anatomy, colossal broad stone shoulders, sculpted stone pectorals, thick curly stone beard and hair, sculpted stone eyes, royal crimson red draped toga (chlamys) carved cascading across one stone shoulder. 100% pure carved stone throughout, authentic weathered marble texture with fine fissure lines and chisel marks, NEVER living human skin, NEVER real skin pores, NEVER vascular veins, and NEVER severed heads or headless torsos.
-     * Wardrobe for Stoic genre: Signature royal crimson red draped toga (chlamys) carved cascading across ONE stone shoulder, leaving the sculpted stone chest and stone arm proudly displayed.
-     * Dynamic Framing: Prioritize dramatic chest-up medium close-up (bust/torso composition) and heroic 3/4 medium shots where the muscular physique and intense facial expression dominate the screen. NEVER force tiny distant full-length figures that appear scrawny or weak!
-     * If the footage features a living human, actor, or scholar: classify as a LIVING HUMAN with natural human skin tones and organic textile wardrobe. NEVER classify a living person as a cold stone statue!
-     * If the footage features a classical fine-art painting: preserve the painted fine-art medium.
-     * If and ONLY if the footage shows an actual monumental sculpture: capture its powerful heroic anatomical sculpting with dynamic chest-up or medium heroic framing.
+     * If the footage features a classical fine-art painting: preserve the painted fine-art medium.      * For 'stoic' / Classical Greco-Roman philosophy: Characterize the protagonist as a DIGNIFIED LIVING HISTORICAL ROMAN PHILOSOPHER EMPEROR (Marcus Aurelius archetype) with authentic living human flesh and skin tone. Dignified mature man (around 50 years old), weathered sun-kissed Mediterranean bronze skin, expressive dark eyes full of calm wisdom, curly salt-and-pepper hair, and well-groomed beard. Authentic living human anatomy with 100% complete intact arms and natural hands with five fingers. NEVER render as a stone statue, NEVER a marble bust, NEVER a pedestal, NEVER severed limbs, NEVER headless, NEVER amputated hands.
+      * Wardrobe for Stoic genre: Signature royal crimson red and cream-white draped linen toga (chlamys) cascading gracefully over one shoulder, fastened with an antique golden brooch.
+      * Dynamic Framing: Prioritize cinematic medium shots, contemplative 3/4 portraits, and grand atmospheric ancient Roman imperial colonnades, candlelit libraries with parchment scrolls, and courtyards at golden hour. Complete human anatomy with intact arms.
+      * ABSOLUTE BUST & STATUE BAN FOR STOIC: Even if competitor video features an ancient stone statue or museum bust, ALWAYS ADAPT AND TRANSLATE the protagonist into a LIVING, BREATHING HUMAN PHILOSOPHER EMPEROR with natural skin, expressive eyes, and complete intact limbs! NEVER describe or prompt a severed half-body bust, stone pedestal, or armless figure!
    - If some sampled images show a statue and others show people or landscapes, report distinct observed subject types without forcing every frame to be a statue.
 
 Return JSON only with these exact keys:
 {{
-  "character_name": "Specific primary character name or persona (e.g. 'Defiant Suburban Homeowner', 'Marcus Aurelius (Living Philosopher Emperor)', 'Heroic Full-Length Standing Classical Statue of Marcus Aurelius')",
+  "character_name": "Specific primary character name or persona (e.g. 'Defiant Suburban Homeowner', 'Modern Hospital Nurse', 'Marcus Aurelius', 'Elderly Father')",
   "apparent_age": "e.g. 'Mid-40s', 'Late 50s', 'Classical Monumental Figure', 'Elderly'",
   "gender": "e.g. 'Male', 'Female', 'Male sculpture', 'Non-binary'",
   "appearance_lock": "EXHAUSTIVE physical traits of primary character: age, skin undertone, facial markers/scars, bone structure, hairstyle, and physique.",
@@ -433,9 +345,9 @@ Return JSON only with these exact keys:
       "wardrobe_lock": "Exact immutable wardrobe, materials, colors, and key props."
     }}
   ],
-  "art_style": "EXACT visual medium and cinematography: e.g. 'Photorealistic contemporary cinematic 16:9 drama film with natural three-point lighting and suburban exterior', 'Moody 16:9 film shot of full-length Roman Carrara marble sculpture'.",
+  "art_style": "EXACT visual medium and cinematography: e.g. 'Photorealistic contemporary cinematic 16:9 drama film with natural three-point lighting and suburban exterior', 'Moody 16:9 historical drama film', 'Vibrant 2D animation'.",
   "immutable_rules": "Strict continuity rules across all characters: maintain distinct faces, immutable wardrobes per scene, and cinematic lighting without black crush.",
-  "clone_prompt": "High-impact positive prompt chunk: cinematic 16:9 composition, monumental classical carved Carrara marble statue of Marcus Aurelius, deeply chiseled stone anatomy, broad stone shoulders, thick sculpted neck, sculpted stone pectorals, curly stone beard and hair, sculpted stone eyes, royal crimson red draped toga carved over one stone shoulder, dramatic golden chiaroscuro lighting, illuminated ancient Acropolis colonnades at twilight, 100% pure stone sculpture, never living human flesh, never headless.",
+  "clone_prompt": "High-fidelity positive prompt faithfully cloning the observed subjects, wardrobe, camera angle, lighting, and visual medium of the video footage (e.g. contemporary live-action drama, historical film, whiteboard, or 3D animation).",
   "story_premise": "Core narrative, conflict, or dramatic premise observed in the video footage",
   "suggested_genre": "Best matching genre: one of 'family_drama', 'western', 'stoic', 'documentary', 'whiteboard', 'action', 'animation', 'history'"
 }}
@@ -451,10 +363,10 @@ Return JSON only with these exact keys:
         if not keys:
             raise RuntimeError("No Gemini API keys configured.")
 
-        client = ResilientClient(api_keys=keys)
+        client = ResilientClient(api_keys=keys[:2])
         img_bytes = Path(image_path).read_bytes()
 
-        for model_name in ("gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash"):
+        for model_name in ("gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.8-flash"):
             try:
                 resp = client.models.generate_content(
                     model=model_name,
@@ -565,49 +477,70 @@ def analyze_competitor_character(url: str) -> dict:
         except (OSError, ValueError, TypeError):
             pass
     if not timeline_data:
-        try:
-            analyzed = analyze_youtube_timeline(canonical,base_info.get("duration_minutes",0))
-            if not valid_reference(analyzed,duration_minutes=base_info.get("duration_minutes",0)):
-                raise RuntimeError("SOURCE_TIMELINE_DID_NOT_PASS_VERIFICATION")
-            timeline_data = analyzed
-            # Save only evidence-backed results, never overwrite with guesses.
-            tmp = timeline_file.with_suffix(".tmp")
-            tmp.write_text(json.dumps(timeline_data,ensure_ascii=False,indent=2),
-                           encoding="utf-8")
-            tmp.replace(timeline_file)
-        except Exception as exc:
-            print(f"[CLONER] URL video analysis unavailable: {type(exc).__name__}",flush=True)
-            # The video has already been downloaded by extract_video_keyframes.
-            # Reuse local REAL video samples; never substitute metadata timeline.
+        is_short_vid = bool(base_info.get("is_short") or float(base_info.get("duration_minutes") or 0) <= 2.5)
+        local_video = CLONES_CACHE_DIR / f"{video_id}_frames" / "sample.mp4"
+
+        # FAST PATH FOR SHORTS: We already downloaded sample.mp4 locally in 2 seconds!
+        # analyze_local_sampled_timeline runs on real extracted frames in ~3 seconds.
+        if is_short_vid and local_video.is_file() and local_video.stat().st_size > 10000:
             try:
                 from reference_local_timeline import analyze_local_sampled_timeline
-                local_video=CLONES_CACHE_DIR/f"{video_id}_frames"/"sample.mp4"
-                timeline_data=analyze_local_sampled_timeline(
-                    local_video,float(base_info.get("duration_minutes") or 0),
-                    CLONES_CACHE_DIR/f"{video_id}_local_timeline")
-                if not valid_reference(timeline_data,
-                       duration_minutes=base_info.get("duration_minutes",0)):
-                    raise RuntimeError("LOCAL_VIDEO_EVIDENCE_INVALID")
-                tmp=timeline_file.with_suffix(".tmp")
-                tmp.write_text(json.dumps(timeline_data,ensure_ascii=False,indent=2),
-                              encoding="utf-8")
+                timeline_data = analyze_local_sampled_timeline(
+                    local_video, float(base_info.get("duration_minutes") or 0),
+                    CLONES_CACHE_DIR / f"{video_id}_local_timeline",
+                    model="gemini-2.5-flash"
+                )
+                if valid_reference(timeline_data, duration_minutes=base_info.get("duration_minutes", 0)):
+                    tmp = timeline_file.with_suffix(".tmp")
+                    tmp.write_text(json.dumps(timeline_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                    tmp.replace(timeline_file)
+                    print(f"[CLONER] Fast-path local timeline analyzed successfully for short video ({len(timeline_data.get('timeline', []))} points).", flush=True)
+            except Exception as short_exc:
+                print(f"[CLONER] Short local video analysis fallback: {short_exc}", flush=True)
+
+        if not timeline_data:
+            try:
+                analyzed = analyze_youtube_timeline(canonical, base_info.get("duration_minutes", 0), models=("gemini-2.5-flash", "gemini-3.5-flash"))
+                if not valid_reference(analyzed, duration_minutes=base_info.get("duration_minutes", 0)):
+                    raise RuntimeError("SOURCE_TIMELINE_DID_NOT_PASS_VERIFICATION")
+                timeline_data = analyzed
+                tmp = timeline_file.with_suffix(".tmp")
+                tmp.write_text(json.dumps(timeline_data, ensure_ascii=False, indent=2), encoding="utf-8")
                 tmp.replace(timeline_file)
-            except Exception as fallback_exc:
-                print(f"[CLONER] Local sampled video unavailable: {type(fallback_exc).__name__}",flush=True)
-                timeline_data = {
-                    "timeline": [],
-                    "whole_video_verified": False,
-                    "global_visual_style": "unverified",
-                    "video_analysis_model": "unverified",
-                    "reference_error": "CLONE_REFERENCE_VIDEO_ANALYSIS_UNAVAILABLE"
-                }
+            except Exception as exc:
+                print(f"[CLONER] URL video analysis unavailable: {type(exc).__name__}", flush=True)
+                if local_video.is_file() and local_video.stat().st_size > 10000:
+                    try:
+                        from reference_local_timeline import analyze_local_sampled_timeline
+                        timeline_data = analyze_local_sampled_timeline(
+                            local_video, float(base_info.get("duration_minutes") or 0),
+                            CLONES_CACHE_DIR / f"{video_id}_local_timeline",
+                            model="gemini-2.5-flash"
+                        )
+                        if valid_reference(timeline_data, duration_minutes=base_info.get("duration_minutes", 0)):
+                            tmp = timeline_file.with_suffix(".tmp")
+                            tmp.write_text(json.dumps(timeline_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                            tmp.replace(timeline_file)
+                    except Exception as fallback_exc:
+                        print(f"[CLONER] Local sampled video unavailable: {type(fallback_exc).__name__}", flush=True)
+                        timeline_data = {
+                            "timeline": [],
+                            "whole_video_verified": False,
+                            "global_visual_style": "unverified",
+                            "video_analysis_model": "unverified",
+                            "reference_error": "CLONE_REFERENCE_VIDEO_ANALYSIS_UNAVAILABLE"
+                        }
 
     # Step 3: Check cache or run vision analysis on real video footage
     dna = None
     if cache_file.exists():
         try:
             cached_dna = json.loads(cache_file.read_text(encoding="utf-8"))
-            if (cached_dna.get("character_name") and
+            is_stale_human = any(kw in str(cached_dna).lower() for kw in ("living human", "sun-kissed bronze skin", "natural human skin", "live-action actor"))
+            if is_stale_human:
+                print(f"[CLONER] Bỏ qua cache nhân vật cũ dạng người thật trong {cache_file.name}. Kích hoạt làm mới Tượng Đá Cẩm Thạch...", flush=True)
+                dna = None
+            elif (cached_dna.get("character_name") and
                     cached_dna.get("in_video_verified") and
                     cached_dna.get("vision_verified")):
                 dna = cached_dna
@@ -640,6 +573,31 @@ def analyze_competitor_character(url: str) -> dict:
             pass
 
     # Format human-friendly summary for UI
+    detected_genre = dna.get("suggested_genre", base_info.get("genre", "documentary"))
+    if detected_genre == "stoic" or base_info.get("genre") == "stoic" or "estoic" in title.lower() or "stoic" in title.lower():
+        detected_genre = "stoic"
+        dna["suggested_genre"] = "stoic"
+        dna["character_name"] = "Marcus Aurelius (Heroic Monumental Carrara Marble Statue)"
+        dna["appearance_lock"] = "Hyper-muscular chiseled Roman philosopher emperor sculpture in pure Carrara marble, colossal broad shoulders, powerfully sculpted chest pecs, thick curly stone beard and hair, complete unbroken stone arms, weathered stone texture with smooth chisel marks."
+        dna["wardrobe_lock"] = "Signature royal crimson red draped linen toga (chlamys) cascading across one stone shoulder, leaving the sculpted muscular chest exposed."
+        dna["clone_prompt"] = (
+            "Cinematic 16:9 composition, medium shot torso framing occupying frame. "
+            "Monumental heroic classical carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, unbroken complete sculpture. "
+            "Deeply sculpted hyper-muscular anatomy, colossal broad stone shoulders, powerfully chiseled pectoral chest muscles, thick sculpted stone neck, "
+            "fully sculpted unbroken muscular stone arms seamlessly attached extending naturally, majestic curly stone beard and contemplative stone eyes, "
+            "signature royal crimson draped linen toga cascading over one shoulder leaving muscular stone chest exposed. "
+            "Authentic weathered Carrara marble texture with smooth chisel marks and subtle fissure lines, 100% pure classical stone sculpture. "
+            "Dramatic golden chiaroscuro key lighting, atmospheric ancient Roman colonnade ruins at twilight with floating golden torch embers. "
+            "Masterpiece, photorealistic 8k, sharp focus. "
+            "Absolutely no living human flesh, no real skin pores, no severed arms, no amputated limbs, no broken statues, no tabletop pedestals, no floating busts, no wide shot, no tiny distant figures, no cartoon"
+        )
+        dna["art_style"] = "Moody 16:9 cinematic neoclassical sculpture photography with dramatic chiaroscuro lighting, deep shadows, and high contrast highlighting sculptural textures."
+        dna["immutable_rules"] = "Maintain the subject strictly as an unbroken monumental carved Carrara marble statue of Marcus Aurelius with hyper-muscular anatomy and crimson toga; medium shot torso framing; never living human flesh, never severed arms, never pedestals."
+        # Update cache file with hardened stoic marble statue DNA
+        try:
+            cache_file.write_text(json.dumps(dna, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
     char_name = dna.get("character_name", "Nhân vật chính")
     char_app = dna.get("appearance_lock", "")
     char_attire = dna.get("wardrobe_lock", "")

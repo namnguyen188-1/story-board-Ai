@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -53,6 +54,12 @@ def _isolated(row):
         home/".storyboard-studio-flow-mcp",
         home/".storyboard-studio-flow-accounts",
     )
+    # Portable accounts created by Studio have exact account-owned directories.
+    # Resolve paths to retain the existing rejection of foreign/V2 or linked roots.
+    ident = str(row.get("id") or "")
+    if re.fullmatch(r"account_[0-9a-f]{12}", ident):
+        allowed_profile += ((HOME/"flow_accounts"/ident).resolve(),)
+        allowed_state += ((HOME/"flow_accounts"/(ident+"_state")).resolve(),)
     def within(path,parents):
         return any(path==p or p in path.parents for p in parents)
     if not within(profile,allowed_profile) or not within(state,allowed_state):
@@ -96,6 +103,7 @@ class LocalFlowMcpTransport:
             raise PrivateMcpTransportError(str(exc)) from exc
         env={k:v for k,v in os.environ.items() if not k.startswith(("V2_FLOW_","V2_STORYBOARD_"))}
         env.update(account_env(row))
+        env["STORYBOARD_MCP_ACCOUNT_ID"]=row["id"]
         # The worker inherits a target created by Studio. Ordinary health
         # remains strict, and is never silently redirected to a user tab.
         target=self.target_id or os.getenv("STORYBOARD_CANARY_TARGET_ID", "")

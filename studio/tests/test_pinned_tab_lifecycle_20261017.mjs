@@ -16,6 +16,7 @@ for(const action of ['create','close','abandon']){
   process:{exitCode:0,stdout:{write:(s,cb)=>{output+=s;cb?.()}},exit:()=>{}},setTimeout});
  const mod=new vm.SourceTextModule(source,{context:sandbox});
  await mod.link(async name=>{
+  if(name==='node:url')return new vm.SyntheticModule(['fileURLToPath'],function(){this.setExport('fileURLToPath',()=>String(new URL('../studio_mcp/node/production-job-tab.mjs',import.meta.url)))},{context:sandbox});
   const value=name==='node:fs'?{readFileSync:()=>JSON.stringify({action,port:9550,tool_url:url,target_id:id})}:name==='node:path'?path:{connectOverCDP:async()=>browser};
   const exported=name.startsWith('node:')?'default':'chromium';
   return new vm.SyntheticModule([exported],function(){this.setExport(exported,value)},{context:sandbox});

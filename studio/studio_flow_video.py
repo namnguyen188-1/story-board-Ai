@@ -102,7 +102,7 @@ def adapt_video_clip_to_audio(
         )
         v_dur = float(json.loads(probe_v.stdout)["format"]["duration"])
 
-        scale_pad = f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1"
+        scale_pad = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1"
         tmp_out = output_silent_mp4.parent / f"temp_adapt_{output_silent_mp4.name}"
 
         # Strategy 1: Audio is slightly longer than video (<= 1.25x)

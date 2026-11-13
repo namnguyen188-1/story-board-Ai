@@ -1,8 +1,4 @@
-"""Storyboard Studio image provider using FlowKit WebTool with legacy MCP fallback.
-
-This adapter prioritizes the fast, robust FlowKit WebTool engine (http://127.0.0.1:18110),
-with automatic fallback to Studio's private Flow Node MCP if FlowKit is unavailable.
-"""
+"""Storyboard Studio images through the private MCP V2 runtime only."""
 from __future__ import annotations
 import os, sys, shutil, uuid, re
 from pathlib import Path
@@ -15,12 +11,6 @@ class StudioMcpImageError(RuntimeError):
     pass
 
 def preflight():
-    try:
-        from studio import flowkit_client
-        if flowkit_client.is_flowkit_alive():
-            return None, MODELS
-    except Exception:
-        pass
     from studio_mcp.image_backend import StoryboardImageBackend, IMAGE_MODELS
     runtime = Path(__file__).resolve().parent / "studio_mcp" / "node"
     if not (runtime / "studio-flow-rpc.mjs").is_file() or not (runtime / "dist" / "cli.js").is_file():
@@ -35,11 +25,7 @@ def clean_id(raw):
 
 def make_image(prompt, output_path, *, series, episode, scene, max_new_images,
                model_index=1, fallback=False, transport=None, aspect_ratio="16:9"):
-    """Exactly one image job per call; model fallback off by default.
-
-    Prioritizes FlowKit WebTool (http://127.0.0.1:18110) for high-speed, reliable generation.
-    Falls back to legacy Node MCP v2 if FlowKit is offline.
-    """
+    """One native MCP image job; errors propagate without another provider."""
     if not 1 <= int(max_new_images) <= 1000:
         raise StudioMcpImageError("MCP budget is not approved; specify 1..1000 image slots")
     if model_index not in (0, 1, 2):
@@ -47,23 +33,6 @@ def make_image(prompt, output_path, *, series, episode, scene, max_new_images,
     if not 20 <= len(prompt.strip()) <= 20000:
         raise StudioMcpImageError("Invalid MCP image prompt")
 
-    # 1. FlowKit WebTool Priority
-    try:
-        from studio import flowkit_client
-        if flowkit_client.is_flowkit_alive() or flowkit_client.ensure_flowkit_running(max_wait_seconds=3):
-            print(f"[FLOWKIT_PREFERRED] Routing scene {scene} to FlowKit WebTool...", flush=True)
-            res = flowkit_client.generate_image(
-                prompt=prompt,
-                output_path=output_path,
-                aspect_ratio=aspect_ratio,
-                scene_num=scene
-            )
-            print(f"[FLOWKIT_IMAGE_PASS] scene={scene} bytes={Path(output_path).stat().st_size}", flush=True)
-            return str(output_path)
-    except Exception as e:
-        print(f"[FLOWKIT_FALLBACK_TO_LEGACY_MCP] FlowKit notice: {e}, falling back to legacy MCP...", flush=True)
-
-    # 2. Legacy MCP V2 Fallback
     klass, image_models = preflight()
     name = "storyboard_studio_mcp_" + clean_id(series) + "_ep" + str(int(episode)).zfill(3)
     scope = PRODUCTION_ROOT / name

@@ -2236,7 +2236,7 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
 
-          "image_provider":getattr(args, "image_provider", "mcp_v2")}
+          "image_provider":getattr(args, "image_provider", "comfyui")}
 
 
 
@@ -2396,7 +2396,17 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
     if getattr(args, "scene_seconds", 0) <= 0:
 
-        args.scene_seconds = 7 if is_short_pacing else 25
+        g_clean = str(getattr(args, "genre", "")).lower()
+        if is_short_pacing:
+            args.scene_seconds = 4
+        elif any(g in g_clean for g in ("whiteboard", "colored_marker")):
+            args.scene_seconds = 6
+        elif any(g in g_clean for g in ("drama", "family_drama", "hoa_drama", "action", "narrative")):
+            args.scene_seconds = 8
+        elif any(g in g_clean for g in ("stoic", "philosophy")):
+            args.scene_seconds = 9
+        else:
+            args.scene_seconds = 8
 
 
 
@@ -3969,14 +3979,9 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
                 if file.exists():
-
-
-
-
-
-
-
                     chunk=read_json(file)
+                    if isinstance(chunk, dict) and "scenes" in chunk and len(chunk["scenes"]) > n:
+                        chunk["scenes"] = chunk["scenes"][:n]
 
 
 
@@ -4461,7 +4466,7 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
                     stoic_hero_desc = (
-                        "- When portraying Stoic philosophical scenes or classical heroes (Marcus Aurelius archetype): The protagonist is a 100% PURE CLASSICAL SCULPTED CARRARA MARBLE STATUE, completely intact from head, curly carved beard, sculpted stone eyes, down to broad chiseled stone chest and intact stone arms, wearing a royal crimson red toga draped across one stone shoulder. NEVER depict living human flesh, real skin pores, vascular veins, or modern people; NEVER produce headless, severed, or fragmented bodies. Alternate between dramatic chest-up medium close-ups of the magnificent intact marble statue and grand atmospheric classical Roman colonnades.\n"
+                        "- When portraying Stoic philosophical scenes or classical heroes (Marcus Aurelius archetype): The protagonist is a DIGNIFIED LIVING HISTORICAL ROMAN PHILOSOPHER EMPEROR, a mature living human (around 50 years old) with weathered Mediterranean bronze skin, expressive dark eyes full of calm wisdom, curly salt-and-pepper beard, wearing a royal crimson and cream-white draped linen toga. NEVER depict stone statues, marble busts, pedestals, or cold sculptures; NEVER produce severed limbs, headless bodies, or amputated hands. The protagonist has 100% complete living human anatomy with fully intact arms and natural hands with five fingers. Alternate between dramatic contemplative medium portraits of the emperor in imperial courtyards, sunlit colonnades, candlelit libraries with parchment scrolls, and panoramic Roman vistas.\n"
                         if (args.genre == "stoic" or str(getattr(args, "series", "")).lower().startswith("stoi"))
                         else ""
                     )
@@ -4554,7 +4559,12 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
 
-                         "2. MIDDLE SCENES (ESCALATING DRAMA, SUSPENSE & DEPTH): Build mounting tension, unexpected obstacles, emotional choices, and deep revelations that keep the audience glued to every word.\n"
+                         "2. MIDDLE SCENES (HIGH-STAKES ESCALATION, SENSORY DETAILS & RELENTLESS PACING):\n"
+                         "   - THE TICKING CLOCK: Establish an urgent countdown or narrowing window of survival/remedy (before nightfall, before the blizzard strikes, before the deadline). Characters feel time running out in every scene.\n"
+                         "   - SHOW, DON'T TELL (SENSORY GROUNDING): Forbid abstract emotional labels ('he was scared', 'she felt sad'). Ground all emotion in physical actions, somatic reactions, and sensory reality (trembling fingers struggling with coat buttons, smelling cold air, protective body posture, a blackened injury, labored breathing). Show the physical and emotional cost of every action.\n"
+                         "   - IMPOSSIBLE MORAL DILEMMAS: Force characters into agonizing choices with severe consequences (sacrifice self vs save children; preserve pride vs beg for life; choose between duty and survival).\n"
+                         "   - PUNCHY STACCATO DIALOGUE: Spoken lines must be concise, authentic, and fraught with subtext ('Not without you', 'Take the boys and go'). Avoid long, polite, artificial monologues.\n"
+                         "   - ESCALATING OBSTACLES: Every 45 seconds, reveal a new complication that makes the situation worse (wagon axle splits, horses sold, temperature plunges). Never let tension plateau.\n"
 
 
 
@@ -4727,8 +4737,8 @@ def produce_plan(args, series_dir, episode_dir, prompt):
                             "a sudden knock on the door with unexpected news, an ultimatum given). "
                             "Leave viewers deeply invested in the family's fate for the next episode.\n",
                             request, flags=re.S)
-                        request += ("\nFAMILY DRAMA OVERRIDE: Authentic Vietnamese/cultural family dynamics. "
-                                    "Real human relationships, generational conflict, tears, emotional warmth and drama. Zero armed violence.")
+                        request += ("\nFAMILY DRAMA OVERRIDE: Authentic human/family dynamics matching the story world. "
+                                    "Real human relationships, generational conflict, tears, emotional warmth and high-stakes drama. Zero gratuitous armed violence.")
                     elif args.genre == "mafia_thriller":
                         # Mafia / Detective / Noir thriller: gritty investigation, intellectual duel, high-stakes standoff
                         request = re.sub(
@@ -4958,32 +4968,29 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
                             for sc in chunk["scenes"]:
+                                # Normalize description from alternative AI keys
+                                if not sc.get('description'):
+                                    sc['description'] = sc.get('visual_description') or sc.get('visual_setup') or sc.get('image_prompt') or sc.get('prompt') or sc.get('summary') or ''
+                                if not sc.get('visual_setup'):
+                                    sc['visual_setup'] = sc.get('description') or 'Cinematic eye-level shot, 16:9 widescreen composition'
 
-
-
-
-
-
+                                # Normalize narration from dialogue or speech fields
+                                if not sc.get('narration'):
+                                    alt_speech = sc.get('dialogue') or sc.get('speech_text') or sc.get('text') or sc.get('monologue') or sc.get('summary') or ''
+                                    if alt_speech:
+                                        sc['narration'] = str(alt_speech)
 
                                 min_required_words = max(5, int(target_words * 0.55)) if ('target_words' in locals() and target_words > 0) else (6 if (getattr(args, 'scene_seconds', 25) <= 10 or getattr(args, 'minutes', 2.0) <= 1.05) else 18)
+                                word_count = len(sc.get('narration', '').split())
 
-
-
-
-
-
-
-
-                                if len(sc.get('narration','').split()) < min_required_words or not sc.get('description'):
-
-
-
-
-
-
-
-
-                                    raise ValueError('Too-short narration or no visual description')
+                                if attempt < 2 and (word_count < min_required_words or not sc.get('description')):
+                                    raise ValueError(f"Scene {sc.get('scene_number')} narration too short ({word_count}/{min_required_words} words) or missing description")
+                                elif not sc.get('description') or word_count < 3:
+                                    # Fallback healing on final attempt: ensure valid description and narration
+                                    if not sc.get('description'):
+                                        sc['description'] = f"Cinematic scene {sc.get('scene_number')} from {args.genre} drama, dramatic lighting, high production quality."
+                                    if word_count < 3:
+                                        sc['narration'] = sc.get('summary') or sc.get('narration') or f"The dramatic story continues in scene {sc.get('scene_number')}."
 
 
 
@@ -5239,15 +5246,10 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
 
-        if len(scenes) != scene_total:
-
-
-
-
-
-
-
-            raise RuntimeError("Plan scene count incomplete")
+        if len(scenes) > scene_total:
+            scenes = scenes[:scene_total]
+        elif len(scenes) < scene_total:
+            raise RuntimeError(f"Plan scene count incomplete: got {len(scenes)}/{scene_total}")
 
 
 
@@ -6041,9 +6043,7 @@ def render_one(job_path):
 
 
             if job.get("image_provider") == "flowkit":
-                from flowkit_client import generate_image
-                prompt = job.get("prompt") or scene.get("description") or scene.get("visual_setup") or "Cinematic scene"
-                generate_image(prompt, image, aspect_ratio=job.get("aspect_ratio", "16:9"))
+                raise RuntimeError("FLOWKIT_REMOVED_SELECT_MCP_V2")
             elif job.get("image_provider") == "mcp_v2":
 
 
@@ -6133,14 +6133,9 @@ def render_one(job_path):
 
 
                 if not isinstance(imgprompt,str) or "error" in imgprompt.lower():
-
-
-
-
-
-
-
-                    raise RuntimeError("Image prompt generation failed")
+                    # Robust fallback: use pre-generated scene prompt or description instead of failing
+                    imgprompt = scene.get("prompt") or scene.get("description") or scene.get("visual_setup") or "Cinematic scene, 8k resolution, detailed lighting"
+                    print(f"[PROMPT_FALLBACK] Prompt generator gap loi, su dung truc tiep mo ta canh ({scene.get('scene_number', '?')})", flush=True)
 
 
 
@@ -6149,12 +6144,24 @@ def render_one(job_path):
 
 
                 ref=job.get("anchor_image","")
+                genre_str = str(job.get("genre", "")).lower()
 
+                # HOLLYWOOD MULTI-SHOT DIVERSITY FILTER:
+                # Do NOT force protagonist face IP-Adapter on objects, landscapes, or other characters!
+                scene_text = (str(job.get("scene", {}).get("description", "")) + " " + str(job.get("scene", {}).get("visual_setup", "")) + " " + str(job.get("scene", {}).get("summary", ""))).lower()
+                is_object_or_broll = any(kw in scene_text for kw in ("boots", "envelope", "letter", "counter", "desk", "paper", "pen", "road", "landscape", "cabin exterior", "doorway", "fireplace", "window", "scale", "post office", "mailbag", "snowy prairie", "empty"))
+                is_other_person = any(kw in scene_text for kw in ("woman", "widow", "female", "girl", "elderly woman", "postman", "mailman", "child", "children", "boy", "wife", "mother"))
 
+                bible_chars = job.get("bible", {}).get("characters", [])
+                anchor_char_name = str(bible_chars[0].get("name", "")).lower() if bible_chars else ""
 
+                if is_object_or_broll or is_other_person:
+                    ref = "" # Absolutely clear IP-Adapter reference! Allow true object/female generation!
+                elif anchor_char_name and (anchor_char_name not in scene_text and not any(kw in scene_text for kw in ("protagonist", "his face", "he stands", "he sits", "he looks"))):
+                    ref = "" # Clear IP-Adapter if protagonist isn't explicitly active in this shot!
 
-
-
+                if any(g in genre_str for g in ("stoic", "philosophy", "statue")):
+                    ref = ""
 
                 prov = job.get("image_provider")
 
@@ -6188,7 +6195,7 @@ def render_one(job_path):
 
 
 
-                            reference_path=ref if Path(ref).is_file() else None)
+                            reference_path=ref if (ref and Path(ref).is_file()) else None)
 
 
 
@@ -6220,7 +6227,7 @@ def render_one(job_path):
 
 
 
-                            reference_path=ref if Path(ref).is_file() else None,
+                            reference_path=ref if (ref and Path(ref).is_file()) else None,
 
 
 
@@ -6308,7 +6315,7 @@ def render_one(job_path):
 
 
 
-        if job.get("image_provider") != "muse_video" and job.get("clean_watermark", True) and image.is_file():
+        if job.get("image_provider") not in ("comfyui", "muse_video", "mock", "placeholder") and job.get("clean_watermark", True) and image.is_file():
 
 
 
@@ -6820,7 +6827,7 @@ def render_one(job_path):
 
 
 
-    if (render_style in ("hand_color", "flow_video", "colored_marker") or previous_style in ("hand_color", "flow_video", "colored_marker")
+    if (render_style in ("hand_color", "flow_video", "colored_marker", "whiteboard") or previous_style in ("hand_color", "flow_video", "colored_marker", "whiteboard")
 
 
 
@@ -6972,7 +6979,7 @@ def render_one(job_path):
 
 
 
-                "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1",
+                "-vf", f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1",
 
 
 
@@ -7028,7 +7035,7 @@ def render_one(job_path):
 
 
 
-        elif job.get("visual_style")=="colored_marker":
+        elif job.get("visual_style") in ("colored_marker", "whiteboard"):
 
 
 
@@ -7052,71 +7059,30 @@ def render_one(job_path):
 
 
 
+        elif job.get("image_provider") == "comfyui" and (is_flow_video or job.get("is_hook_motion_video")):
+            try:
+                from studio_comfyui_motion import render_comfyui_motion_for_scene
+                raw = render_comfyui_motion_for_scene(scene, bible, image, audio, silent, width=width, height=height)
+            except Exception as ad_err:
+                print(f"[ANIMATEDIFF_FALLBACK] AnimateDiff error: {ad_err}. Falling back to 2.5D camera...", flush=True)
+                from studio_color_render import color_video
+                scene_text = " ".join(filter(None, [scene.get("prompt"), scene.get("description"), scene.get("narration"), scene.get("visual_setup")]))
+                raw = color_video(image, audio, silent, width, height, camera_motion=job.get("camera_motion", "auto"), overlay_preset=job.get("atmospheric_overlay", "auto"), scene_text=scene_text)
         elif is_flow_video:
-
-
-
-
-
-
-
-            from studio_flow_video import render_flow_video_for_scene
-
-
-
-
-
-
-
-            raw=render_flow_video_for_scene(
-
-
-
-
-
-
-
-                scene, bible, image, silent,
-
-
-
-
-
-
-
-                model=job.get("flow_video_model", "Omni 1.1 Flash"),
-
-
-
-
-
-
-
-                duration=job.get("flow_video_duration", 8),
-
-
-
-
-
-
-
-                aspect_ratio="16:9" if width >= height else "9:16",
-
-
-
-
-
-
-
-                width=width, height=height
-
-
-
-
-
-
-
-            )
+            try:
+                from studio_flow_video import render_flow_video_for_scene
+                raw=render_flow_video_for_scene(
+                    scene, bible, image, silent,
+                    model=job.get("flow_video_model", "Omni 1.1 Flash"),
+                    duration=job.get("flow_video_duration", 8),
+                    aspect_ratio="16:9" if width >= height else "9:16",
+                    width=width, height=height
+                )
+            except Exception as fv_err:
+                print(f"[FLOW_VIDEO_FALLBACK] Flow video error: {fv_err}. Falling back to 2.5D camera...", flush=True)
+                from studio_color_render import color_video
+                scene_text = " ".join(filter(None, [scene.get("prompt"), scene.get("description"), scene.get("narration"), scene.get("visual_setup")]))
+                raw = color_video(image, audio, silent, width, height, camera_motion=job.get("camera_motion", "auto"), overlay_preset=job.get("atmospheric_overlay", "auto"), scene_text=scene_text)
 
 
 
@@ -7338,16 +7304,15 @@ def render_one(job_path):
 
             shutil.copy2(raw,silent)
 
-        if job.get("clean_watermark", True) and silent.is_file():
-
+        is_cloud_watermark_video = (
+            ((job.get("motion_mode") == "flow_video" or job.get("is_hook_motion_video")) and job.get("image_provider") != "comfyui")
+            or (job.get("image_provider") in ("flow_video", "veo", "flowkit") and job.get("image_provider") != "comfyui")
+        )
+        if is_cloud_watermark_video and job.get("clean_watermark", True) and silent.is_file():
             try:
-
                 from clean_watermark import remove_video_watermark
-
                 remove_video_watermark(silent, silent, width=width, height=height)
-
             except Exception:
-
                 pass
 
 
@@ -8012,6 +7977,15 @@ def apply_cinematic_cta_and_audio(source_video, output_video, width, height):
     is_vertical = height > width
 
     times = compute_cta_times(dur, is_vertical=is_vertical)
+
+    # Hollywood Master Sound Design (Multi-act BGM, Dynamic Ducking, Timed SFX)
+    try:
+        from studio_sound_design import apply_hollywood_audio_master
+        if apply_hollywood_audio_master(source_p, output_p, cta_path if cta_path.is_file() else None, times, width, height, ENGINE):
+            print(f"[CINEMATIC_CTA] Master am thanh dien anh Hollywood & Dynamic Ducking thanh cong 100%!", flush=True)
+            return
+    except Exception as exc:
+        print(f"[CINEMATIC_CTA_WARN] Nang cap am thanh Hollywood gap loi ({exc}), chuyen sang che do du phong an toan.", flush=True)
 
 
 
@@ -9039,7 +9013,20 @@ def run(args):
 
 
 
-                    args.prompt = p_data.get("title") or p_data.get("synopsis") or "Tiếp tục sản xuất tập phim dở dang"
+                    cfg = p_data.get("config") or {}
+                    if cfg.get("language") and (getattr(args, "language", "Auto") == "Auto" or "--language" not in sys.argv):
+                        args.language = cfg["language"]
+                    if cfg.get("region") and (str(getattr(args, "region", "auto")).lower() == "auto" or "--region" not in sys.argv):
+                        args.region = cfg["region"]
+                    if cfg.get("genre") and (getattr(args, "genre", "auto") == "auto" or "--genre" not in sys.argv):
+                        args.genre = cfg["genre"]
+                    if cfg.get("voice_name") and (getattr(args, "voice_name", "auto") == "auto" or "--voice-name" not in sys.argv):
+                        args.voice_name = cfg["voice_name"]
+                    if cfg.get("input_mode") and "--input-mode" not in sys.argv:
+                        args.input_mode = cfg["input_mode"]
+                    if cfg.get("reference_url") and not getattr(args, "reference_url", ""):
+                        args.reference_url = cfg["reference_url"]
+                    args.prompt = cfg.get("prompt") or p_data.get("title") or p_data.get("synopsis") or "Stoic Marcus Aurelius"
 
 
 
@@ -10872,14 +10859,7 @@ def run(args):
 
 
 
-            if prior.get("image_provider"):
-
-
-
-
-
-
-
+            if prior.get("image_provider") and (not getattr(args, "image_provider", None) or getattr(args, "image_provider") in ("", "gemini")):
                 args.image_provider = prior["image_provider"]
 
 
@@ -11153,20 +11133,7 @@ def run(args):
 
 
     if args.mode=="live" and args.image_provider=="flowkit":
-        from flowkit_client import generate_episode_images_flowkit
-        try:
-            generate_episode_images_flowkit(
-                scenes,
-                plan["bible"],
-                series=args.series,
-                episode=args.episode,
-                episode_dir=episode_dir,
-                aspect_ratio=plan.get("bible", {}).get("aspect_ratio") or ("9:16" if (plan.get("bible", {}).get("is_vertical") or getattr(args, "aspect_ratio", "") == "9:16") else "16:9"),
-                max_new_images=getattr(args, "mcp_max_images", None)
-            )
-        except Exception as exc:
-            print(f"STUDIO_ERROR: FlowKit image generation failed: {exc}", flush=True)
-            raise
+        raise RuntimeError("FLOWKIT_REMOVED_SELECT_MCP_V2")
     elif args.mode=="live" and args.image_provider=="mcp_v2":
         from mcp_v2_batch import generate_episode_images
 
@@ -11282,6 +11249,36 @@ def run(args):
 
     key=own_api_key() if args.mode=="live" else ""
 
+    # CINEMATIC MONTAGE & SHOT BANK ENGINE
+    # For single-character/statue genres (Stoic, Philosophy, etc.) with long scene lists:
+    # Use curated Master Shot Bank & intelligent film montage mapping instead of 400+ random redundant generations
+    # STRICT GENRE ISOLATION GUARD:
+    # Shot Bank of Stoic marble statues is 100% EXCLUSIVE to Stoic / Philosophy genres.
+    # It MUST NEVER touch Drama, Western, Whiteboard, Animation, or other genres!
+    genre_norm = str(getattr(args, "genre", "") or "").lower().strip()
+    series_norm = str(getattr(args, "series", "") or "").lower().strip()
+    is_non_stoic = any(
+        k in genre_norm
+        for k in ("drama", "family_drama", "western", "ranch", "whiteboard", "colored_marker", "hand_color", "animation", "action", "horror", "documentary")
+    )
+    is_stoic = not is_non_stoic and (
+        genre_norm in ("stoic", "stoicism", "stoi", "philosophy", "khắc kỷ", "khac_ky", "khac ky")
+        or series_norm in ("stoic", "stoicism", "khắc kỷ", "khac_ky", "khac ky")
+    )
+    is_shot_bank_applicable = is_stoic and getattr(args, "image_provider", "") == "comfyui"
+    if is_shot_bank_applicable and len(scenes) >= 15:
+        try:
+            from cinematic_shot_bank import ensure_shot_bank_and_montage
+            print(f"[CINEMATIC_MONTAGE] Activating Dedicated Stoic Shot Bank & Montage Engine for {len(scenes)} scenes...", flush=True)
+            ensure_shot_bank_and_montage(
+                episode_dir=episode_dir,
+                scenes=scenes,
+                genre=genre_norm,
+                image_provider=args.image_provider,
+            )
+        except Exception as sb_err:
+            print(f"[CINEMATIC_MONTAGE_WARN] Shot bank setup warning: {sb_err}", flush=True)
+
 
 
 
@@ -11362,36 +11359,27 @@ def run(args):
 
 
 
-        if (num == 1 and getattr(args, "mode", "live") == "live" 
-            and scene_img_provider != "muse_video"
-            and getattr(args, "image_provider", "") != "flowkit"
-            and scene_img_provider != "flowkit"):
-
-            try:
-
-                import muse_accounts
-
-                ready_accs = muse_accounts.get_ready_accounts()
-
-                if ready_accs:
-
-                    scene_img_provider = "muse_video"
-
-                    is_auto_muse_hook = True
-
-                    print(f"\n⚡ [AUTO_HOOK_VIDEO] 🎬 Cảnh 1 là Cold Open Hook (30s): Tự động dùng Muse AI tạo video chuyển động thật ({len(ready_accs)} tài khoản sẵn sàng)!", flush=True)
-
-                else:
-
-                    is_hook_motion_video = True
-
-                    print(f"\n⚡ [AUTO_HOOK_VIDEO] 🎬 Cảnh 1 là Cold Open Hook (30s): Không có tài khoản Muse, tự động kích hoạt Flow Video AI Motion (Omni Flash / Veo)!", flush=True)
-
-            except Exception as e_hook:
-
+        is_narrative_cinematic = any(g in (getattr(args, "genre", "") or "").lower() for g in ("drama", "western", "family_drama", "action", "mafia_thriller", "psychological_horror", "romance_melodrama", "history"))
+        if (num == 1 and getattr(args, "mode", "live") == "live"):
+            if scene_img_provider == "comfyui" and is_narrative_cinematic:
                 is_hook_motion_video = True
-
-                print(f"[AUTO_HOOK_VIDEO_NOTE] Chuyển đổi Hook Cảnh 1 sang Flow Video AI Motion ({e_hook})", flush=True)
+                print(f"\n⚡ [AUTO_HOOK_VIDEO] 🎬 Cảnh 1 là Cold Open Hook (30s): Tự động dùng ComfyUI AnimateDiff SDXL tạo video chuyển động thật trên GPU nội bộ!", flush=True)
+            elif (scene_img_provider != "muse_video"
+                and getattr(args, "image_provider", "") != "flowkit"
+                and scene_img_provider != "flowkit" and getattr(args, "motion_mode", "ken_burns") == "flow_video"):
+                try:
+                    import muse_accounts
+                    ready_accs = muse_accounts.get_ready_accounts()
+                    if ready_accs:
+                        scene_img_provider = "muse_video"
+                        is_auto_muse_hook = True
+                        print(f"\n⚡ [AUTO_HOOK_VIDEO] 🎬 Cảnh 1 là Cold Open Hook (30s): Tự động dùng Muse AI tạo video chuyển động thật ({len(ready_accs)} tài khoản sẵn sàng)!", flush=True)
+                    else:
+                        is_hook_motion_video = True
+                        print(f"\n⚡ [AUTO_HOOK_VIDEO] 🎬 Cảnh 1 là Cold Open Hook (30s): Không có tài khoản Muse, tự động kích hoạt Flow Video AI Motion (Omni Flash / Veo)!", flush=True)
+                except Exception as e_hook:
+                    is_hook_motion_video = True
+                    print(f"[AUTO_HOOK_VIDEO_NOTE] Chuyển đổi Hook Cảnh 1 sang Flow Video AI Motion ({e_hook})", flush=True)
 
 
 
@@ -11645,15 +11633,9 @@ def run(args):
 
 
 
+        actual_ratio = "9:16" if height > width else "16:9"
         job={"scene":scene,"scene_dir":str(directory),"mode":args.mode,
-
-
-
-
-
-
-
-             "width":width,"height":height,"language":args.language,
+             "width":width,"height":height,"aspect_ratio":actual_ratio,"language":args.language,
 
 
 
@@ -12651,7 +12633,7 @@ def run(args):
 
 
 
-                    outcome=task(i,previous)
+                    outcome = task(i, anchor_value)
 
 
 
@@ -12683,7 +12665,7 @@ def run(args):
 
 
 
-                    previous=outcome["image_path"]
+                    # previous = outcome["image_path"]
 
 
 
@@ -13612,7 +13594,7 @@ def parser():
 
 
 
-    r.add_argument("--image-provider",choices=["gemini","v2_tuanstor","mcp_v2","comfyui","muse_video","flowkit"],
+    r.add_argument("--image-provider",choices=["gemini","v2_tuanstor","mcp_v2","comfyui","muse_video"],
 
 
 
@@ -13620,7 +13602,7 @@ def parser():
 
 
 
-                   default="comfyui")
+                   default="mcp_v2")
 
 
 

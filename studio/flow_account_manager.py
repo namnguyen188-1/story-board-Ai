@@ -12,6 +12,12 @@ Guarantees Chrome opens visibly on the interactive user desktop across all Windo
 
 from __future__ import annotations
 
+try:
+    import silent_subprocess
+except ImportError:
+    pass
+
+
 
 
 import json
@@ -210,7 +216,7 @@ def _chrome_exe_path() -> str:
 
     try:
 
-        res = subprocess.run(["where.exe", "chrome"], capture_output=True, text=True, timeout=2)
+        res = subprocess.run(["where.exe", "chrome"], capture_output=True, text=True, timeout=2, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000))
 
         if res.returncode == 0:
 
@@ -584,7 +590,7 @@ def _launch_chrome_interactive(chrome_exe: str, profile_dir: Path, port: int, in
 
             [chrome_exe] + args,
 
-            creationflags=0,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
 
             close_fds=True
 
@@ -628,7 +634,7 @@ def _launch_chrome_interactive(chrome_exe: str, profile_dir: Path, port: int, in
 
         try:
 
-            os.startfile(str(bat_file))
+            subprocess.Popen([chrome_exe] + args, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000), close_fds=True)
 
         except Exception as e3:
 
@@ -1349,304 +1355,21 @@ def start_login_watcher(port: int = 9461):
 
 
 def open_google_flow_login() -> Dict[str, Any]:
-
-    """Open Chrome for Google Flow login, keeping it open steadily until user signs in."""
-
-    from flowkit_client import ensure_flowkit_running
-
-    ensure_flowkit_running()
-
-
-
-    machine_file = FLOWKIT_ROOT / "state" / "machine.json"
-
-    profile = FLOW_ACCOUNTS_DIR / "account_default_9461"
-
-    port = 9461
-
-
-
-    if machine_file.is_file():
-
-        try:
-
-            m = json.loads(machine_file.read_text(encoding="utf-8-sig"))
-
-            cand = m.get("flow_profile")
-
-            if cand:
-
-                p_cand = Path(cand)
-
-                if p_cand.exists() or (p_cand.parent.exists() and os.path.exists(str(p_cand.parent))):
-
-                    profile = p_cand
-
-            port = int(m.get("debug_port", 9461))
-
-        except Exception:
-
-            pass
-
-
-
-    profile.mkdir(parents=True, exist_ok=True)
-
-
-
-    status = check_login_status(port)
-
-    if status.get("logged_in"):
-
-        set_chrome_window_state(port=port, state="hidden")
-
-        return {
-
-            "success": True,
-
-            "message": "Tài khoản Google đã đăng nhập. Trình duyệt đang chạy ngầm bảo mật, Web Tool sẵn sàng."
-
-        }
-
-
-
-    # Ensure clean interactive launch whenever not logged in
-
-    chrome = _chrome_exe_path()
-
-    _launch_chrome_interactive(chrome, profile, port, GOOGLE_SIGNIN_URL)
-
-    time.sleep(1.5)
-
-
-
-    start_login_watcher(port=port)
-
-
-
-    return {
-
-        "success": True,
-
-        "message": "Đã mở trình duyệt Chrome Google Flow. Cửa sổ giữ nguyên để bạn đăng nhập. Khi đăng nhập xong, hệ thống sẽ TỰ ĐỘNG ẩn trình duyệt và kết nối Web Tool."
-
-    }
+    """Open the existing active MCP V2 account for manual sign-in."""
+    from studio_flow_accounts import active, open_login
+    result = open_login(active()["id"])
+    return {**result, "success": bool(result.get("opened")), "provider": "mcp_v2"}
 
 
 
 
 
 def add_new_account() -> Dict[str, Any]:
-
-    """Create a brand new Chrome profile and open Chrome for Google sign-in.
-
-    
-
-    Guarantees window opens visually in the interactive user desktop and stays open.
-
-    """
-
-    from flowkit_client import ensure_flowkit_running
-
-    ensure_flowkit_running()
-
-
-
-    # Determine port: use 9461 if no accounts or first account not logged in, otherwise assign next
-
-    _sanitize_accounts_db()
-
-    existing = []
-
-    if ACCOUNTS_DB_FILE.is_file():
-
-        try:
-
-            db_data = json.loads(ACCOUNTS_DB_FILE.read_text(encoding="utf-8"))
-
-            existing = db_data.get("accounts", [])
-
-        except Exception:
-
-            pass
-
-
-
-    if not existing or not existing[0].get("email"):
-
-        port = 9461
-
-        account_id = existing[0]["id"] if existing else f"account_{uuid.uuid4().hex[:12]}"
-
-    else:
-
-        used_ports = [x.get("cdp_port", 9460) for x in existing if isinstance(x.get("cdp_port"), int)]
-
-        port = max(used_ports + [9460]) + 1
-
-        account_id = f"account_{uuid.uuid4().hex[:12]}"
-
-
-
-    # Cleanly stop old Chrome on target port
-
-    _kill_chrome_on_port(port)
-
-
-
-    # Generate profile directory in FLOW_ACCOUNTS_DIR
-
-    new_profile = FLOW_ACCOUNTS_DIR / account_id
-
-    new_profile.mkdir(parents=True, exist_ok=True)
-
-
-
-    # Update machine.json
-
-    try:
-
-        machine_file = FLOWKIT_ROOT / "state" / "machine.json"
-
-        machine_file.parent.mkdir(parents=True, exist_ok=True)
-
-        machine_data = {
-
-            "chrome": _chrome_exe_path(),
-
-            "flow_profile": str(new_profile).replace("/", "\\"),
-
-            "debug_port": port
-
-        }
-
-        machine_file.write_text(json.dumps(machine_data, indent=2), encoding="utf-8")
-
-    except Exception:
-
-        pass
-
-
-
-    # Save to storyboard_accounts.json
-
-    try:
-
-        ACCOUNTS_DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-        db_data = {"version": 1, "active": account_id, "accounts": []}
-
-        if ACCOUNTS_DB_FILE.is_file():
-
-            try:
-
-                db_data = json.loads(ACCOUNTS_DB_FILE.read_text(encoding="utf-8"))
-
-            except Exception:
-
-                pass
-
-
-
-        accounts_list = db_data.get("accounts", [])
-
-        matched = False
-
-        for acc in accounts_list:
-
-            if acc.get("id") == account_id:
-
-                acc["user_data_dir"] = str(new_profile).replace("/", "\\")
-
-                acc["cdp_port"] = port
-
-                matched = True
-
-                break
-
-        if not matched:
-
-            num = len(accounts_list) + 1
-
-            accounts_list.append({
-
-                "id": account_id,
-
-                "name": f"TK {num}",
-
-                "user_data_dir": str(new_profile).replace("/", "\\"),
-
-                "profile_directory": "Default",
-
-                "cdp_port": port,
-
-                "state_dir": str(FLOW_ACCOUNTS_DIR / f"{account_id}_state").replace("/", "\\")
-
-            })
-
-        db_data["active"] = account_id
-
-        db_data["accounts"] = accounts_list
-
-        ACCOUNTS_DB_FILE.write_text(json.dumps(db_data, indent=2), encoding="utf-8")
-
-    except Exception as e:
-
-        logger.warning(f"Could not update accounts DB: {e}")
-
-
-
-    # Ensure unlock.flag is present
-
-    try:
-
-        unlock_flag = FLOWKIT_ROOT / "state" / "flow_window" / "unlock.flag"
-
-        unlock_flag.parent.mkdir(parents=True, exist_ok=True)
-
-        unlock_flag.write_text("unlock", encoding="ascii")
-
-    except Exception:
-
-        pass
-
-
-
-    # Launch Chrome directly on interactive desktop
-
-    chrome = _chrome_exe_path()
-
-    _launch_chrome_interactive(chrome, new_profile, port, GOOGLE_SIGNIN_URL)
-
-    time.sleep(1.5)
-
-
-
-    # Start background watcher
-
-    _LOGIN_STATE["email"] = ""
-
-    _LOGIN_STATE["last_account_id"] = account_id
-
-    _LOGIN_STATE["status_text"] = "Đã mở Chrome cho tài khoản mới. Vui lòng đăng nhập Google. Khi đăng nhập xong, hệ thống sẽ TỰ ĐỘNG ẩn trình duyệt và kết nối Web Tool."
-
-    _LOGIN_STATE["badge_text"] = "🟡 Chờ đăng nhập"
-
-    _LOGIN_STATE["badge_type"] = "warning"
-
-    start_login_watcher(port=port)
-
-
-
-    return {
-
-        "success": True,
-
-        "account_id": account_id,
-
-        "message": "Đã tạo hồ sơ mới và mở cửa sổ Chrome. Hãy đăng nhập tài khoản Google của bạn. Cửa sổ giữ nguyên, khi đăng nhập xong hệ thống sẽ TỰ ĐỘNG ẩn và kết nối Web Tool."
-
-    }
+    """Create an MCP account only on the user's explicit Add Account action."""
+    from studio_flow_accounts import create, open_login
+    row = create("Google Flow " + time.strftime("%Y%m%d-%H%M%S"))
+    result = open_login(row["id"])
+    return {**result, "success": bool(result.get("opened")), "provider": "mcp_v2"}
 
 
 
@@ -1763,22 +1486,9 @@ def rotate_to_next_account(failed_port: Optional[int] = None, failed_id: Optiona
             logger.warning("[FLOWKIT_HOOK_ROTATION] No live Chrome accounts detected to rotate to.")
             return {}
 
-        # If only 1 account is live and it's the failing one, look for dormant accounts to wake up
+        # If only 1 account is live and it's the failing one, do not force-launch unverified dormant accounts mid-batch
         if len(live_accounts) == 1 and curr_port and live_accounts[0].get("cdp_port") == curr_port:
-            logger.warning(f"[FLOWKIT_HOOK_ROTATION] Only 1 account is live (port {curr_port}). Looking for dormant accounts to wake up...")
-            dormant = [a for a in accounts if a.get("cdp_port") != curr_port and a.get("user_data_dir")]
-            if dormant:
-                target_dormant = dormant[0]
-                d_port = target_dormant.get("cdp_port", 9462)
-                d_profile = Path(target_dormant.get("user_data_dir"))
-                chrome = _chrome_exe_path()
-                logger.info(f"[FLOWKIT_HOOK_ROTATION] Launching dormant account {target_dormant.get('name')} on port {d_port}...")
-                _launch_chrome_interactive(chrome, d_profile, d_port, DEFAULT_TARGET_URL)
-                time.sleep(4)
-                if is_port_listening(d_port):
-                    activate_account(target_dormant["id"])
-                    print(f"[FLOWKIT_HOOK_ROTATION] 🔄 Woke up and activated dormant account: {target_dormant.get('name')} (port {d_port})", flush=True)
-                    return target_dormant
+            logger.warning(f"[FLOWKIT_HOOK_ROTATION] Only 1 account is live (port {curr_port}). Will allow seamless API failover.")
             return {}
 
         # Find current index in live accounts
@@ -1848,200 +1558,35 @@ def get_flow_account_for_scene(scene_number: int, exclude_ids: list[str] | None 
 
 
 def get_ui_status() -> Dict[str, Any]:
-
-    """Return unified status for the Studio Settings Section 3 UI with multi-account support."""
-
-    from flowkit_client import is_flowkit_alive, get_webtool_status, ensure_flowkit_running
-
-    gw_alive = is_flowkit_alive()
-
-
-
-    # If FlowKit is not alive, attempt background launch without blocking UI response
-
-    if not gw_alive:
-
-        try:
-
-            threading.Thread(target=ensure_flowkit_running, kwargs={"max_wait_seconds": 3}, daemon=True).start()
-
-        except Exception:
-
-            pass
-
-
-
-    _sanitize_accounts_db()
-
-
-
-    all_accounts = []
-
-    ready_accounts = []
-
-    active_account_id = ""
-
-    if ACCOUNTS_DB_FILE.is_file():
-
-        try:
-
-            db_data = json.loads(ACCOUNTS_DB_FILE.read_text(encoding="utf-8"))
-
-            all_accounts = db_data.get("accounts", [])
-
-            active_account_id = db_data.get("active", "")
-
-            ready_accounts = [a for a in all_accounts if a.get("email")]
-
-        except Exception:
-
-            pass
-
-
-
-    # Real online status: check listening CDP ports
-
-    real_ready = [a for a in all_accounts if a.get("email") and is_port_listening(a.get("cdp_port", 9461))]
-
-    total_cnt = len(all_accounts) if all_accounts else 1
-
-    ready_cnt = len(real_ready)
-
-    emails = [a.get("email") for a in real_ready if a.get("email")]
-
-
-
-    # Direct live check on port 9461
-
-    chrome_port_alive = is_port_listening(9461)
-
-    live_em = ""
-
-    if chrome_port_alive:
-
-        live_em = get_logged_in_email(9461)
-
-        if live_em and live_em not in emails:
-
-            emails.append(live_em)
-
-            ready_cnt = max(ready_cnt, 1)
-
-
-
-    # Check if Chrome is actively on Google Flow / signed in
-
-    c_login = check_login_status(9461) if chrome_port_alive else {"logged_in": False, "on_webtool": False}
-
-    chrome_active_on_flow = bool(c_login.get("logged_in") or c_login.get("on_webtool") or chrome_port_alive or (ready_cnt > 0))
-
-
-
-    short_emails = [e.split("@")[0] for e in emails]
-
-    emails_tag = ", ".join(short_emails) if short_emails else "Chưa có"
-
-
-
-    if _LOGIN_STATE.get("watcher_active"):
-
+    """Read native connection/auth state without starting any background service."""
+    from studio_mcp.accounts import (active_account, load_accounts, account_tool_url,
+                                     connection_check, flow_auth_status)
+    try:
+        account = active_account()
+        from studio_mcp.transport import _isolated
+        _isolated(account)
+        store = load_accounts()
+        state = connection_check(account["id"])
+        auth = flow_auth_status(account) if state.get("connected") else {}
+        connected = bool(state.get("connected"))
+        authenticated = bool(auth.get("authenticated"))
+        ready = connected and authenticated and bool(account_tool_url(account))
         return {
-
-            "ready": gw_alive or chrome_active_on_flow,
-
-            "connected": chrome_active_on_flow,
-
-            "email": _LOGIN_STATE.get("email", "") or live_em,
-
-            "emails": emails,
-
-            "total_accounts": total_cnt,
-
-            "ready_accounts": ready_cnt,
-
-            "badge_text": _LOGIN_STATE.get("badge_text", "🟡 Đang đăng nhập"),
-
-            "badge_type": _LOGIN_STATE.get("badge_type", "warning"),
-
-            "status_text": _LOGIN_STATE.get("status_text", "Đang mở Chrome để bạn đăng nhập..."),
-
-            "watcher_active": True
-
-        }
-
-
-
-    wt = get_webtool_status("hidden") if gw_alive else {"connected": False}
-
-    connected = wt.get("connected", False)
-
-    email = _LOGIN_STATE.get("email") or live_em or (emails[0] if emails else "")
-
-
-
-    if connected or gw_alive or chrome_active_on_flow or (ready_cnt > 0) or chrome_port_alive:
-
-        _set_chrome_visibility_win32(port=9461, show=False)
-
-        display_cnt = max(ready_cnt, 1 if chrome_active_on_flow else 0)
-
-        return {
-
-            "ready": True,
-
-            "connected": True,
-
-            "email": email or (emails[0] if emails else "Google Flow"),
-
-            "emails": emails if emails else ([email] if email else ["Google Flow"]),
-
-            "total_accounts": total_cnt,
-
-            "ready_accounts": display_cnt,
-
-            "accounts": all_accounts,
-
-            "active_id": active_account_id,
-
-            "dispatch_mode": "round_robin",
-
-            "badge_text": f"🟢 {display_cnt}/{total_cnt} Đa luồng" if display_cnt > 1 else "🟢 Sẵn sàng",
-
-            "badge_type": "success",
-
-            "status_text": f"● {display_cnt} tài khoản sẵn sàng ({emails_tag}) · Đa luồng Round-Robin" if display_cnt > 1 else f"✓ Web Tool đã kết nối ({email or 'Sẵn sàng'})",
-
-            "watcher_active": False
-
-        }
-
-    else:
-        from flowkit_installer import is_flowkit_installed
-        fk_installed = is_flowkit_installed()
-        if not fk_installed:
-            return {
-                "ready": False,
-                "connected": False,
-                "flowkit_installed": False,
-                "email": "",
-                "emails": [],
-                "total_accounts": total_cnt,
-                "ready_accounts": 0,
-                "badge_text": "⚠️ Thiếu động cơ FlowKit",
-                "badge_type": "warning",
-                "status_text": "Chưa cài đặt động cơ FlowKit (cần cho máy phụ). Bấm [Cài Đặt Động Cơ] để thiết lập tự động 100%.",
-                "watcher_active": False
-            }
-        return {
-            "ready": False,
-            "connected": False,
-            "flowkit_installed": True,
-            "email": "",
-            "emails": [],
-            "total_accounts": total_cnt,
-            "ready_accounts": 0,
-            "badge_text": "🔴 Chưa kết nối",
-            "badge_type": "error",
-            "status_text": "Chưa kết nối Web Tool Google Flow. Bấm [Đăng Nhập] để kết nối.",
+            "provider": "mcp_v2", "flowkit_required": False,
+            "ready": ready, "connected": connected, "logged_in": authenticated,
+            "email": account.get("email", ""), "emails": [],
+            "accounts": store.get("accounts", []), "active_id": account["id"],
+            "total_accounts": len(store.get("accounts", [])),
+            "ready_accounts": int(ready), "dispatch_mode": "active_account",
+            "badge_text": "MCP V2: đã kết nối" if ready else "MCP V2: chưa sẵn sàng",
+            "badge_type": "success" if ready else "warning",
+            "status_text": ("MCP V2 đã kết nối; trạng thái tạo nội dung cần kiểm tra riêng."
+                            if ready else "Mở tài khoản MCP V2 và kiểm tra đăng nhập Google Flow."),
             "watcher_active": False
         }
+    except Exception as exc:
+        return {"provider": "mcp_v2", "flowkit_required": False, "ready": False,
+                "connected": False, "logged_in": False, "ready_accounts": 0,
+                "total_accounts": 0, "emails": [], "email": "", "accounts": [],
+                "badge_text": "MCP V2: cần kiểm tra", "badge_type": "warning",
+                "status_text": str(exc), "watcher_active": False}

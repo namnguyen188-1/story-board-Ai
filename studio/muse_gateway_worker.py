@@ -94,19 +94,50 @@ class GatewayAPI:
     def account_vm_id(self):
         return self.gateway.vm_id if self.gateway else None
 
+    def _connect(self):
+        if self.gateway is not None:
+            return
+        from muse_cli.cli import connect, load_cookies
+        from muse_cli.gateway import fetch_session_info, fetch_access_token, _hatch_headers
+        from curl_cffi import requests as rq
+        cookies_file = self.cfg.get("cookies_file")
+        if cookies_file and os.path.exists(cookies_file):
+            try:
+                cookies = load_cookies(cookies_file)
+                info = fetch_session_info(cookies)
+                if info.get("vm_state") == "SUSPENDED":
+                    at = fetch_access_token(cookies)
+                    vm_id = info.get("vm_id") or self.cfg.get("vm_id")
+                    rq.post("https://muse.ai/api/hatch/vm/wake",
+                            headers=_hatch_headers(cookies, at),
+                            json={"vm_id": vm_id, "retry_count": 0},
+                            impersonate="chrome", timeout=15)
+                    for _ in range(12):
+                        time.sleep(2)
+                        fresh = fetch_session_info(cookies)
+                        if fresh.get("vm_state") == "RUNNING":
+                            break
+            except Exception:
+                pass
+        self.gateway = connect(self.cfg)
+
     def call(self, method, body=None):
-        from muse_cli.cli import connect
-        from muse_cli.gateway import AuthError
+        from muse_cli.gateway import AuthError, GatewayError
         # Only reads reconnect. Mutating session creation is never replayed.
-        attempts = 3 if method in ("chat.history", "sessions.list", "sessions.get", "fs.stat", "fs.read") else 1
+        attempts = 3 if method in ("chat.history", "sessions.list", "fs.stat", "fs.read") else 1
         for attempt in range(attempts):
             try:
                 if self.gateway is None:
-                    self.gateway = connect(self.cfg)
+                    self._connect()
                 return self.gateway.call_json(method, body=body, timeout=30)
             except AuthError:
                 self.close()
                 raise RuntimeError("MUSE_AUTH_REQUIRED: Phiên Muse đã hết hạn hoặc chưa được lưu. Đăng nhập lại rồi kết nối Muse.") from None
+            except GatewayError as ge:
+                self.close()
+                if hasattr(ge, "payload") and isinstance(ge.payload, str) and ge.payload.startswith("MUSE_"):
+                    raise RuntimeError(ge.payload) from None
+                raise RuntimeError(str(ge)) from None
             except Exception:
                 self.close()
                 if attempt + 1 == attempts:
@@ -192,73 +223,64 @@ def inspect_video(path):
     return result
 
 
-def run_render(request, *, api=None, submit=None, poll_interval=10, timeout=600):
-    from PIL import Image
-    output = Path(request["output_image_path"]).resolve()
+def needs_cinematic_letterbox(source_width, source_height, target_width, target_height):
+    if min(source_width, source_height, target_width, target_height) <= 0:
+        return False
+    source_ratio = float(source_width) / float(source_height)
+    target_ratio = float(target_width) / float(target_height)
+    return (
+        abs(source_ratio / target_ratio - 1) > .05
+        and 2.30 <= source_ratio <= 2.50
+        and 1.70 <= target_ratio <= 1.90
+    )
 
-    # Route request through assigned account proxy if configured
-    account_id = request.get("account_id")
-    if account_id:
-        try:
-            import muse_accounts
-            proxy_url = muse_accounts.get_account_proxy(account_id)
-            if proxy_url:
-                os.environ["HTTP_PROXY"] = proxy_url
-                os.environ["HTTPS_PROXY"] = proxy_url
-                os.environ["ALL_PROXY"] = proxy_url
-                print(f"[MUSE_PROXY] 🌐 Sử dụng Proxy độc lập cho tài khoản '{account_id}': {proxy_url.split('@')[-1]}", flush=True)
-            else:
-                for k in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
-                    os.environ.pop(k, None)
-        except Exception:
-            pass
+
+def letterbox_cinematic_video(path, target_width, target_height):
+    import shutil
+    path = Path(path)
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("MUSE_FFMPEG_MISSING: ffmpeg không có trong PATH.")
+    target_width, target_height = int(target_width), int(target_height)
+    temp = path.with_name(path.stem + ".letterbox.tmp.mp4")
+    video_filter = (
+        f"scale={target_width}:{target_height}:force_original_aspect_ratio=decrease:force_divisible_by=2,"
+        f"pad={target_width}:{target_height}:(ow-iw)/2:(oh-ih)/2:color=black"
+    )
+    try:
+        proc = subprocess.run(
+            [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", str(path),
+             "-map", "0:v:0", "-map", "0:a?", "-vf", video_filter,
+             "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-pix_fmt", "yuv420p",
+             "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(temp)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        temp.unlink(missing_ok=True)
+        raise RuntimeError("MUSE_ASPECT_CONFORM_FAILED: Không thể chuyển clip điện ảnh sang khung cảnh.") from None
+    if proc.returncode != 0 or not temp.is_file() or temp.stat().st_size == 0:
+        temp.unlink(missing_ok=True)
+        detail = (proc.stderr or "").strip()[-300:]
+        suffix = ": " + detail if detail else ""
+        raise RuntimeError("MUSE_ASPECT_CONFORM_FAILED" + suffix)
+    os.replace(temp, path)
+
+
+def run_render(request, *, api=None, submit=None, poll_interval=10, timeout=600):
+    from PIL import Image, ImageOps
+    output = Path(request["output_image_path"]).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     receipt_path = output.parent / "muse_job.json"
-    # Reference image bytes are part of scene identity. Never reuse a clip made with
-    # old/absent character pictures under a matching text-only fingerprint.
-    anchor_sources = list(dict.fromkeys(list(request.get("character_anchors") or []) +
-                                          ([request["reference_image"]] if request.get("reference_image") else [])))
-    missing_anchors = [str(p) for p in anchor_sources if not Path(p).is_file()]
-    if missing_anchors:
-        raise RuntimeError("MUSE_REFERENCE_MISSING: " + ", ".join(missing_anchors))
-    signature = {k: request[k] for k in ("prompt", "width", "height", "duration")}
-    signature["reference_sha256"] = [digest(str(Path(p))) for p in anchor_sources]
-    fingerprint = hashlib.sha256(json.dumps(signature, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    fingerprint = hashlib.sha256(json.dumps({k: request[k] for k in ("prompt", "width", "height", "duration")}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     receipt = json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
     if receipt and receipt.get("fingerprint") != fingerprint:
-        # The old paid request may still be running, failed, or finished.
-        # Never archive or replace its durable receipt implicitly when the
-        # screenplay/reference image changes. Explicit user repair only.
-        if receipt.get("state") == "complete":
-            raise RuntimeError("MUSE_SCENE_REFERENCE_CHANGED: old completed video exists with different script/reference signature; do not silently reuse it.")
-        raise RuntimeError("MUSE_SCENE_INPUT_CHANGED: old Muse request/receipt still belongs to this scene. Preserve it and use an explicit new retake folder.")
+        raise RuntimeError("MUSE_SCENE_INPUT_CHANGED: Cảnh có job Muse từ cấu hình khác. Hãy tạo tập mới để không ghi đè hoặc tạo trùng.")
+    if receipt.get("state") in ("video_retry_ready", "video_retry_pending"):
+        raise RuntimeError("MUSE_MANUAL_VIDEO_RECOVERY_REQUIRED: auto retry disabled for this independent tool.")
     if receipt.get("state") == "failed":
-        sid = receipt.get("session_id")
-        tag = receipt.get("tag")
-        if sid and tag:
-            try:
-                own_api = api is None
-                api = api or GatewayAPI()
-                history = api.call("chat.history", {"session_id": sid, "limit": 30}).get("chat_events", [])
-                text = "\n".join(
-                    (e.get("payload") or {}).get("display_text") or e.get("display_text") or ""
-                    for e in history if e.get("event_name") == "message.assistant"
-                )
-                paths = list(dict.fromkeys(workspace_path(p) for p in PATH_RE.findall(text)))
-                videos = [p for p in paths if p.lower().endswith(".mp4") and tag in p] or [p for p in paths if p.lower().endswith(".mp4")]
-                if videos:
-                    images = [p for p in paths if not p.lower().endswith(".mp4") and tag in p] or [p for p in paths if not p.lower().endswith(".mp4")]
-                    receipt.update(video_remote=videos[0], image_remote=images[0] if images else None, state="downloading")
-                    atomic_json(receipt_path, receipt)
-            except Exception:
-                pass
-        if receipt.get("state") == "failed":
-            if receipt.get("terminal_reason") in ("moderation_refusal", "policy_refusal"):
-                raise RuntimeError("MUSE_POLICY_REFUSAL: Job Muse bị từ chối do chính sách an toàn, cần kiểm tra nội dung.")
-            # A failed Muse result is not consent to a second paid request.
-            # Retain the receipt and require a targeted retake to another
-            # explicit scene directory; do not resubmit this scene implicitly.
-            raise RuntimeError("MUSE_REMOTE_FAILED: Previous Muse job failed; its receipt is protected. Repair with an explicit new retake folder.")
+        # Fail closed: only a deliberate recovery action may create another remote job.
+        raise RuntimeError("MUSE_REMOTE_FAILED: Job Muse cũ đã thất bại; không tự tạo lại.")
     if receipt.get("state") == "complete":
         result = receipt["result"]
         if all(Path(m["path"]).is_file() and digest(m["path"]) == m["sha256"] for m in (result["image"], result["video"])):
@@ -267,75 +289,87 @@ def run_render(request, *, api=None, submit=None, poll_interval=10, timeout=600)
     api = api or GatewayAPI()
     submit = submit or submit_once
     try:
+        created_now = False
+
+        def build_scene_prompt(tag):
+            divider = math.gcd(int(request["width"]), int(request["height"]))
+            ratio = f"{int(request['width']) // divider}:{int(request['height']) // divider}"
+            return (f"Run exactly one image-to-video scene job, ID {tag}. No user reference image is needed. "
+                    f"First use media.generate_image once to create the scene image, composition ratio {ratio}, name {tag}_image. "
+                    f"Then use media.generate_video once with that exact returned local image path as a kind=image entry, name {tag}_video. "
+                    f"Aim for a short {request['duration']}-second clip. Preserve the image composition. "
+                    "Wait for actual tool completion. Return exact local image_path and video_path in the final visible reply. "
+                    "Do not retry a failed generation or produce extra variants. Report tool failures accurately.\n" + request["prompt"])
+
+        def build_video_retry_prompt(tag, image_tool_path):
+            return (f"Run exactly one video-only recovery, ID {tag}. Do not call media.generate_image. "
+                    f"Use this exact existing local image path as a kind=image entry for media.generate_video: {image_tool_path}. "
+                    f"Create a {request['duration']}-second video named {tag}_video, preserving the image composition. "
+                    "Wait for actual tool completion and return the exact image_path and video_path. "
+                    "If video generation fails, report the error accurately and do not retry.")
+
         if not receipt:
-            data = api.call("session.start", {"method": "/api/session/start", "params": {"origin": "fresh", "lifecycle": "persistent", "title": "Storyboard scene " + output.parent.name}})
+            data = api.call("session.start", {"method": "/api/session/start", "params": {"origin": "fresh", "lifecycle": "persistent", "title": "Muse Film Studio scene " + output.parent.name}})
             sid = data.get("session_id") or data.get("id") or (data.get("session") or {}).get("session_id") or (data.get("session") or {}).get("id")
             if not sid:
                 raise RuntimeError("MUSE_SESSION_NOT_CREATED")
-            receipt = {"fingerprint": fingerprint, "session_id": sid, "tag": "sbmuse" + uuid.uuid4().hex[:20], "state": "submission_uncertain", "account_vm_id": getattr(api, "account_vm_id", None)}
+            receipt = {"fingerprint": fingerprint, "session_id": sid, "tag": "mfs" + uuid.uuid4().hex[:20], "state": "submission_uncertain", "account_vm_id": getattr(api, "account_vm_id", None)}
             # Intent is durable BEFORE sending; a killed sender is never replayed.
             atomic_json(receipt_path, receipt)
-            divider = math.gcd(int(request["width"]), int(request["height"]))
-            ratio = f"{int(request['width']) // divider}:{int(request['height']) // divider}"
+            created_now = True
             tag = receipt["tag"]
-            # Multi-character visual identity anchoring via remote workspace sync
-            remote_anchors = []
-            anchor_list = list(dict.fromkeys(request.get("character_anchors") or []))
-            upload_errors = []
-            if request.get("reference_image") and request["reference_image"] not in anchor_list:
-                anchor_list.append(request["reference_image"])
-            for anchor_index, loc_anc in enumerate(anchor_list):
-                lp = Path(loc_anc)
-                if lp.is_file():
-                    try:
-                        anc_bytes = lp.read_bytes()
-                        # Two actors often both have a file named front.png.
-                        # The remote name MUST include index+content SHA or the
-                        # second actor silently overwrites the first identity.
-                        rem_p = f"character_anchors/{tag}/ref{anchor_index:02d}_{digest(lp)[:14]}{lp.suffix.lower()}"
-                        chunk_size = 24000  # 24KB binary stays well under Noise 65535-byte frame limit
-                        for i in range(0, len(anc_bytes), chunk_size):
-                            chunk = anc_bytes[i:i + chunk_size]
-                            is_first = (i == 0)
-                            api.call("fs.write", {
-                                "path": rem_p,
-                                "data_base64": base64.b64encode(chunk).decode("ascii"),
-                                "overwrite": is_first,
-                                "append": not is_first,
-                                "create_parent": is_first
-                            })
-                        remote_anchors.append(rem_p)
-                        print(f"[MUSE_ANCHOR_SYNC] Uploaded {lp.name} ({len(anc_bytes)} bytes) to {rem_p} on Muse VM.", flush=True)
-                    except Exception as anc_up_err:
-                        upload_errors.append(str(anc_up_err))
-                        print(f"[MUSE_ANCHOR_WARN] Could not upload anchor {lp.name}: {anc_up_err}", flush=True)
-
-            if anchor_list and (upload_errors or len(remote_anchors) != len(anchor_list)):
-                receipt["state"] = "failed"
-                receipt["terminal_reason"] = "reference_upload_failed"
-                atomic_json(receipt_path, receipt)
-                raise RuntimeError("MUSE_REFERENCE_UPLOAD_FAILED: required image was not uploaded; no text-only substitute permitted.")
-            if remote_anchors:
-                receipt["reference_images_uploaded"] = list(remote_anchors)
-                atomic_json(receipt_path, receipt)
-                primary_anc = remote_anchors[0]
-                anchor_instruction = (
-                    f"MANDATORY IMAGE-TO-VIDEO FRAME SOURCE: The approved scene composition frame is uploaded at: {primary_anc}. "
-                    f"Other approved character reference images: {', '.join(remote_anchors[1:])}. "
-                    "Use an actual image-to-video operation that consumes the scene frame as an IMAGE input, not text-to-video. "
-                    "Preserve this exact frame as the opening composition: same actors, place, camera, clothing, visible props and lighting. "
-                    "If the engine cannot accept an input image, report IMAGE_TO_VIDEO_NOT_SUPPORTED without generating a text-only substitute. "
-                )
-            else:
-                anchor_instruction = "No user reference image is needed. "
-
-            prompt = (f"Run an Image-to-Video scene generation job using the supplied scene composition image as real frame input, ID {tag}. {anchor_instruction}"
-                      f"Use media.generate_video once to create a short {request['duration']}-second video clip, composition ratio {ratio}, name {tag}_video. "
-                      f"Preserve the character continuity, lighting, and action instructions. Wait for actual tool completion. "
-                      "Return exact local video_path in the final visible reply. Do not retry a failed generation or produce extra variants. Report tool failures accurately.\n" + request["prompt"])
-            receipt["cli_ack"] = bool(submit(sid, prompt, tag))
+            receipt["cli_ack"] = bool(submit(sid, build_scene_prompt(tag), tag))
             atomic_json(receipt_path, receipt)
-        sid, tag = receipt["session_id"], receipt["tag"]
+        if not created_now and receipt.get("cli_ack") is False:
+            raise RuntimeError("MUSE_NEGATIVE_ACK: remote state uncertain; auto-resubmission disabled.")
+        sid, original_tag = receipt["session_id"], receipt["tag"]
+        tag = original_tag
+        assistant_after_seq = 0
+
+        def begin_video_retry():
+            nonlocal tag, assistant_after_seq
+            image_remote = receipt.get("image_remote")
+            image_tool_path = receipt.get("image_tool_path")
+            if not image_remote or not image_tool_path:
+                raise RuntimeError("MUSE_VIDEO_RETRY_INPUT_MISSING: Thiếu ảnh Muse đã xác minh để thử lại riêng phần video.")
+            if receipt.get("video_retry_attempted"):
+                raise RuntimeError("MUSE_VIDEO_RETRY_ALREADY_ATTEMPTED: Lượt khôi phục video đã được gửi; tiếp tục theo dõi session cũ.")
+            prior_history = api.call("chat.history", {"session_id": sid, "limit": 60}).get("chat_events", [])
+            assistant_after_seq = max((int(e.get("seq") or 0) for e in prior_history), default=0)
+            tag = receipt.get("video_retry_tag") or (original_tag + "v1")
+            receipt.update(state="video_retry_pending", video_retry_attempted=True,
+                           video_retry_tag=tag, video_retry_baseline_seq=assistant_after_seq,
+                           video_retry_reason="terminal_integrity_check_failed")
+            atomic_json(receipt_path, receipt)
+            receipt["video_retry_cli_ack"] = bool(submit(sid, build_video_retry_prompt(tag, image_tool_path), tag))
+            atomic_json(receipt_path, receipt)
+
+        if receipt.get("state") == "video_retry_ready":
+            begin_video_retry()
+        elif receipt.get("state") == "video_retry_pending":
+            if not receipt.get("video_retry_attempted") or not receipt.get("video_retry_tag"):
+                raise RuntimeError("MUSE_VIDEO_RETRY_RECEIPT_INVALID")
+            tag = receipt["video_retry_tag"]
+            assistant_after_seq = int(receipt.get("video_retry_baseline_seq") or 0)
+
+        # An explicit negative CLI acknowledgement may be retried once, but only
+        # on the same session after the gateway proves it is terminal and empty.
+        # Persist the attempt first so a crash can never trigger a duplicate retry.
+        if (
+            not created_now
+            and receipt.get("state") == "submission_uncertain"
+            and receipt.get("cli_ack") is False
+            and not receipt.get("same_session_retry_attempted")
+        ):
+            history_before_retry = api.call("chat.history", {"session_id": sid, "limit": 60}).get("chat_events", [])
+            sessions_before_retry = api.call("sessions.list").get("sessions", [])
+            session_before_retry = next((s for s in sessions_before_retry if s.get("session_id", s.get("id")) == sid), {})
+            if session_before_retry.get("status") == "completed" and isinstance(history_before_retry, list) and not history_before_retry:
+                receipt["same_session_retry_attempted"] = True
+                receipt["same_session_retry_reason"] = "empty_completed_session_after_negative_ack"
+                atomic_json(receipt_path, receipt)
+                receipt["cli_ack"] = bool(submit(sid, build_scene_prompt(tag), tag))
+                atomic_json(receipt_path, receipt)
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             history = api.call("chat.history", {"session_id": sid, "limit": 60}).get("chat_events", [])
@@ -345,139 +379,82 @@ def run_render(request, *, api=None, submit=None, poll_interval=10, timeout=600)
             def visible(e):
                 return (e.get("payload") or {}).get("display_text") or e.get("display_text") or ""
             accepted = any(e.get("event_name") == "message.user" and tag in visible(e) for e in history)
-            text = "\n".join(visible(e) for e in history if e.get("event_name") == "message.assistant")
+            text = "\n".join(
+                visible(e) for e in history
+                if e.get("event_name") == "message.assistant"
+                and (assistant_after_seq <= 0 or int(e.get("seq") or 0) > assistant_after_seq)
+            )
             if status in ("failed", "error", "cancelled", "canceled"):
                 receipt["state"] = "failed"; atomic_json(receipt_path, receipt)
                 raise RuntimeError("MUSE_REMOTE_FAILED: Muse báo job thất bại; không tự gửi lại.")
             if accepted:
-                receipt["state"] = "accepted"; atomic_json(receipt_path, receipt)
+                receipt["state"] = "video_retry_pending" if receipt.get("video_retry_attempted") else "accepted"
+                atomic_json(receipt_path, receipt)
             if accepted and text and status in ("completed", "idle"):
-                paths = list(dict.fromkeys(workspace_path(p) for p in PATH_RE.findall(text)))
-                videos = [p for p in paths if p.lower().endswith(".mp4") and tag in p]
-                images = [p for p in paths if not p.lower().endswith(".mp4") and tag in p]
-                if not videos:
-                    videos = [p for p in paths if p.lower().endswith(".mp4")]
-                if not images:
-                    images = [p for p in paths if not p.lower().endswith(".mp4")]
-                if videos:
-                    receipt.update(video_remote=videos[0], image_remote=images[0] if images else None, state="downloading")
+                raw_paths = list(dict.fromkeys(PATH_RE.findall(text)))
+                path_pairs = [(raw, workspace_path(raw)) for raw in raw_paths]
+                if receipt.get("video_retry_attempted"):
+                    images = [receipt["image_remote"]] if receipt.get("image_remote") else []
+                    videos = [path for raw, path in path_pairs if raw.lower().endswith(".mp4")]
+                else:
+                    images = [path for raw, path in path_pairs if not raw.lower().endswith(".mp4") and receipt["tag"] in raw]
+                    videos = [path for raw, path in path_pairs if raw.lower().endswith(".mp4") and tag in raw]
+                if images and not videos and "integrity_check_failed" in text.lower() and not receipt.get("video_retry_attempted"):
+                    image_tool_path = next((raw for raw, path in path_pairs if not raw.lower().endswith(".mp4") and receipt["tag"] in raw), None)
+                    receipt.update(image_remote=images[0], image_tool_path=image_tool_path,
+                                   state="video_retry_ready", remote_error="integrity_check_failed")
                     atomic_json(receipt_path, receipt)
-                    break
-
-                # Diagnose provider reply if no video yet
-                reply_low = text.lower()
-                if "integrity_check_failed" in reply_low:
+                    raise RuntimeError("MUSE_VIDEO_RECOVERY_REQUIRES_SEPARATE_APPROVAL: automatic video retry disabled.")
+                if not images or not videos:
+                    if images:
+                        image_tool_path = next((raw for raw, path in path_pairs if not raw.lower().endswith(".mp4") and receipt["tag"] in raw), None)
+                        receipt.update(image_remote=images[0], image_tool_path=image_tool_path)
                     receipt["state"] = "failed"
-                    receipt["terminal_reason"] = "integrity_check_failed"
+                    receipt["remote_error"] = "MUSE_REMOTE_FAILED: missing tagged image/video paths"
                     atomic_json(receipt_path, receipt)
-                    raise RuntimeError("MUSE_INTEGRITY_CHECK_FAILED: media.generate_video rejected output integrity; review the scene, do not automatically resubmit.")
-                if any(word in reply_low for word in (
-                    "different take", "content policy", "safety policy", "refused",
-                    "moderation", "cannot help", "can't assist"
-                )):
-                    receipt["state"] = "failed"
-                    receipt["terminal_reason"] = "no_video_review_required"
-                    atomic_json(receipt_path, receipt)
-                    raise RuntimeError("MUSE_SCENE_REVIEW_REQUIRED: Provider returned no video; scene needs review before a new variant.")
-                if any(err_code in reply_low for err_code in ("500", "502", "503", "upstream unavailable", "internal error")):
-                    receipt["state"] = "failed"
-                    receipt["terminal_reason"] = "server_overloaded"
-                    atomic_json(receipt_path, receipt)
-                    raise RuntimeError("MUSE_SERVER_OVERLOADED: Cụm GPU Muse tạm thời quá tải hoặc timeout (500/502/503). Tự động thử lại.")
-
-                if any(phrase in reply_low for phrase in (
-                    "media.generate_video returned an error",
-                    "returned an error and no video",
-                    "no video was produced",
-                    "wasn't able to generate",
-                    "unable to generate",
-                    "couldn't generate",
-                    "there is no local video_path",
-                    "failed to generate",
-                    "generation for job",
-                )):
-                    receipt["state"] = "failed"
-                    receipt["terminal_reason"] = "provider_generation_error"
-                    atomic_json(receipt_path, receipt)
-                    raise RuntimeError("MUSE_REMOTE_FAILED: Muse báo tạo video thất bại: " + text.splitlines()[0][:120])
-
-                # If assistant reply has finished (status completed/idle) without videos, fail fast;
-                # never hang in an idle loop for 10 minutes.
-                if status in ("completed", "idle"):
-                    receipt["state"] = "failed"
-                    receipt["terminal_reason"] = "no_video_after_completion"
-                    atomic_json(receipt_path, receipt)
-                    raise RuntimeError("MUSE_REMOTE_FAILED: Job kết thúc nhưng chưa có video gắn đúng mã cảnh.")
-            elif (not accepted or not text) and status in ("completed", "idle") and (time.monotonic() - (deadline - timeout)) > 30:
-                receipt["state"] = "failed"; atomic_json(receipt_path, receipt)
-                raise RuntimeError("MUSE_REMOTE_FAILED: Phiên Muse đã kết thúc nhưng không nhận được lệnh tạo video của cảnh này.")
+                    raise RuntimeError("MUSE_REMOTE_FAILED: Job kết thúc nhưng chưa có đủ ảnh/video mang mã cảnh.")
+                receipt.update(image_remote=images[0], video_remote=videos[0], state="downloading")
+                atomic_json(receipt_path, receipt)
+                break
             time.sleep(poll_interval)
         else:
-            # A local wait timeout does NOT prove remote generation failed.
-            # Preserve the receipt and keep polling on resume; never charge a second job.
-            receipt["state"] = "accepted" if receipt.get("cli_ack") else "submission_uncertain"
-            atomic_json(receipt_path, receipt)
-            raise RuntimeError("MUSE_JOB_PENDING: Hết thời gian chờ cục bộ; job Muse vẫn cần được đối chiếu bằng mã cảnh, không gửi lại.")
-
+            raise RuntimeError("MUSE_JOB_PENDING: Job chưa có kết quả xác minh; chạy tiếp để theo dõi job cũ.")
+        raw_image = output.parent / "muse_source.image"
+        imeta = download(api, receipt["image_remote"], raw_image)
+        with Image.open(raw_image) as im:
+            im.verify()
+        with Image.open(raw_image) as im:
+            im.load()
+            source_size = im.size
+            target_size = (int(request["width"]), int(request["height"]))
+            image_to_save = im.convert("RGB")
+            fit_mode = "none"
+            if needs_cinematic_letterbox(source_size[0], source_size[1], *target_size):
+                fitted = ImageOps.contain(image_to_save, target_size, method=Image.Resampling.LANCZOS)
+                canvas = Image.new("RGB", target_size, (0, 0, 0))
+                canvas.paste(fitted, ((target_size[0] - fitted.width) // 2,
+                                      (target_size[1] - fitted.height) // 2))
+                image_to_save = canvas
+                fit_mode = "cinematic_letterbox"
+            size = image_to_save.size
+            temp = output.with_name(output.name + ".tmp")
+            image_to_save.save(temp, format="PNG")
+        os.replace(temp, output)
+        image = {"path": str(output), "remote_path": receipt["image_remote"], "source_sha256": imeta["sha256"],
+                 "sha256": digest(output), "bytes": output.stat().st_size, "width": size[0], "height": size[1],
+                 "source_width": source_size[0], "source_height": source_size[1], "aspect_fit": fit_mode}
         clip = output.parent / "muse_clip.mp4"
         video = download(api, receipt["video_remote"], clip)
         video.update(inspect_video(clip))
-
-        # Handle image: either download remote image if available, or extract frame 0.5s from the video
-        if receipt.get("image_remote"):
-            raw_image = output.parent / "muse_source.image"
-            imeta = download(api, receipt["image_remote"], raw_image)
-            with Image.open(raw_image) as im:
-                im.verify()
-            with Image.open(raw_image) as im:
-                im.load()
-                size = im.size
-                temp = output.with_name(output.name + ".tmp")
-                im.convert("RGB").save(temp, format="PNG")
-            os.replace(temp, output)
-            img_sha = digest(output)
-            img_src_sha = imeta["sha256"]
-            img_remote = receipt["image_remote"]
-        else:
-            # Direct Text-to-Video: extract base thumbnail directly from the generated video clip
-            extracted = False
-            try:
-                import av
-                with av.open(str(clip)) as container:
-                    v_streams = [s for s in container.streams if s.type == "video"]
-                    if v_streams:
-                        target_sec = 0.5
-                        stream = v_streams[0]
-                        time_base = stream.time_base or (1 / 24)
-                        container.seek(int(target_sec / time_base), stream=stream)
-                        for frame in container.decode(stream):
-                            im = frame.to_image()
-                            im.convert("RGB").save(output, format="PNG")
-                            size = im.size
-                            extracted = True
-                            break
-            except Exception:
-                pass
-
-            if not extracted:
-                import subprocess
-                cmd_thumb = [
-                    "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-                    "-ss", "00:00:00.500", "-i", str(clip.resolve()),
-                    "-vframes", "1", str(output.resolve())
-                ]
-                subprocess.run(cmd_thumb, check=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-                with Image.open(output) as im:
-                    size = im.size
-
-            img_sha = digest(output)
-            img_src_sha = img_sha
-            img_remote = None
-
-        image = {"path": str(output), "remote_path": img_remote, "source_sha256": img_src_sha,
-                 "sha256": img_sha, "bytes": output.stat().st_size, "width": size[0], "height": size[1]}
+        if needs_cinematic_letterbox(video["width"], video["height"], request["width"], request["height"]):
+            video.update(source_width=video["width"], source_height=video["height"],
+                         source_bytes=video["bytes"], source_sha256=video["sha256"],
+                         aspect_fit="cinematic_letterbox")
+            letterbox_cinematic_video(clip, request["width"], request["height"])
+            video.update(inspect_video(clip))
+            video.update(bytes=clip.stat().st_size, sha256=digest(clip))
         expected = request["width"] / request["height"]
-        if abs((video["width"] / video["height"]) / expected - 1) > .05:
+        if any(abs((m["width"] / m["height"]) / expected - 1) > .05 for m in (image, video)):
             raise RuntimeError("MUSE_ASPECT_MISMATCH: Tệp Muse không đúng tỷ lệ cảnh, không dùng thay bằng ảnh tĩnh.")
         result = {"ok": True, "session_id": sid, "image": image, "video": video}
         receipt.update(state="complete", result=result)
@@ -490,16 +467,11 @@ def run_render(request, *, api=None, submit=None, poll_interval=10, timeout=600)
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("action", choices=["status", "render", "auth-export", "verify-header"])
+    p.add_argument("action", choices=["status", "render", "auth-export"])
     p.add_argument("--request")
     args = p.parse_args()
     try:
-        if args.action == "verify-header":
-            from muse_login import _verify_candidate
-            request = json.loads(Path(args.request).read_text(encoding="utf-8"))
-            vm_id = _verify_candidate(request["header"])
-            result = {"ok": True, "vm_id": vm_id, "status": "READY"}
-        elif args.action == "auth-export":
+        if args.action == "auth-export":
             from muse_login import export_session
             request = json.loads(Path(args.request).read_text(encoding="utf-8"))
             with render_lock(request["lock_path"], timeout=0):
@@ -508,20 +480,6 @@ def main():
             request = json.loads(Path(args.request).read_text(encoding="utf-8")) if args.request else {}
             if request.get("account_home"):
                 os.environ["USERPROFILE"] = str(request["account_home"])
-            acc_id = request.get("account_id")
-            if acc_id:
-                try:
-                    import muse_accounts
-                    proxy_url = muse_accounts.get_account_proxy(acc_id)
-                    if proxy_url:
-                        os.environ["HTTP_PROXY"] = proxy_url
-                        os.environ["HTTPS_PROXY"] = proxy_url
-                        os.environ["ALL_PROXY"] = proxy_url
-                    else:
-                        for k in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
-                            os.environ.pop(k, None)
-                except Exception:
-                    pass
             api = GatewayAPI()
             try:
                 d = api.call("sessions.list")
@@ -542,7 +500,11 @@ def main():
         # Arbitrary upstream errors may contain authentication URLs or headers.
         message = str(exc)
         if not message.startswith("MUSE_"):
-            message = "MUSE_WORKER_FAILED: Chưa xác minh được kết quả. Job đã lưu không được tự gửi lại."
+            if "MUSE_" in message:
+                idx = message.find("MUSE_")
+                message = message[idx:].rstrip("'\"")
+            else:
+                message = "MUSE_WORKER_FAILED: Chưa xác minh được kết quả. Job đã lưu không được tự gửi lại."
         print(json.dumps({"ok": False, "error": message}, ensure_ascii=False), flush=True)
         return 1
 

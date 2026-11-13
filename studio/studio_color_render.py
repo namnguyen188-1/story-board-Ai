@@ -22,14 +22,17 @@ from PIL import Image, ImageOps
 ENGINE_DIR = Path(__file__).resolve().parent / "engine"
 OVERLAYS_DIR = ENGINE_DIR / "assets" / "overlays"
 
-# Ordered cinematic motions for dynamic per-scene variation
+# Ordered cinematic motions for dynamic per-scene variation (Hollywood Camera Language)
 CINEMATIC_MOTIONS = [
     "zoom_in",
     "pan_right",
-    "zoom_out",
     "orbit_drift",
+    "zoom_out",
+    "crane_reveal",
     "tilt_up",
-    "pan_left"
+    "pan_left",
+    "dolly_zoom",
+    "macro_drift"
 ]
 
 
@@ -49,62 +52,94 @@ def create_silence(destination, seconds=8):
 
 
 def get_camera_motion_filter(motion_type: str, frames: int, width: int, height: int, fps: int, duration_sec: float) -> str:
-    """Builds mathematically precise, smooth Ken Burns & orbital drift camera filters."""
+    """Builds mathematically precise, smooth Ken Burns & 3D compound camera movements
+    with cosine ease-in/ease-out acceleration (Hollywood documentary standard).
+    """
     f_total = max(1, frames)
     d_sec = max(0.5, duration_sec)
     
+    # Cosine smoothstep easing: zero acceleration at start and finish, peak velocity in the middle
+    ease = f"(0.5*(1-cos(PI*on/{f_total})))"
+    
     if motion_type == "zoom_in":
-        # Smooth push-in towards center (from 1.0 to ~1.20)
+        # Smooth push-in towards Golden Ratio eye line (from 1.0 to 1.20)
         return (
-            f"zoompan=z='min(1.0+0.18*(on/{f_total}),1.25)':"
-            f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+            f"zoompan=z='1.0+0.20*{ease}':"
+            f"x='(iw-iw/zoom)*0.50':"
+            f"y='(ih-ih/zoom)*(0.38+0.12*{ease})':"
             f"d={f_total}:s={width}x{height}:fps={fps}"
         )
     elif motion_type == "zoom_out":
-        # Smooth pull-back revealing scale (from 1.18 to ~1.01)
+        # Smooth pull-back revealing grand environmental scale (from 1.20 to 1.0)
         return (
-            f"zoompan=z='max(1.18-0.18*(on/{f_total}),1.0)':"
-            f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+            f"zoompan=z='1.20-0.20*{ease}':"
+            f"x='(iw-iw/zoom)*0.50':"
+            f"y='(ih-ih/zoom)*(0.50-0.12*{ease})':"
             f"d={f_total}:s={width}x{height}:fps={fps}"
         )
     elif motion_type == "pan_right":
-        # Slight zoom with smooth horizontal pan from left to right
+        # Smooth horizontal tracking glide left-to-right with subtle depth push
         return (
             f"zoompan=z='1.15':"
-            f"x='(iw-iw/zoom)*0.10+(iw-iw/zoom)*0.80*(on/{f_total})':"
-            f"y='(ih-ih/zoom)/2':"
+            f"x='(iw-iw/zoom)*{ease}':"
+            f"y='(ih-ih/zoom)*0.45':"
             f"d={f_total}:s={width}x{height}:fps={fps}"
         )
     elif motion_type == "pan_left":
-        # Slight zoom with smooth horizontal pan from right to left
+        # Smooth horizontal tracking glide right-to-left
         return (
             f"zoompan=z='1.15':"
-            f"x='(iw-iw/zoom)*0.90-(iw-iw/zoom)*0.80*(on/{f_total})':"
-            f"y='(ih-ih/zoom)/2':"
+            f"x='(iw-iw/zoom)*(1.0-{ease})':"
+            f"y='(ih-ih/zoom)*0.45':"
             f"d={f_total}:s={width}x{height}:fps={fps}"
         )
     elif motion_type == "tilt_up":
-        # Slight zoom with vertical upward movement towards subject's head
+        # Vertical pedestal reveal moving from waist/base to subject's eyes
         return (
             f"zoompan=z='1.15':"
-            f"x='(iw-iw/zoom)/2':"
-            f"y='(ih-ih/zoom)*0.85-(ih-ih/zoom)*0.70*(on/{f_total})':"
+            f"x='(iw-iw/zoom)*0.50':"
+            f"y='(ih-ih/zoom)*(0.80-0.45*{ease})':"
             f"d={f_total}:s={width}x{height}:fps={fps}"
         )
     elif motion_type == "orbit_drift":
-        # Orbital parallax camera drift: orbital (x,y) motion combined with subtle rotation
+        # Orbital parallax camera drift: elliptical (x,y) orbit combined with subtle rotational sway
         return (
-            f"zoompan=z='1.12+0.08*(on/{f_total})':"
-            f"x='(iw-iw/zoom)/2+(iw-iw/zoom)*0.35*sin(2*PI*(on/{f_total})*0.8)':"
-            f"y='(ih-ih/zoom)/2+(ih-ih/zoom)*0.35*cos(2*PI*(on/{f_total})*0.8)':"
+            f"zoompan=z='1.12+0.08*{ease}':"
+            f"x='(iw-iw/zoom)*(0.50+0.35*sin(2*PI*(on/{f_total})*0.8))':"
+            f"y='(ih-ih/zoom)*(0.50+0.35*cos(2*PI*(on/{f_total})*0.8))':"
             f"d={f_total}:s={width}x{height}:fps={fps},"
-            f"rotate='0.007*sin(2*PI*t/{d_sec})':ow='{width}':oh='{height}':c=black"
+            f"rotate='0.005*sin(2*PI*t/{d_sec})':ow='{width}':oh='{height}':c=black"
+        )
+    elif motion_type == "crane_reveal":
+        # Technocrane compound move: diagonal lift + horizontal glide + gentle pull
+        return (
+            f"zoompan=z='1.18-0.12*{ease}':"
+            f"x='(iw-iw/zoom)*(0.20+0.60*{ease})':"
+            f"y='(ih-ih/zoom)*(0.75-0.45*{ease})':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "dolly_zoom":
+        # Vertigo / Dolly Zoom: push-pull perspective shift
+        return (
+            f"zoompan=z='1.05+0.18*{ease}':"
+            f"x='(iw-iw/zoom)*(0.30+0.40*{ease})':"
+            f"y='(ih-ih/zoom)*(0.40-0.10*{ease})':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
+        )
+    elif motion_type == "macro_drift":
+        # Ultra-slow inspection scan across maps, relics, and archival documents
+        return (
+            f"zoompan=z='1.25':"
+            f"x='(iw-iw/zoom)*(0.15+0.70*{ease})':"
+            f"y='(ih-ih/zoom)*(0.30+0.40*{ease})':"
+            f"d={f_total}:s={width}x{height}:fps={fps}"
         )
     else:
-        # Default gentle cinematic push
+        # Default smooth cinematic push
         return (
-            f"zoompan=z='min(1.0+0.12*(on/{f_total}),1.18)':"
-            f"x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':"
+            f"zoompan=z='1.0+0.15*{ease}':"
+            f"x='(iw-iw/zoom)*0.50':"
+            f"y='(ih-ih/zoom)*(0.45+0.05*{ease})':"
             f"d={f_total}:s={width}x{height}:fps={fps}"
         )
 
@@ -259,17 +294,32 @@ def color_video(image, audio, output, width, height, fps=25,
         seconds = f.getnframes() / max(1, f.getframerate())
     frames = max(1, math.ceil(seconds * fps))
 
-    # Pad source image to target 16:9 canvas preserving natural proportions
+    # Fit source image to target canvas filling 100% of the screen (no black bars, no shrinking)
+    # Oversample to 1.5x canvas size so zoompan maintains razor-sharp native pixel density at peak zoom
     inp = output.parent / f"color_source_{scene_index:04d}_16x9.png"
     with Image.open(image) as original:
-        rgb = ImageOps.pad(original.convert("RGB"), (width, height),
-                          method=Image.Resampling.LANCZOS, color=(10, 12, 20))
+        orig_rgb = original.convert("RGB")
+        target_w = int(width * 1.5)
+        target_h = int(height * 1.5)
+        rgb = ImageOps.fit(orig_rgb, (target_w, target_h), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
         rgb.save(inp, "PNG")
-    try:
-        from clean_watermark import remove_gemini_watermark
-        remove_gemini_watermark(inp)
-    except Exception:
-        pass
+    job_file = output.parent / "job.json"
+    is_comfy = False
+    if job_file.is_file():
+        try:
+            import json as _json
+            jdata = _json.loads(job_file.read_text(encoding="utf-8"))
+            if jdata.get("image_provider") in ("comfyui", "muse_video"):
+                is_comfy = True
+        except Exception:
+            pass
+
+    if not is_comfy and str(genre).lower() not in ("stoic", "philosophy"):
+        try:
+            from clean_watermark import remove_gemini_watermark
+            remove_gemini_watermark(inp)
+        except Exception:
+            pass
 
     # Resolve camera motion
     m_type = str(motion_type or "auto").lower().strip()

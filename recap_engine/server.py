@@ -496,7 +496,9 @@ async def handle_open_folder(request):
         if target:
             p = Path(target)
             if p.is_file():
-                folder = p.parent
+                # On Windows, open explorer and highlight the exact file
+                subprocess.Popen(["explorer", f"/select,{p}"], creationflags=WIN_NO_WINDOW)
+                return web.json_response({"status": "ok", "file": str(p)}, headers=cors_headers())
             elif p.is_dir():
                 folder = p
         import os

@@ -2864,7 +2864,13 @@ function setupEventHandlers() {
 
       updateLiveButtonLabel();
 
-
+      currentSeoData = null;
+      window.currentSeoData = null;
+      if (state) state.currentSeoData = null;
+      state.loadedEpisodeData = null;
+      state.selectedSceneNumber = null;
+      state.deckSignature = null;
+      state.lastCheckedEpisodeKey = null;
 
       clearTimeout(seriesDebounceTimer);
 
@@ -5134,17 +5140,16 @@ function setupEventHandlers() {
 
 
   if (el.inImageSource) {
-
-
-
-    el.inImageSource.addEventListener("change", handleImageSourceChange);
-
-
-
+    const savedImgSource = localStorage.getItem("storyboard_saved_image_source") || "comfyui";
+    if (savedImgSource && Array.from(el.inImageSource.options).some(o => o.value === savedImgSource)) {
+      el.inImageSource.value = savedImgSource;
+    }
+    el.inImageSource.addEventListener("change", () => {
+      state.userExplicitImageProvider = true;
+      try { localStorage.setItem("storyboard_saved_image_source", el.inImageSource.value); } catch (_) {}
+      handleImageSourceChange();
+    });
     handleImageSourceChange();
-
-
-
   }
 
 
@@ -11815,7 +11820,8 @@ async function submitProduction(mode, options = {}) {
 
 
 
-  const imageProvider = (isResume && (resCfg?.image_provider || epData?.image_provider)) ? (resCfg?.image_provider || epData.image_provider) : el.inImageSource.value;
+  const userChosenProvider = el.inImageSource ? el.inImageSource.value : null;
+  const imageProvider = userChosenProvider || (resCfg?.image_provider || epData?.image_provider) || "comfyui";
 
 
 
@@ -11965,18 +11971,11 @@ async function submitProduction(mode, options = {}) {
 
 
 
-    let finalImgProv = (resCfg && resCfg.image_provider) ? resCfg.image_provider : imageProvider;
-
-
-
+    let finalImgProv = userChosenProvider || ((resCfg && resCfg.image_provider) ? resCfg.image_provider : imageProvider) || "comfyui";
     if (finalProdMode === "cinematic_drama") {
-
-      finalImgProv = (resCfg && resCfg.image_provider) ? resCfg.image_provider : (el.inImageSource ? el.inImageSource.value : "flowkit");
-
+      finalImgProv = userChosenProvider || ((resCfg && resCfg.image_provider) ? resCfg.image_provider : (el.inImageSource ? el.inImageSource.value : "muse_video"));
       safeSec = parseInt(el.inSceneSec ? el.inSceneSec.value : "10", 10) || 10;
-
       if (el.inProductionMode) el.inProductionMode.value = "cinematic_drama";
-
     }
 
 
@@ -12345,6 +12344,24 @@ async function submitProduction(mode, options = {}) {
 
 
 
+    if ((res.status === 409 || res.status === 400 || res.status === 500) && (String(data.code || "").startsWith("MUSE_") || String(data.error || "").includes("MUSE_"))) {
+      const switchComfy = confirm(
+        `${data.error || "Tài khoản Muse chưa sẵn sàng hoặc phiên đăng nhập đã hết hạn."}\n\n` +
+        `👉 Bạn có muốn chuyển ngay sang "⚡ ComfyUI (GPU Nội Bộ)" để tạo ảnh & video chuyển động không?\n\n` +
+        `(Nhấn OK để tự động chuyển sang ComfyUI và chạy ngay, hoặc Cancel để mở Quản lý tài khoản Muse)`
+      );
+      if (switchComfy) {
+        if (el.inImageSource) el.inImageSource.value = "comfyui";
+        if (el.selImageProvider) el.selImageProvider.value = "comfyui";
+        payload.image_provider = "comfyui";
+        showToast("Đang chuyển sang ComfyUI GPU nội bộ...");
+        setTimeout(() => submitProduction(mode, options), 300);
+      } else {
+        if (typeof window.openMuseModal === "function") window.openMuseModal();
+      }
+      return;
+    }
+
     if (res.status === 409 && data.code === "MCP_QUEUE_PREFLIGHT_BLOCKED") {
 
 
@@ -12666,9 +12683,30 @@ async function submitProduction(mode, options = {}) {
 
 
   } catch (err) {
-
-
-
+    const errMsg = String(err && err.message ? err.message : err);
+    if (errMsg.includes("Tiến trình sản xuất đang chạy")) {
+      const activeEp = (state && state.currentRunningEpisode) ? state.currentRunningEpisode : "1";
+      alert(`ℹ️ Thông báo: Hệ thống hiện ĐANG SẢN XUẤT Tập ${activeEp}!\n\nTiến trình đang chạy mượt mà trong nền. Vui lòng chờ Tập ${activeEp} hoàn tất xong trước khi bắt đầu tập mới để tránh nghẽn card đồ họa GPU.`);
+      state.statusReady = true;
+      return;
+    }
+    if (errMsg.includes("MUSE_")) {
+      const switchComfy = confirm(
+        `${errMsg}\n\n` +
+        `👉 Bạn có muốn chuyển ngay sang "⚡ ComfyUI (GPU Nội Bộ)" để tạo ảnh & video chuyển động không?\n\n` +
+        `(Nhấn OK để tự động chuyển sang ComfyUI và chạy ngay, hoặc Cancel để mở Quản lý tài khoản Muse)`
+      );
+      if (switchComfy) {
+        if (el.inImageSource) el.inImageSource.value = "comfyui";
+        if (el.selImageProvider) el.selImageProvider.value = "comfyui";
+        showToast("Đang chuyển sang ComfyUI GPU nội bộ...");
+        setTimeout(() => submitProduction(mode, options), 300);
+        return;
+      } else {
+        if (typeof window.openMuseModal === "function") window.openMuseModal();
+        return;
+      }
+    }
     alert("Lỗi khi khởi chạy: " + err);
 
 
@@ -13718,29 +13756,16 @@ async function loadEpisodeDetails(series, episode) {
 
 
       state.loadedEpisodeData = null;
-
-
-
       state.selectedSceneNumber = null;
-
-
-
       state.deckSignature = null;
-
-
-
       state.lastCheckedEpisodeKey = `${series}_${episode}`;
-
-
-
-
-
-
+      if (state.lastLoadedSeriesSlug && state.lastLoadedSeriesSlug !== slugName) {
+        if (el.inPrompt) el.inPrompt.value = "";
+        if (el.inReferenceUrl) el.inReferenceUrl.value = "";
+      }
+      state.lastLoadedSeriesSlug = slugName;
 
       // Xóa cảnh cũ, hiển thị Empty state cho Tập mới
-
-
-
       renderStoryboardCards([]);
 
 
@@ -14093,7 +14118,7 @@ async function loadEpisodeDetails(series, episode) {
 
       const restoredProvider = data.image_provider || data.resume_config.image_provider;
 
-      if (restoredProvider && el.inImageSource &&
+      if (restoredProvider && el.inImageSource && !state.userExplicitImageProvider &&
 
           Array.from(el.inImageSource.options).some(opt => opt.value === restoredProvider)) {
 
@@ -14149,14 +14174,8 @@ async function loadEpisodeDetails(series, episode) {
 
 
 
-      if (data.image_provider && el.inImageSource) {
-
-
-
+      if (data.image_provider && el.inImageSource && !state.userExplicitImageProvider) {
         el.inImageSource.value = data.image_provider;
-
-
-
       }
 
 
@@ -17591,11 +17610,8 @@ async function prepareSavedEpisodeForResume(seriesSlug, episodeFolder, autoRun =
 
 
 
-    const targetImgProv = cfg.image_provider || data.image_provider || "flowkit";
-
-
-
-    if (el.inImageSource) el.inImageSource.value = targetImgProv;
+    const targetImgProv = cfg.image_provider || data.image_provider || "comfyui";
+    if (el.inImageSource && !state.userExplicitImageProvider) el.inImageSource.value = targetImgProv;
 
 
 
@@ -17868,41 +17884,23 @@ async function onGalleryAction(event) {
 
 
 window.loadProductionToWorkspace = function (seriesSlug, epFolder) {
-
-
-
   const epNum = parseInt(String(epFolder).replace(/\D/g, ""), 10) || 1;
-
-
-
   state.currentSeries = seriesSlug;
-
-
-
   state.currentEpisode = epNum;
-
-
-
   el.inSeries.value = seriesSlug;
-
-
-
   el.inEpisode.value = epNum;
 
-
+  currentSeoData = null;
+  window.currentSeoData = null;
+  if (state) state.currentSeoData = null;
+  state.loadedEpisodeData = null;
+  state.selectedSceneNumber = null;
+  state.deckSignature = null;
+  state.lastCheckedEpisodeKey = null;
 
   closeAllModals();
-
-
-
   loadEpisodeDetails(seriesSlug, epNum);
-
-
-
   showToast("Đã nạp " + seriesSlug + " - " + epFolder);
-
-
-
 };
 
 
@@ -21391,49 +21389,16 @@ if (btnRefreshPreflight) {
 
 
 function getActiveSeriesAndEpisode() {
-
-
-
-  const selectedEp = (el.inEpisode && parseInt(el.inEpisode.value, 10)) || (state && state.currentEpisode) || (currentSeoData && currentSeoData.episode) || 1;
-
-
-
-  const inputSeries = (el.inSeries && el.inSeries.value.trim() && el.inSeries.value.trim() !== "Whiteboard Series" && el.inSeries.value.trim() !== "Whiteboard Chronicles") ? el.inSeries.value.trim() : "";
-
-
-
-  let series = inputSeries || (state && state.currentSeries && state.currentSeries !== "Whiteboard Series" && state.currentSeries !== "Whiteboard Chronicles" ? state.currentSeries : "") || (currentSeoData && currentSeoData.series) || (state && state.currentSeries) || (el.inSeries && el.inSeries.value.trim()) || "auto";
-
-
-
-
-
-
+  const selectedEp = (el.inEpisode && parseInt(el.inEpisode.value, 10)) || (state && state.currentEpisode) || 1;
+  const inputSeries = (el.inSeries && el.inSeries.value.trim()) ? el.inSeries.value.trim() : "";
+  let series = inputSeries || (state && state.currentSeries ? state.currentSeries : "") || "auto";
 
   // Strict Episode & Series Isolation: Invalidate stale cached SEO if series or episode changed
-
-
-
   if (currentSeoData && (Number(currentSeoData.episode) !== Number(selectedEp) || (series !== "auto" && currentSeoData.series && slugify(currentSeoData.series) !== slugify(series)))) {
-
-
-
     currentSeoData = null;
-
-
-
     window.currentSeoData = null;
-
-
-
     if (state) state.currentSeoData = null;
-
-
-
   }
-
-
-
   return { series, episode: selectedEp };
 
 
@@ -34018,7 +33983,7 @@ window.submitBulkImportQueue = async function() {
 
       production_mode: prodMode,
 
-      image_provider: prodMode === "cinematic_drama" ? "muse_video" : "flowkit",
+      image_provider: prodMode === "cinematic_drama" ? "muse_video" : (el.inImageSource ? el.inImageSource.value : "comfyui"),
 
       minutes: mins,
 

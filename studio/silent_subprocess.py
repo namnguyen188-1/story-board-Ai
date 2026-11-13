@@ -1,4 +1,4 @@
-"""Silent Subprocess Enforcer for Storyboard AI Studio on Windows.
+"""Silent Subprocess Enforcer for Storyboard AI Studio & FlowKit on Windows.
 Guarantees ZERO console window flashing, zero CMD flickers, and zero PowerShell popups
 across all background operations, yt_dlp, ffmpeg, ffprobe, and Python subroutines,
 while preserving visible GUI interactive windows (like Google login and desktop app).
@@ -21,10 +21,21 @@ def _silent_popen_init(self, *args, **kwargs):
         is_explicit_visible_gui = False
         if cmd_args:
             first_arg = str(cmd_args[0] if isinstance(cmd_args, (list, tuple)) else cmd_args).lower()
-            arg_list = cmd_args if isinstance(cmd_args, (list, tuple)) else [str(cmd_args)]
-            # If launching Chrome/Edge WITHOUT --start-minimized, it is an explicit interactive GUI window (e.g. login)
-            if ("chrome" in first_arg or "msedge" in first_arg) and not any("--start-minimized" in str(a) for a in arg_list):
+            arg_list = list(cmd_args) if isinstance(cmd_args, (list, tuple)) else [str(cmd_args)]
+            
+            # Interactive Chrome/Edge for login or desktop browser: only if NOT headless/off-screen/minimized
+            is_offscreen = any("--window-position=-32000" in str(a) or "--start-minimized" in str(a) or "--headless" in str(a) for a in arg_list)
+            if ("chrome" in first_arg or "msedge" in first_arg) and not is_offscreen:
                 is_explicit_visible_gui = True
+
+            # If PowerShell is invoked, ensure -WindowStyle Hidden is passed
+            if "powershell" in first_arg and isinstance(cmd_args, list):
+                if not any("-windowstyle" in str(a).lower() for a in arg_list):
+                    new_args = [cmd_args[0], "-WindowStyle", "Hidden"] + cmd_args[1:]
+                    if args:
+                        args = (new_args,) + args[1:]
+                    else:
+                        kwargs["args"] = new_args
 
         if not is_explicit_visible_gui:
             flags = kwargs.get("creationflags", 0)
@@ -38,9 +49,8 @@ def _silent_popen_init(self, *args, **kwargs):
                 si.wShowWindow = SW_HIDE
                 kwargs["startupinfo"] = si
             else:
-                if not (si.dwFlags & STARTF_USESHOWWINDOW):
-                    si.dwFlags |= STARTF_USESHOWWINDOW
-                    si.wShowWindow = SW_HIDE
+                si.dwFlags |= STARTF_USESHOWWINDOW
+                si.wShowWindow = SW_HIDE
 
     return _orig_popen_init(self, *args, **kwargs)
 

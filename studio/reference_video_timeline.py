@@ -40,7 +40,9 @@ def validate_timeline(data, duration_minutes=0):
         raise ReferenceVideoUnavailable("REFERENCE_TIMELINE_NOT_CHRONOLOGICAL")
     if expected>=600 and len(times)<max(6,int(expected/120)):
         raise ReferenceVideoUnavailable("REFERENCE_TIMELINE_TOO_SPARSE_FOR_LONG_VIDEO")
-    if expected>=30 and (times[0]>min(30,expected*0.05) or times[-1]<expected*0.85):
+    start_thresh = max(12.0, expected * 0.20) if expected < 180 else min(30.0, expected * 0.05)
+    end_thresh = expected * 0.70 if expected < 180 else expected * 0.85
+    if expected >= 30 and (times[0] > start_thresh or times[-1] < end_thresh):
         raise ReferenceVideoUnavailable("REFERENCE_TIMELINE_NOT_FULL_COVERAGE")
     return data
 
@@ -58,10 +60,10 @@ def analyze_youtube_timeline(url, duration_minutes=0, client=None, models=None):
             raise ReferenceVideoUnavailable("REFERENCE_VIDEO_KEY_MISSING")
         # ResilientClient tries each available key, then its configured
         # multimodal-compatible model fallbacks (3.8 -> 3.5 -> ...).
-        client=ResilientClient(api_keys=keys)
+        client=ResilientClient(api_keys=keys[:2])
     # The resilient wrapper handles 3.5/3.1 fallbacks itself.
     # Injected test clients may override the model sequence explicitly.
-    models=models or ("gemini-3.8-flash",)
+    models=models or ("gemini-2.5-flash", "gemini-3.5-flash")
     n=16 if float(duration_minutes or 0)>=10 else 10 if float(duration_minutes or 0)>=2 else 6
     expected_sec = float(duration_minutes or 0) * 60
     dur_note = f" The video is {duration_minutes:.1f} minutes long ({int(expected_sec)} seconds). All timestamp_seconds must strictly be between 0 and {int(expected_sec)}." if expected_sec > 0 else ""

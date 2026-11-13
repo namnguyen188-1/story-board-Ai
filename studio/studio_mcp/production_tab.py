@@ -12,7 +12,7 @@ def _call(account,url,action,target=None,*,timeout=75):
         raise ProductionTabError("FLOW_JOB_SESSION_CHROME_NOT_OWNED")
     if not EXE.is_file() or not SCRIPT.is_file():
         raise ProductionTabError("FLOW_JOB_SESSION_ADAPTER_MISSING")
-    req={"action":action,"port":account["cdp_port"],"tool_url":url,"state_dir":account["state_dir"]}
+    req={"account_id":account["id"],"action":action,"port":account["cdp_port"],"tool_url":url,"state_dir":account["state_dir"]}
     if target is not None:
         if not re.fullmatch(r"[a-fA-F0-9]{32}",target):
             raise ProductionTabError("FLOW_JOB_SESSION_TARGET_INVALID")

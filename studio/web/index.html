@@ -2470,7 +2470,7 @@
 
 
 
-        <span class="brand-tag">v2.5 STUDIO</span>
+        <span class="brand-tag" id="appBrandTag">v1.3.19 STUDIO</span>
 
 
 
@@ -4903,6 +4903,7 @@
 
 
                 <button type="button" class="btn btn-secondary btn-xs" id="btnSuggestIdea" style="display:inline-flex;padding:2px 7px;font-size:0.66rem;color:#f59e0b;border-color:rgba(245,158,11,0.4);" title="Gợi ý cốt truyện triệu view chuẩn thể loại">✨ Gợi Ý Ý Tưởng</button>
+                <button type="button" class="btn btn-secondary btn-xs" id="btnOpenCompetitorModal" onclick="openCompetitorModal()" style="display:inline-flex;padding:2px 7px;font-size:0.66rem;color:#38bdf8;border-color:rgba(56,189,248,0.4);" title="Quét toàn bộ video đối thủ & chọn tập">🎯 Kênh Đối Thủ</button>
                 <button type="button" class="btn btn-secondary btn-xs" id="btnAnalyzeLink" style="display:none;padding:2px 7px;font-size:0.66rem;color:#818cf8;border-color:rgba(99,102,241,0.4);" title="Quét video YouTube">
 
 
@@ -5095,7 +5096,7 @@
 
 
 
-                <option value="flowkit" selected>Veo 3</option>
+                <option value="mcp_v2">Google Flow · MCP V2</option>
 
 
 
@@ -5119,7 +5120,7 @@
 
 
 
-                <option value="comfyui">⚡ ComfyUI (GPU)</option>
+                <option value="comfyui" selected>⚡ ComfyUI (GPU - Mặc định)</option>
 
 
 
@@ -6261,22 +6262,13 @@
 
 
 
-            <div class="worker-chips" id="workerChips" style="display:flex;gap:3px;">
-
-              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="1" onclick="setWorkerThreads(1)" style="flex:1;padding:4px 0;font-size:0.68rem;">1 Luồng</button>
-
-              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="2" onclick="setWorkerThreads(2)" style="flex:1;padding:4px 0;font-size:0.68rem;">2 Luồng</button>
-
-              <button type="button" class="btn btn-secondary btn-xs worker-chip active-chip" data-val="4" onclick="setWorkerThreads(4)" style="flex:1;padding:4px 0;font-size:0.68rem;color:#10b981;border-color:#10b981;font-weight:700;">4 Luồng (x4)</button>
-
-              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="6" onclick="setWorkerThreads(6)" style="flex:1;padding:4px 0;font-size:0.68rem;">6 Luồng (x6 Muse)</button>
-
-              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="8" onclick="setWorkerThreads(8)" style="flex:1;padding:4px 0;font-size:0.68rem;">8 Luồng (x8)</button>
-
+            <div class="worker-chips" id="workerChips" style="display:flex;gap:4px;">
+              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="1" onclick="setWorkerThreads(1)" style="flex:1;padding:5px 0;font-size:0.72rem;font-weight:600;" title="1 luồng - Tiêu chuẩn tuần tự">1 Luồng</button>
+              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="2" onclick="setWorkerThreads(2)" style="flex:1;padding:5px 0;font-size:0.72rem;font-weight:600;" title="2 luồng - Nhanh gấp đôi">2 Luồng</button>
+              <button type="button" class="btn btn-secondary btn-xs worker-chip active-chip" data-val="4" onclick="setWorkerThreads(4)" style="flex:1;padding:5px 0;font-size:0.72rem;font-weight:700;color:#10b981;border-color:#10b981;" title="4 luồng - Khuyên dùng (x4 Tốc độ)">4 Luồng</button>
+              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="6" onclick="setWorkerThreads(6)" style="flex:1;padding:5px 0;font-size:0.72rem;font-weight:600;" title="6 luồng - Tăng tốc tối đa (x6 Tốc độ)">6 Luồng</button>
+              <button type="button" class="btn btn-secondary btn-xs worker-chip" data-val="8" onclick="setWorkerThreads(8)" style="flex:1;padding:5px 0;font-size:0.72rem;font-weight:600;" title="8 luồng - Siêu tốc CPU Xeon (x8 Tốc độ)">8 Luồng</button>
             </div>
-
-
-
             <input type="hidden" id="inWorkers" value="4">
 
 
@@ -9165,9 +9157,9 @@
 
         <div class="system-status-item" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:6px;">
 
-          <span style="font-size:0.75rem;color:#94a3b8;">⚡ FlowKit WebTool</span>
+          <span style="font-size:0.75rem;color:#94a3b8;">⚡ Google Flow · MCP V2</span>
 
-          <span id="statusFlowKit" style="font-size:0.74rem;font-weight:600;color:#10b981;">🟢 Online (18110)</span>
+          <span id="statusFlowKit" style="font-size:0.74rem;font-weight:600;color:#10b981;">🟢 MCP V2 · đang kiểm tra</span>
 
         </div>
 
@@ -9704,7 +9696,7 @@
           <div style="min-width:0;flex:1;">
             <div style="font-size:0.85rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
               <span>⚡ Google Flow</span>
-              <span style="font-size:0.72rem;font-weight:400;color:#64748b;">(FlowKit)</span>
+              <span style="font-size:0.72rem;font-weight:400;color:#64748b;">(MCP V2)</span>
             </div>
             <div id="mcpAccountStatus" style="font-size:0.74rem;color:#10b981;margin-top:3px;line-height:1.35;word-break:break-word;">
               ✓ Web Tool Storyboard Director AI đã kết nối (thangmayhn2021@gmail.com) · Đa luồng 3 TK
@@ -9713,9 +9705,7 @@
 
           <!-- Cột phải: 3 nút nhỏ bằng đầu đũa (24px) -->
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            <button class="btn btn-warning btn-xs" id="btnInstallFlowKit" type="button" style="display:none;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;">
-              🚀 Cài Đặt Động Cơ FlowKit
-            </button>
+            
             <button class="btn btn-primary btn-xs" id="btnFlowLogin" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;">
               🌐 Đăng Nhập
             </button>
@@ -9751,9 +9741,9 @@
           <div id="mcpProjectStatus"></div>
           <div id="mcpToolAutoStatus"></div>
           <div id="flowkitStatusBox"></div>
-          <button id="btnFlowKitOpenLogin" type="button"></button>
-          <button id="btnFlowKitCheckStatus" type="button"></button>
-          <button id="btnFlowKitRestartDaemon" type="button"></button>
+          
+          
+          
         </div>
 
 
@@ -10506,7 +10496,7 @@
 
 
 
-        Đánh giá toàn diện môi trường AI, bộ giải mã FFmpeg, cổng tự động FlowKit WebTool, phiên đăng nhập Google Flow và khóa API trên máy tính của bạn.
+        Đánh giá toàn diện môi trường AI, bộ giải mã FFmpeg, cổng tự động Google Flow · MCP V2, phiên đăng nhập Google Flow và khóa API trên máy tính của bạn.
 
 
 
@@ -18992,7 +18982,7 @@
 
 
 
-  <script src="app.js?v=20261102_split_seo_and_shorts_v2"></script>
+  <script src="app.js?v=20261112_0755_fix"></script>
 
   <script src="drama_asset_review.js?v=20261031_multi_role_assets"></script>
 
@@ -19220,7 +19210,10 @@
 
 
 
-            <strong style="font-size:0.84rem;color:#10b981;">⚡ Nhập Hàng Loạt (Dán danh sách Link YouTube hoặc Ý tưởng)</strong>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <strong style="font-size:0.84rem;color:#10b981;">⚡ Nhập Hàng Loạt (Dán danh sách Link YouTube hoặc Ý tưởng)</strong>
+              <button type="button" onclick="openCompetitorModal()" class="btn btn-xs" style="background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;font-size:0.72rem;padding:2px 8px;border-radius:4px;cursor:pointer;" title="Mở kho quét kênh đối thủ">🎯 Quét Kênh Đối Thủ</button>
+            </div>
 
 
 
@@ -19471,6 +19464,357 @@
     </div>
   </div>
 
+  <!-- MODAL QUẢN LÝ & QUÉT KÊNH ĐỐI THỦ CHỐNG TRÙNG LẶP -->
+  <div class="modal-overlay" id="competitorModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
+    <div class="modal-dialog" style="max-width:880px;width:95vw;max-height:88vh;background:#090d16;border:1px solid rgba(56,189,248,0.3);border-radius:14px;box-shadow:0 25px 60px rgba(0,0,0,0.8),0 0 20px rgba(56,189,248,0.15);display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;">
+      
+      <!-- HEADER -->
+      <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.08);background:#0e1526;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:8px;background:rgba(56,189,248,0.15);display:flex;align-items:center;justify-content:center;font-size:1.15rem;border:1px solid rgba(56,189,248,0.3);">🎯</div>
+          <div>
+            <h3 style="margin:0;font-size:1.02rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;">
+              Quản Lý Video Kênh Đối Thủ
+              <span class="badge" style="font-size:0.65rem;background:rgba(56,189,248,0.2);color:#38bdf8;padding:2px 8px;border-radius:9999px;">Chống Trùng Lặp 100%</span>
+            </h3>
+            <span style="font-size:0.72rem;color:#94a3b8;">Quét siêu tốc 3s, phân loại thời lượng & lượt xem, tự đánh dấu video đã sản xuất</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeCompetitorModal()" style="background:transparent;border:none;color:#94a3b8;font-size:1.5rem;cursor:pointer;line-height:1;padding:4px 8px;">&times;</button>
+      </div>
+
+      <!-- SCAN INPUT & FILTERS BAR -->
+      <div style="padding:12px 20px;background:#090d16;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="compChannelInput" placeholder="Dán link kênh hoặc @username đối thủ (ví dụ: @SleeplessHistorian)..." 
+                 style="flex:1;background:#020617;border:1px solid #334155;color:#fff;padding:8px 12px;border-radius:6px;font-size:0.82rem;outline:none;"
+                 onkeydown="if(event.key==='Enter') scanCompetitorChannel();">
+          
+          <select id="compSortSelect" style="background:#020617;border:1px solid #334155;color:#cbd5e1;padding:8px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer;" onchange="reSortCompetitorVideos()">
+            <option value="views_desc">🔥 Lượt xem cao nhất (Viral)</option>
+            <option value="duration_desc">⏱️ Dài nhất trước</option>
+            <option value="default">📅 Thứ tự kênh (Mới nhất)</option>
+          </select>
+
+          <select id="compLimitSelect" style="background:#020617;border:1px solid #334155;color:#cbd5e1;padding:8px 8px;border-radius:6px;font-size:0.78rem;cursor:pointer;">
+            <option value="30">30 video</option>
+            <option value="50" selected>50 video</option>
+            <option value="100">100 video</option>
+            <option value="200">200 video</option>
+          </select>
+
+          <button type="button" id="btnScanCompChannel" onclick="scanCompetitorChannel()" 
+                  style="background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:700;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+            🔍 Quét Ngay
+          </button>
+        </div>
+
+        <!-- SAVED CHANNELS CHIPS -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Kênh đã lưu:</span>
+          <div id="compSavedChannelsBar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS & FILTER SUMMARY -->
+      <div id="compStatsBar" style="display:none;padding:8px 20px;background:rgba(15,23,42,0.6);border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.76rem;color:#94a3b8;justify-content:space-between;align-items:center;">
+        <span id="compStatsText">Đang tải...</span>
+        <div style="display:flex;gap:10px;">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:4px;user-select:none;">
+            <input type="checkbox" id="compFilterUnprocessed" onchange="applyCompFilters()" style="accent-color:#38bdf8;">
+            <span>Chỉ hiện video chưa làm</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- SCROLLABLE VIDEO LIST -->
+      <div id="compVideosContainer" style="flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px;">
+        <div style="text-align:center;padding:40px 20px;color:#64748b;">
+          <div style="font-size:2.2rem;margin-bottom:8px;">🎯</div>
+          <div style="font-size:0.9rem;color:#cbd5e1;font-weight:600;">Chưa chọn kênh đối thủ</div>
+          <p style="font-size:0.75rem;margin:4px 0 0;">Dán link kênh (hoặc bấm chọn kênh đã lưu ở trên) rồi bấm <b>Quét Ngay</b> để lấy toàn bộ danh sách video.</p>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,0.08);background:#0e1526;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.72rem;color:#64748b;" id="compFooterInfo"></span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeCompetitorModal()">Đóng</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ==================== COMPETITOR CHANNEL HARVESTER SCRIPT ====================
+    let _currentCompVideos = [];
+    let _compSavedChannels = [];
+
+    function openCompetitorModal() {
+      const m = document.getElementById("competitorModal");
+      if (m) {
+        m.style.display = "flex";
+        loadCompSavedChannels();
+      }
+    }
+
+    function closeCompetitorModal() {
+      const m = document.getElementById("competitorModal");
+      if (m) m.style.display = "none";
+    }
+
+    async function loadCompSavedChannels() {
+      const bar = document.getElementById("compSavedChannelsBar");
+      if (!bar) return;
+      try {
+        const res = await fetch("/api/competitor/channels");
+        const json = await res.json();
+        if (json.ok && json.channels && json.channels.length > 0) {
+          _compSavedChannels = json.channels;
+          bar.innerHTML = json.channels.map(ch => `
+            <button type="button" onclick="loadSavedChannelData('${ch.key}')" 
+                    style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-size:0.72rem;padding:3px 8px;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+              🏷️ ${ch.title} <span style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px;font-size:0.65rem;">${ch.total_videos}</span>
+            </button>
+          `).join("");
+          if (_currentCompVideos.length === 0 && json.channels[0]) {
+            loadSavedChannelData(json.channels[0].key);
+          }
+        } else {
+          bar.innerHTML = `<span style="font-size:0.72rem;color:#475569;">Chưa có kênh nào được quét. Hãy dán link kênh và bấm Quét Ngay!</span>`;
+        }
+      } catch (e) {
+        bar.innerHTML = `<span style="font-size:0.72rem;color:#ef4444;">Không thể tải danh sách kênh</span>`;
+      }
+    }
+
+    async function loadSavedChannelData(key) {
+      const container = document.getElementById("compVideosContainer");
+      if (container) container.innerHTML = `<div style="text-align:center;padding:30px;color:#94a3b8;">⏳ Đang nạp danh sách video...</div>`;
+      try {
+        const res = await fetch("/api/competitor/channel?key=" + encodeURIComponent(key));
+        const json = await res.json();
+        if (json.ok && json.data) {
+          const data = json.data;
+          const inp = document.getElementById("compChannelInput");
+          if (inp) inp.value = data.channel_url || "";
+          _currentCompVideos = data.videos || [];
+          renderCompVideos(data);
+        }
+      } catch (e) {
+        if (container) container.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;">Lỗi nạp dữ liệu: ` + e.message + `</div>`;
+      }
+    }
+
+    async function scanCompetitorChannel() {
+      const inp = document.getElementById("compChannelInput");
+      const channelUrl = (inp ? inp.value : "").trim();
+      if (!channelUrl) {
+        alert("Vui lòng nhập link kênh hoặc @username đối thủ!");
+        return;
+      }
+      const btn = document.getElementById("btnScanCompChannel");
+      const container = document.getElementById("compVideosContainer");
+      const sort = document.getElementById("compSortSelect").value;
+      const limit = document.getElementById("compLimitSelect").value;
+      
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `⏳ Đang quét...`;
+      }
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:40px 20px;color:#38bdf8;">
+            <div style="font-size:2rem;margin-bottom:10px;">🔄</div>
+            <div style="font-weight:600;font-size:0.95rem;">Đang quét toàn bộ video kênh đối thủ...</div>
+            <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">Chỉ mất khoảng 3 - 5 giây, vui lòng chờ trong giây lát!</div>
+          </div>
+        `;
+      }
+
+      try {
+        const res = await fetch("/api/competitor/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channel_url: channelUrl,
+            limit: parseInt(limit, 10),
+            tab: "videos",
+            sort: sort
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          _currentCompVideos = data.videos || [];
+          renderCompVideos(data);
+          loadCompSavedChannels();
+        } else {
+          if (container) {
+            container.innerHTML = `<div style="text-align:center;padding:30px;color:#ef4444;">❌ Lỗi quét kênh: ` + (data.error || "Không rõ") + `</div>`;
+          }
+        }
+      } catch (e) {
+        if (container) {
+          container.innerHTML = `<div style="text-align:center;padding:30px;color:#ef4444;">❌ Lỗi kết nối: ` + e.message + `</div>`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `🔍 Quét Ngay`;
+        }
+      }
+    }
+
+    function reSortCompetitorVideos() {
+      const sort = document.getElementById("compSortSelect").value;
+      if (!_currentCompVideos || _currentCompVideos.length === 0) return;
+      if (sort === "views_desc") {
+        _currentCompVideos.sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (sort === "duration_desc") {
+        _currentCompVideos.sort((a, b) => (b.duration || 0) - (a.duration || 0));
+      }
+      applyCompFilters();
+    }
+
+    function applyCompFilters() {
+      const filterUnprocessed = document.getElementById("compFilterUnprocessed")?.checked;
+      const filtered = filterUnprocessed ? _currentCompVideos.filter(v => !v.is_processed) : _currentCompVideos;
+      renderCompVideosList(filtered);
+    }
+
+    function renderCompVideos(data) {
+      const statsBar = document.getElementById("compStatsBar");
+      const statsText = document.getElementById("compStatsText");
+      const footerInfo = document.getElementById("compFooterInfo");
+
+      if (statsBar) statsBar.style.display = "flex";
+      if (statsText) {
+        statsText.innerHTML = `
+          📺 <b>` + data.channel_title + `</b>: ` + data.total + ` video 
+          | <span style="color:#6ee7b7;">🟢 Đã làm: ` + data.processed_count + `</span> 
+          | <span style="color:#38bdf8;">🆕 Chưa làm: ` + data.unprocessed_count + `</span>
+        `;
+      }
+      if (footerInfo) {
+        footerInfo.textContent = "Lần quét gần nhất: " + (data.scanned_at || "Vừa xong");
+      }
+      applyCompFilters();
+    }
+
+    function renderCompVideosList(videos) {
+      const container = document.getElementById("compVideosContainer");
+      if (!container) return;
+      if (!videos || videos.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:30px;color:#64748b;">
+            <div style="font-size:1.8rem;margin-bottom:6px;">📭</div>
+            <div>Không có video nào phù hợp với bộ lọc.</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = videos.map((v, i) => {
+        const isDone = v.is_processed;
+        const borderCol = isDone ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.08)";
+        const bgCol = isDone ? "rgba(6,78,59,0.15)" : "#0f172a";
+        const statusBadge = isDone 
+          ? `<span style="background:rgba(16,185,129,0.2);color:#34d399;font-size:0.65rem;padding:2px 7px;border-radius:4px;font-weight:600;border:1px solid rgba(16,185,129,0.3);">🟢 ` + v.status_note + `</span>`
+          : `<span style="background:rgba(56,189,248,0.15);color:#38bdf8;font-size:0.65rem;padding:2px 7px;border-radius:4px;font-weight:600;border:1px solid rgba(56,189,248,0.3);">🆕 Chưa làm</span>`;
+
+        return `
+          <div style="display:flex;align-items:center;gap:12px;background:` + bgCol + `;border:1px solid ` + borderCol + `;border-radius:8px;padding:8px 12px;transition:background 0.2s;" onmouseover="this.style.background='rgba(30,41,59,0.6)'" onmouseout="this.style.background='` + bgCol + `'">
+            <span style="font-size:0.75rem;font-weight:700;color:#64748b;width:24px;text-align:center;">` + (i + 1) + `</span>
+            
+            <img src="` + v.thumbnail + `" alt="" style="width:72px;height:40px;object-fit:cover;border-radius:4px;background:#020617;border:1px solid #1e293b;" loading="lazy">
+            
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.8rem;font-weight:600;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="` + v.title.replace(/"/g, '&quot;') + `">
+                ` + v.title + `
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:3px;font-size:0.7rem;color:#94a3b8;">
+                <span style="background:#1e293b;padding:1px 5px;border-radius:3px;color:#cbd5e1;">⏱️ ` + v.duration_str + `</span>
+                <span>👁️ <b>` + v.views_str + `</b> views</span>
+                ` + statusBadge + `
+              </div>
+            </div>
+
+            <div style="display:flex;gap:6px;align-items:center;">
+              <a href="` + v.url + `" target="_blank" style="color:#64748b;font-size:0.75rem;padding:4px 6px;text-decoration:none;" title="Mở xem trên YouTube">🔗</a>
+              
+              <button type="button" onclick="selectCompetitorVideo('` + v.url + `', '` + encodeURIComponent(v.title) + `', ` + (v.duration || 0) + `)"
+                      style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;padding:5px 12px;border-radius:5px;font-size:0.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">
+                🎬 Làm Tập Này
+              </button>
+              
+              <button type="button" onclick="enqueueCompetitorVideo('` + v.url + `', '` + encodeURIComponent(v.title) + `', ` + (v.duration || 0) + `)"
+                      style="background:#0f172a;border:1px solid #334155;color:#94a3b8;padding:5px 8px;border-radius:5px;font-size:0.74rem;font-weight:600;cursor:pointer;white-space:nowrap;" title="Thêm vào hàng chờ qua đêm">
+                ➕ Hàng Chờ
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function selectCompetitorVideo(url, encodedTitle, durationSec) {
+      const title = decodeURIComponent(encodedTitle);
+      const promptEl = document.getElementById("inPrompt");
+      if (promptEl) {
+        promptEl.value = url;
+        promptEl.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      const refUrlEl = document.getElementById("inReferenceUrl");
+      if (refUrlEl) refUrlEl.value = url;
+      
+      const minEl = document.getElementById("inDurationMinutes");
+      if (minEl && durationSec > 0) {
+        const mins = Math.max(1, Math.round((durationSec / 60) * 10) / 10);
+        minEl.value = mins;
+        minEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      closeCompetitorModal();
+      
+      const banner = document.createElement("div");
+      banner.style.cssText = "position:fixed;bottom:24px;right:24px;background:#065f46;color:#34d399;border:1px solid #059669;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:600;z-index:999999;box-shadow:0 10px 25px rgba(0,0,0,0.5);display:flex;align-items:center;gap:8px;";
+      banner.innerHTML = `<span>✅ Đã nạp video: <b>` + title.slice(0, 35) + `...</b></span>`;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 4000);
+    }
+
+    async function enqueueCompetitorVideo(url, encodedTitle, durationSec) {
+      const title = decodeURIComponent(encodedTitle);
+      const mins = durationSec > 0 ? Math.max(1, Math.round((durationSec / 60) * 10) / 10) : 20;
+      const seriesName = document.getElementById("inSeriesName")?.value || "Series Đối Thủ";
+      const prodMode = document.getElementById("inProdMode")?.value || "cinematic_drama";
+
+      try {
+        const res = await fetch("/api/queue/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: url,
+            series: seriesName,
+            production_mode: prodMode,
+            duration_minutes: mins,
+            clone_mode: "exact_clone"
+          })
+        });
+        const json = await res.json();
+        if (json.status === "OK") {
+          alert(`✅ Đã thêm vào hàng chờ qua đêm:\n` + title);
+          loadCompSavedChannels();
+        } else {
+          alert(`Lỗi khi thêm: ` + (json.error || "Không rõ"));
+        }
+      } catch (e) {
+        alert(`Lỗi kết nối: ` + e.message);
+      }
+    }
+  </script>
 </body>
 
 

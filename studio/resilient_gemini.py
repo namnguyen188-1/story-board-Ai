@@ -14,7 +14,14 @@ import sys
 import re
 import time
 import random
+import socket
 from pathlib import Path
+
+# Enforce a 75-second hard ceiling on all underlying TCP/HTTP sockets so calls cannot hang indefinitely
+try:
+    socket.setdefaulttimeout(75.0)
+except Exception:
+    pass
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -29,14 +36,16 @@ if hasattr(sys.stderr, "reconfigure"):
 
 FALLBACKS = {
     "gemini-3.5-flash": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-3.8-flash": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash"),
-    "gemini-3.6-flash": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-3.7-flash": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-2.5-flash": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-3.5-flash-lite": ("gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-3.1-flash-lite": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-3.1-flash-lite-preview": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-flash-latest": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite"),
+    "gemini-3.5-flash": ("gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.8-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest"),
+    "gemini-flash-lite-latest": ("gemini-3.5-flash", "gemini-3.8-flash"),
+    "gemini-3.6-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.7-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-2.5-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.5-flash-lite": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.1-flash-lite": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.1-flash-lite-preview": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-flash-latest": ("gemini-3.5-flash", "gemini-flash-lite-latest"),
     "gemini-nano-banana-2.1": ("gemini-3.1-flash-image", "gemini-3.1-flash-lite-image"),
     "gemini-3.8-flash-tts": ("gemini-2.5-flash-preview-tts",),
     "gemini-2.5-flash-preview-tts": ("gemini-3.8-flash-tts",),
@@ -62,6 +71,8 @@ def parse_api_keys_text(text: str) -> list[str]:
         val = val.strip().strip('"').strip("'")
         for part in re.split(r"[,;\s]+", val):
             k = part.strip().strip('"').strip("'")
+            # Strip non-ASCII characters that might come from Vietnamese Telex/VNI typing
+            k = re.sub(r"[^\x20-\x7E]", "", k).strip()
             if k and len(k) >= 15 and not k.startswith("http") and not k.startswith("sk-") and k not in keys:
                 keys.append(k)
     return keys
@@ -279,9 +290,10 @@ class ResilientModels:
 
         last_exc = None
         pool = self._parent.pool
-        ordered_keys = pool.get_ordered_keys()
 
         for model_i, candidate_model in enumerate(models):
+            ordered_keys = pool.get_ordered_keys()
+            consecutive_quota_fails = 0
             for key_i, key in enumerate(ordered_keys):
                 # Retrieve client instance for this key
                 client_inst = self._parent.get_client_for_key(key)
@@ -323,10 +335,26 @@ class ResilientModels:
 
                         if is_quota_error(exc, status):
                             pool.mark_exhausted(key)
+                            consecutive_quota_fails += 1
                             print(
                                 f"[GEMINI_QUOTA_KEY_FAILOVER] Khóa #{key_i + 1} ({mask_key(key)}) chạm hạn mức Quota ({status or 429}).",
                                 flush=True,
                             )
+                            is_tts_req = "tts" in str(candidate_model).lower() or bool(
+                                kwargs.get("config") and "AUDIO" in getattr(kwargs.get("config"), "response_modalities", [])
+                            )
+                            if consecutive_quota_fails >= 3 and is_tts_req:
+                                print(
+                                    f"[GEMINI_TTS_FAST_FALLBACK] 3 khóa liên tiếp chạm hạn mức Quota ({status or 429}). Ngắt quét sớm để chuyển ngay sang Edge-TTS trong 1s!",
+                                    flush=True,
+                                )
+                                break
+                            elif consecutive_quota_fails >= 5:
+                                print(
+                                    f"[GEMINI_QUOTA_FAST_FAILOVER] 5 khóa liên tiếp chạm hạn mức Quota ({status or 429}). Ngắt quét khóa để chuyển nhanh sang engine dự phòng!",
+                                    flush=True,
+                                )
+                                break
                             if key_i < len(ordered_keys) - 1:
                                 next_k = ordered_keys[key_i + 1]
                                 print(
@@ -346,6 +374,12 @@ class ResilientModels:
             # If all keys exhausted for this candidate model, let's inform and try next candidate model
             if model_i < len(models) - 1:
                 next_mod = models[model_i + 1]
+                if "tts" in str(candidate_model).lower() and "tts" in str(next_mod).lower() and consecutive_quota_fails >= 3:
+                    print(
+                        f"[GEMINI_TTS_FAST_FALLBACK] Cả pool khóa đều hết Quota TTS ({candidate_model}). Ngắt chuyển đổi sang Edge-TTS ngay lập tức!",
+                        flush=True,
+                    )
+                    break
                 print(
                     f"[GEMINI_MODEL_FALLBACK] Tất cả khóa API đều bận/hết quota model={candidate_model}. Tự động chuyển sang model dự phòng: {next_mod}...",
                     flush=True,

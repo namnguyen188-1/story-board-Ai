@@ -423,7 +423,7 @@ def generate_drama_screenplay(
     language: str = "Vietnamese",
     genre: str = "drama",
     scene_count: int = 6,
-    model: str = "gemini-3.8-flash",
+    model: str = "gemini-2.5-flash",
     episode_dir: Optional[Path] = None,
     visual_style: str = "auto",
 ) -> EpisodeDramaPlan:

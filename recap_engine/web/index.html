@@ -798,28 +798,67 @@
     </div>
   </div>
 
-  <!-- EXPORTS MODAL (THƯ VIỆN VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM) -->
-  <div id="exportsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="bg-[#0b101c] border border-[#2d3a52] rounded-2xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden max-h-[88vh]">
+  <!-- EXPORTS MODAL (THƯ VIỆN VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM - TÍCH HỢP TRÌNH CHIẾU TRỰC TIẾP) -->
+  <div id="exportsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#0b101c] border border-[#2d3a52] rounded-2xl w-full max-w-5xl flex flex-col shadow-2xl overflow-hidden max-h-[92vh]">
       <!-- Modal Header -->
-      <div class="p-4 bg-[#11192b] border-b border-[#2d3a52] flex justify-between items-center">
+      <div class="p-3.5 bg-[#11192b] border-b border-[#2d3a52] flex justify-between items-center shrink-0">
         <div class="flex items-center gap-2.5">
           <span class="text-xl text-emerald-400">🎬</span>
           <div>
             <h3 class="font-extrabold text-white text-sm tracking-wide">THƯ VIỆN VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM</h3>
-            <p class="text-[10px] text-slate-400 font-mono">Quản lý, xem thử trực tiếp trên studio, tải về hoặc xóa video</p>
+            <p class="text-[10px] text-slate-400 font-mono">Xem thử trực tiếp có âm thanh, tải về, chiếu lên Monitor 2 hoặc mở file</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="openExportsFolder()" class="h-7 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
-            <span>📂</span> Mở Thư Mục Chứa Video
+            <span>📂</span> Mở Thư Mục Video
           </button>
           <button onclick="closeExportsModal()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">✕</button>
         </div>
       </div>
 
+      <!-- Studio Video Preview Box (Xem Trực Tiếp Trong Thư Viện) -->
+      <div id="modalPlayerSection" class="p-3.5 bg-[#070c16] border-b border-[#1c2538] flex flex-col md:flex-row gap-4 items-center shrink-0">
+        <!-- Player Container -->
+        <div class="w-full md:w-[460px] aspect-video bg-black rounded-xl overflow-hidden border border-[#2d3a52] relative shadow-2xl shrink-0 flex items-center justify-center">
+          <video id="modalVideoPlayer" class="w-full h-full object-contain" controls playsinline preload="auto">
+            Trình duyệt không hỗ trợ thẻ video.
+          </video>
+          <div id="modalVideoEmptyState" class="hidden absolute inset-0 bg-black/85 flex flex-col items-center justify-center text-center p-4">
+            <span class="text-3xl mb-1">🎬</span>
+            <p class="text-xs text-slate-200 font-bold">Chưa chọn video</p>
+            <p class="text-[10px] text-slate-400 mt-1">Bấm "▶ Xem Video" ở danh sách bên dưới để phát</p>
+          </div>
+        </div>
+
+        <!-- Video Info & Action Dock -->
+        <div class="flex-1 space-y-2 w-full flex flex-col justify-between py-1">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold font-mono border border-emerald-500/30">ĐANG PHÁT</span>
+              <span id="modalVideoMeta" class="text-[11px] text-slate-400 font-mono">-- MB • --/--/----</span>
+            </div>
+            <h4 id="modalVideoTitle" class="text-sm font-extrabold text-white leading-snug line-clamp-2">Chọn một video bên dưới để xem</h4>
+            <p id="modalVideoPath" class="text-[10px] text-slate-400 font-mono truncate">Đường dẫn: --</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <button id="btnSendToMonitor2" onclick="sendActiveModalVideoToMonitor2()" class="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
+              <span>🎬</span> Chiếu Lên Monitor 2 (Bản Thành Phẩm)
+            </button>
+            <a id="btnModalDownload" href="#" download class="h-8 px-3 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1.5 font-medium transition">
+              <span>⬇</span> Tải Video Này
+            </a>
+            <button id="btnModalOpenFile" onclick="openActiveVideoFileOnDisk()" class="h-8 px-3 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1.5 transition">
+              <span>📂</span> Mở File Trên Máy
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Search & Stats Bar -->
-      <div class="px-4 py-2.5 bg-[#0e1524] border-b border-[#1c2538] flex items-center justify-between text-xs gap-3">
+      <div class="px-4 py-2 bg-[#0e1524] border-b border-[#1c2538] flex items-center justify-between text-xs gap-3 shrink-0">
         <input id="inputSearchExports" type="text" oninput="filterExportsList(this.value)" placeholder="🔍 Tìm kiếm video trong thư viện..." class="flex-1 bg-[#070a12] border border-[#1c2538] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
         <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono shrink-0">
           <span>Tổng số: <strong id="lblExportsTotal" class="text-emerald-400">0</strong> video</span>
@@ -829,14 +868,14 @@
       </div>
 
       <!-- Video Grid Container -->
-      <div id="exportsListContainer" class="p-4 space-y-2.5 text-xs overflow-y-auto max-h-[60vh]">
+      <div id="exportsListContainer" class="p-3.5 space-y-2 text-xs overflow-y-auto flex-1 min-h-[160px]">
         <!-- Dynamic video cards -->
       </div>
 
       <!-- Modal Footer -->
-      <div class="p-3 bg-[#11192b] border-t border-[#2d3a52] flex justify-between items-center text-[11px] text-slate-400">
-        <span>Đường dẫn thư viện: <strong class="text-slate-200 font-mono">D:\STORYBOARD_AI\recap_exports</strong></span>
-        <button onclick="closeExportsModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium">Đóng</button>
+      <div class="p-2.5 bg-[#11192b] border-t border-[#2d3a52] flex justify-between items-center text-[11px] text-slate-400 shrink-0">
+        <span class="truncate max-w-md">Thư mục xuất bản: <strong class="text-slate-200 font-mono">D:\STORYBOARD_AI\recap_exports</strong></span>
+        <button onclick="closeExportsModal()" class="px-4 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium">Đóng</button>
       </div>
     </div>
   </div>
@@ -2140,26 +2179,97 @@
       }
     }
 
-    function selectVideoForPlayback(item, autoPlay = true) {
-      const player = document.getElementById('mainVideoPlayer');
-      const blurVid = document.getElementById('blurVideo');
+    let activeModalVideo = null;
+
+    function previewInModal(idx, autoPlay = true) {
+      if (!currentExports || !currentExports[idx]) return;
+      const item = currentExports[idx];
+      activeModalVideo = item;
+
+      const player = document.getElementById('modalVideoPlayer');
+      const empty = document.getElementById('modalVideoEmptyState');
+      const title = document.getElementById('modalVideoTitle');
+      const meta = document.getElementById('modalVideoMeta');
+      const pathEl = document.getElementById('modalVideoPath');
+      const btnDl = document.getElementById('btnModalDownload');
+
       if (player) {
         player.src = item.url;
-        if (blurVid) blurVid.src = item.url;
+        player.muted = false;
+        if (empty) empty.classList.add('hidden');
         if (autoPlay) {
-          player.play().catch(() => {});
+          player.play().catch(e => console.warn("Player play error:", e));
         }
       }
-      const _aet = document.getElementById('activeExportTitle'); if (_aet) _aet.innerText = item.name;
-      const _aem = document.getElementById('activeExportMeta'); if (_aem) _aem.innerText = `${item.size_mb} MB • ${item.time_str}`;
-      const btnDl = document.getElementById('btnDownloadExport');
-      if (btnDl) btnDl.href = item.url;
-      const bannerDetails = document.getElementById('bannerExportDetails');
-      if (bannerDetails) bannerDetails.innerText = `${item.name} (${item.size_mb} MB • ${item.time_str})`;
-      const bannerDl = document.getElementById('bannerDownloadBtn');
-      if (bannerDl) bannerDl.href = item.url;
-      const curStatus = document.getElementById('txtCurrentClipStatus');
-      if (curStatus) curStatus.innerText = item.name;
+      if (title) title.innerText = item.name;
+      if (meta) meta.innerText = `${item.size_mb} MB • ${item.time_str}`;
+      if (pathEl) pathEl.innerText = `Đường dẫn: ${item.rel_path}`;
+      if (btnDl) {
+        btnDl.href = item.url;
+        btnDl.download = item.name;
+      }
+    }
+
+    function playIndexInMonitor2(idx) {
+      if (!currentExports || !currentExports[idx]) return;
+      const item = currentExports[idx];
+      playInMonitor2(item, true);
+    }
+
+    function sendActiveModalVideoToMonitor2() {
+      if (!activeModalVideo && currentExports && currentExports.length > 0) {
+        activeModalVideo = currentExports[0];
+      }
+      if (activeModalVideo) {
+        playInMonitor2(activeModalVideo, true);
+        closeExportsModal();
+      }
+    }
+
+    function openActiveVideoFileOnDisk() {
+      if (!activeModalVideo && currentExports && currentExports.length > 0) {
+        activeModalVideo = currentExports[0];
+      }
+      if (activeModalVideo && activeModalVideo.full_path) {
+        openExportsFolder(activeModalVideo.full_path);
+      } else {
+        openExportsFolder();
+      }
+    }
+
+    function playInMonitor2(item, autoPlay = true) {
+      const outPlayer = document.getElementById('outputVideoPlayer');
+      const placeholder = document.getElementById('outputEmptyPlaceholder');
+      if (!outPlayer || !item) return;
+
+      outPlayer.src = item.url;
+      outPlayer.muted = false;
+      if (placeholder) placeholder.classList.add('hidden');
+      outPlayer.classList.remove('hidden');
+
+      const txtBadge = document.getElementById('txtOutputBadge');
+      if (txtBadge) txtBadge.innerText = "ĐANG PHÁT: " + item.name;
+
+      const btnDl = document.getElementById('btnDownloadOutput');
+      if (btnDl) {
+        btnDl.href = item.url;
+        btnDl.download = item.name;
+      }
+      const txtDetails = document.getElementById('txtOutputDetails');
+      if (txtDetails) txtDetails.innerText = `${item.name} (${item.size_mb} MB)`;
+
+      // Switch to output or dual view so user sees it right away
+      if (typeof setDualViewMode === 'function') {
+        setDualViewMode('output');
+      }
+
+      if (autoPlay) {
+        outPlayer.play().catch(e => console.warn("Autoplay error:", e));
+      }
+    }
+
+    function selectVideoForPlayback(item, autoPlay = true) {
+      playInMonitor2(item, autoPlay);
     }
 
     function renderExportsList(filtered = null) {
@@ -2181,7 +2291,7 @@
       }
       container.innerHTML = list.map((exp, idx) => `
         <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1d273c] hover:border-emerald-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all shadow-sm">
-          <div class="space-y-1 max-w-xl">
+          <div class="space-y-1 max-w-xl cursor-pointer" onclick="previewInModal(${idx})">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="text-xs font-bold text-white flex items-center gap-1.5">
                 <span class="text-emerald-400">🎬</span>
@@ -2192,21 +2302,50 @@
             <p class="text-[10px] text-slate-400 font-mono">📅 Ngày xuất: ${exp.time_str} • Đường dẫn: ${exp.rel_path}</p>
           </div>
           <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-            <button onclick="selectVideoForPlayback(currentExports.find(x => x.name === '${exp.name}') || currentExports[0], true); closeExportsModal();" class="h-7 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition">
-              <span>▶</span> Phát Trên Studio
+            <button onclick="previewInModal(${idx})" class="h-7 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition">
+              <span>▶</span> Xem Thử
             </button>
-            <a href="${exp.url}" download class="h-7 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1 font-medium transition">
-              <span>⬇</span> Tải MP4
+            <button onclick="playIndexInMonitor2(${idx}); closeExportsModal();" class="h-7 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1 transition" title="Chiếu lên Monitor 2 ở màn hình chính">
+              <span>🎬</span> Monitor 2
+            </button>
+            <a href="${exp.url}" download="${exp.name}" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1 font-medium transition">
+              <span>⬇</span> Tải
             </a>
-            <button onclick="openExportsFolder('${exp.full_path.replace(/\\/g, '/')}')" title="Mở thư mục trên máy tính" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 transition">
+            <button onclick="openExportsFolderByIndex(${idx})" title="Mở file trên máy tính" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 transition">
               <span>📂</span>
             </button>
-            <button onclick="deleteExport('${exp.name}')" title="Xóa video khỏi thư viện" class="h-7 px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 text-xs flex items-center gap-1 transition">
+            <button onclick="deleteExportByIndex(${idx})" title="Xóa video khỏi thư viện" class="h-7 px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 text-xs flex items-center gap-1 transition">
               <span>🗑️</span>
             </button>
           </div>
         </div>
       `).join('');
+    }
+
+    function openExportsFolderByIndex(idx) {
+      if (currentExports && currentExports[idx]) {
+        openExportsFolder(currentExports[idx].full_path);
+      }
+    }
+
+    function deleteExportByIndex(idx) {
+      if (currentExports && currentExports[idx]) {
+        deleteExport(currentExports[idx].name);
+      }
+    }
+
+    function openExportsModal() {
+      renderExportsList();
+      document.getElementById('exportsModal').classList.remove('hidden');
+      if (currentExports && currentExports.length > 0) {
+        previewInModal(0, false);
+      }
+    }
+
+    function closeExportsModal() {
+      const player = document.getElementById('modalVideoPlayer');
+      if (player) player.pause();
+      document.getElementById('exportsModal').classList.add('hidden');
     }
 
     function filterExportsList(query) {
@@ -2252,11 +2391,7 @@
       }
     }
 
-    function openExportsModal() {
-      renderExportsList();
-      document.getElementById('exportsModal').classList.remove('hidden');
-    }
-    function closeExportsModal() { document.getElementById('exportsModal').classList.add('hidden'); }
+
 
     // 12.1 Quản Lý Cài Đặt & API Keys Modal (Đầy Đủ Chức Năng 100%)
     async function openSettingsModal() {

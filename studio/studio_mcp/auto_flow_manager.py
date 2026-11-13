@@ -12,7 +12,7 @@ import time
 from datetime import datetime,timezone
 from pathlib import Path
 
-from .accounts import (active_account, connection_check, _pid_browser_for_account,
+from .accounts import (AccountError, active_account, connection_check, _pid_browser_for_account,
                        _atomic_store, any_running_production)
 from .projects import (load, tabs, project_url, probe_v2_compatible_tool,
                        choose, register, exact_tool_tab_count, cleanup_duplicate_tool_tabs, ProjectError)
@@ -309,7 +309,7 @@ def ensure_ready(genre="auto", *, allow_open=True, account=None):
                     verify_v2_baseline()
                     return dict(_CURRENT)
         return _attempt(account,genre,allow_open=allow_open)
-    except (BaselineDriftError,ProjectError,ValueError,OSError) as exc:
+    except (BaselineDriftError,ProjectError,AccountError,ValueError,OSError) as exc:
         return _set(account,"AUTO_FLOW_SAFETY_BLOCKED",detail=str(exc))
     except Exception as exc:
         return _set(account,"AUTO_FLOW_CHECK_FAILED",detail=type(exc).__name__)

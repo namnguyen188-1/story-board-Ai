@@ -131,11 +131,10 @@ class StoryboardImageBackend:
                 except Exception as exc:
                     raise StoryboardImageError("STORYBOARD_IMAGE_JOURNAL_CORRUPT") from exc
                 if old.get("fingerprint") != fp:
-                    # Input prompt changed; invalidate obsolete journal so the new prompt can be generated cleanly
-                    try:
-                        self._journal(sid).unlink(missing_ok=True)
-                    except Exception:
-                        pass
+                    # An unresolved Google submission must not be overwritten.
+                    if old.get("state") != "completed":
+                        raise StoryboardImageError("STORYBOARD_IMAGE_UNCERTAIN_INPUT_CHANGE_NO_RESUBMIT")
+                    self._journal(sid).unlink(missing_ok=True)
                     old = None
                 elif old.get("state") == "completed":
                     results[sid] = self._verify(old.get("receipt"), job)
@@ -160,27 +159,9 @@ class StoryboardImageBackend:
                 else:
                     accept(e, receipt)  # Commit all recovered successes first.
             if unresolved:
-                # Recover gracefully from unrendered or dropped scenes (e.g. timeout or browser disconnect):
-                # Clean up stale uncertain journals and re-queue unresolved items into 'new' so they are rendered
-                # while preserving all existing completed scene images.
-                unresolved_set = set(unresolved)
-                for e in uncertain:
-                    if e[2]["job_id"] in unresolved_set:
-                        try:
-                            self._journal(e[0]).unlink(missing_ok=True)
-                        except Exception:
-                            pass
-                        try:
-                            native_j = self.root / ".storyboard_native_image_jobs" / (
-                                hashlib.sha256(e[2]["job_id"].encode("utf-8")).hexdigest()[:24] + ".json"
-                            )
-                            native_j.unlink(missing_ok=True)
-                        except Exception:
-                            pass
-                entries = [
-                    (e[0], e[1], e[2], None if e[2]["job_id"] in unresolved_set else e[3])
-                    for e in entries
-                ]
+                # Preserve the original journals and reserved slots. No automatic resubmit.
+                raise StoryboardImageError("STORYBOARD_IMAGE_UNCERTAIN_NO_RESUBMIT")
+
         new = [e for e in entries if e[3] is None]
         if new:
             # All callers, including direct one-image jobs, must verify that

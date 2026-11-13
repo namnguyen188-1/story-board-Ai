@@ -59,12 +59,15 @@ LOCKED_THUMBNAIL_GENRE_PRESETS: Dict[str, Dict[str, Any]] = {
         "framing": "chest_up_bust",
 
         "subject_prompt": (
-            "Monumental heroic classical sculpted dark marble and antique bronze statue of a Stoic philosopher god ({char_desc}), "
-            "deeply chiseled stone anatomy, massive sculpted bare shoulder and pectoral chest, thick muscular neck, deeply carved curly stone beard and hair, sculpted classical statue eyes, "
-            "wearing a vibrant royal crimson red draped toga (chlamys) over one shoulder, warm golden firelight rim lighting outlining sculpted rock muscles, "
-            "magnificent illuminated ancient Athens Acropolis and Parthenon on distant rocky hill in deep starry night sky with glowing emerald teal aurora borealis and floating golden embers, "
-            "sculpture strictly occupying 50% on the RIGHT half facing towards the left, leaving the entire LEFT 50% open deep twilight atmospheric sky for bold typography, "
-            "chest-up low-angle framing, never full body, never standing on distant pedestal, photorealistic 8k render of a monumental classical sculpture, cinematic lighting, no text, no watermark."
+            "Authentic classical Carrara marble statue masterpiece photograph, 16:9 horizontal framing. "
+            "Exactly one solitary heroic chest-up bust sculpture of Stoic emperor Marcus Aurelius ({char_desc}) strictly positioned on the RIGHT 45% of the frame, facing slightly left. "
+            "Carved entirely from 100% solid cold white-grey Carrara marble stone, completely inanimate mineral sculpture, authentic chiselled mineral stone texture, fine chisel marks, matte marble finish. "
+            "Magnificent chiseled stone head with curly Roman beard, noble contemplative eyes, blank unpainted stone pupils, powerful chiseled bare stone chest and muscular shoulder. "
+            "A luxurious royal crimson red draped stone toga (chlamys) cascading elegantly over one shoulder. "
+            "Dramatic warm golden chiaroscuro rim lighting outlining the muscular stone contours with rich glowing edge light. "
+            "The LEFT 55% of the frame is completely open, clean, dark atmospheric midnight sky with deep indigo shadows and subtle faint golden embers, creating perfect dark negative space for typography. "
+            "Masterpiece 8k, tack sharp focus, photorealistic photograph of an authentic monumental antique marble sculpture. "
+            "Single statue only, strictly one subject, absolutely no second statue, no background figures, no other persons, no crowd, never full body, never on a tabletop pedestal, absolutely zero human skin, zero living flesh, zero skin pores, no real person, no text, no watermark."
         ),
 
         "primary_color": (255, 230, 0),     # Radiant Solar Yellow #FFE600
@@ -668,6 +671,44 @@ def normalize_genre_to_preset(genre_str: str) -> str:
 
 
 
+def _measure_text_with_tracking(d: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, tracking: int) -> Tuple[int, int]:
+    w = 0
+    h = 0
+    for c in text:
+        if c == ' ':
+            w += int(font.size * 0.30) + tracking
+            continue
+        bb = d.textbbox((0, 0), c, font=font)
+        cw = bb[2] - bb[0]
+        w += cw + tracking
+        h = max(h, bb[3] - bb[1])
+    return int(max(1, w - tracking)), int(max(1, h))
+
+
+def _draw_text_with_tracking(
+    d: ImageDraw.ImageDraw,
+    pos: Tuple[int, int],
+    text: str,
+    font: ImageFont.FreeTypeFont,
+    fill: Any,
+    stroke_w: int = 0,
+    stroke_fill: Any = None,
+    tracking: int = 4
+) -> None:
+    x, y = pos
+    for c in text:
+        if c == ' ':
+            x += int(font.size * 0.30) + tracking
+            continue
+        bb = d.textbbox((0, 0), c, font=font)
+        cw = bb[2] - bb[0]
+        if stroke_w > 0:
+            d.text((x, y), c, font=font, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_fill)
+        else:
+            d.text((x, y), c, font=font, fill=fill)
+        x += cw + tracking
+
+
 def render_viral_3d_text_overlay(
     canvas_size: Tuple[int, int],
     lines: List[str],
@@ -680,55 +721,72 @@ def render_viral_3d_text_overlay(
     genre: Optional[str] = None
 ) -> Image.Image:
     """
-    Renders ultra high-CTR 3D extruded typography matching Hollywood / ChatGPT quality:
-    - Per-line independent giant auto-fit
-    - 2-tone vertical gradients (Line 1: Marble White; Line 2+: Electric Gold)
-    - Solid 3D directional block extrusion
-    - Heavy black armor outline
-    - Subtle stone cracks texture
+    Renders ultra high-CTR viral typography matching top YouTube channels:
+    - Balanced font selection with open counters (Anton, Bebas Neue, Arial Black)
+    - Positive character tracking (+4 to +8px) so letters never collide or stick together
+    - Cinematic soft drop shadow with Gaussian blur instead of muddy stroke bloat
+    - Crisp subtle outer stroke (2-3px) preserving inner letter counters
+    - Vibrant 2-tone vertical gradient fill (Line 1: Titanium White; Line 2+: Solar Gold/Amber)
     """
     W, H = canvas_size
     bx1, by1, bx2, by2 = text_box
     target_box_w = bx2 - bx1
     target_box_h = by2 - by1
 
+    # Upgrade to professional open-counter fonts if impact or invalid path provided
+    preferred_fonts = [
+        str(STUDIO_DIR / "web/fonts/Anton.ttf"),
+        str(STUDIO_DIR / "web/fonts/BebasNeue.ttf"),
+        "C:/Windows/Fonts/ariblk.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
+    ]
+    resolved_font = font_path
+    if not os.path.exists(resolved_font) or "impact" in str(resolved_font).lower():
+        for pf in preferred_fonts:
+            if os.path.exists(pf):
+                resolved_font = pf
+                break
+
     if palette is None:
         if len(lines) <= 1:
             palette = [
-                ((255, 245, 100), (240, 160, 0)),   # Single Line: Radiant 3D Imperial Gold
+                ((255, 245, 100), (240, 160, 0)),   # Single Line: Radiant Imperial Gold
+            ]
+        elif len(lines) == 2:
+            palette = [
+                ((255, 255, 255), (255, 255, 255)), # Line 1: Pure White
+                ((255, 235, 60), (245, 140, 0)),    # Line 2: Radiant Imperial Gold
             ]
         else:
             palette = [
-                ((255, 255, 255), (255, 215, 0)),   # Line 1: Luminous Warm White-Gold (Ultra High Contrast)
-                ((255, 205, 0), (230, 80, 0)),       # Line 2: Blazing Deep Amber-Gold (Intense Eye-Catching Pop)
-                ((255, 245, 100), (240, 160, 0)),   # Line 3: Radiant 3D Imperial Gold
+                ((255, 255, 255), (255, 255, 255)), # Line 1: Crisp Pure White
+                ((255, 235, 60), (245, 140, 0)),    # Line 2: Radiant Solar Gold
+                ((255, 255, 255), (255, 255, 255)), # Line 3: Crisp Pure White
+                ((255, 220, 0), (230, 90, 0)),      # Line 4: Deep Amber Gold
             ]
 
     dummy = Image.new("RGBA", (10, 10))
     d_test = ImageDraw.Draw(dummy)
     line_data = []
 
-    # Calculate per-line giant font size filling ~84-92% of target width
-    max_fs = 300 if H > 1200 else 220
-    min_fs = 65
+    max_fs = 300 if H > 1200 else 210
+    min_fs = 60
 
     for idx, line in enumerate(lines):
         line = str(line).strip().upper()
         if not line:
             continue
         fs = max_fs
-        font = ImageFont.truetype(font_path, fs)
-        bb = d_test.textbbox((0, 0), line, font=font)
-        lw = bb[2] - bb[0]
-        lh = bb[3] - bb[1]
+        font = ImageFont.truetype(resolved_font, fs)
+        tracking = max(4, int(fs * 0.035))
+        lw, lh = _measure_text_with_tracking(d_test, line, font, tracking)
 
         target_lw = target_box_w * (0.86 if len(line) <= 6 else 0.92)
         while lw > target_lw and fs > min_fs:
-            fs -= 3
-            font = ImageFont.truetype(font_path, fs)
-            bb = d_test.textbbox((0, 0), line, font=font)
-            lw = bb[2] - bb[0]
-            lh = bb[3] - bb[1]
+            fs -= 2
+            font = ImageFont.truetype(resolved_font, fs)
+            tracking = max(4, int(fs * 0.035))
+            lw, lh = _measure_text_with_tracking(d_test, line, font, tracking)
 
         line_data.append({
             "text": line,
@@ -736,14 +794,14 @@ def render_viral_3d_text_overlay(
             "fs": fs,
             "w": lw,
             "h": lh,
-            "bb": bb,
+            "tracking": tracking,
             "colors": palette[min(idx, len(palette) - 1)]
         })
 
     if not line_data:
         return Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
-    tight_gap = 10 if H > 1200 else 8
+    tight_gap = 12 if H > 1200 else 10
     total_h = sum(d["h"] for d in line_data) + tight_gap * (len(line_data) - 1)
 
     # Scale down uniformly if total vertical height exceeds box
@@ -751,79 +809,114 @@ def render_viral_3d_text_overlay(
         scale = target_box_h / float(total_h)
         for d in line_data:
             d["fs"] = max(min_fs, int(d["fs"] * scale))
-            d["font"] = ImageFont.truetype(font_path, d["fs"])
-            bb = d_test.textbbox((0, 0), d["text"], font=d["font"])
-            d["w"] = bb[2] - bb[0]
-            d["h"] = bb[3] - bb[1]
-            d["bb"] = bb
+            d["font"] = ImageFont.truetype(resolved_font, d["fs"])
+            d["tracking"] = max(4, int(d["fs"] * 0.035))
+            lw, lh = _measure_text_with_tracking(d_test, d["text"], d["font"], d["tracking"])
+            d["w"] = lw
+            d["h"] = lh
         total_h = sum(d["h"] for d in line_data) + tight_gap * (len(line_data) - 1)
 
     start_y = by1 + max(0, (target_box_h - total_h) // 2)
 
-    text_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d_out = ImageDraw.Draw(text_overlay)
+    text_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d_txt = ImageDraw.Draw(text_layer)
+    d_shd = ImageDraw.Draw(shadow_layer)
 
     cur_y = start_y
     for idx, d in enumerate(line_data):
         txt = d["text"]
         fnt = d["font"]
+        fs = d["fs"]
+        trk = d["tracking"]
         cur_x = bx1 + max(0, (target_box_w - d["w"]) // 2)
 
-        # 3D Isometric Block Extrusion (directional solid black drop)
-        for s in range(extrusion_depth, 0, -1):
-            ox = cur_x + int(s * 0.45)
-            oy = cur_y + s
-            d_out.text((ox, oy), txt, font=fnt, fill=(0, 0, 0, 255),
-                       stroke_width=stroke_width, stroke_fill=(0, 0, 0, 255))
+        # 1. Soft cinematic drop shadow (deep & blurred, no harsh mud)
+        shd_stroke = max(4, min(8, int(fs * 0.045)))
+        _draw_text_with_tracking(
+            d_shd, (cur_x + 4, cur_y + 6), txt, fnt,
+            fill=(0, 0, 0, 240), stroke_w=shd_stroke, stroke_fill=(0, 0, 0, 240),
+            tracking=trk
+        )
 
-        # Front Heavy Armor Stroke
-        d_out.text((cur_x, cur_y), txt, font=fnt, fill=(0, 0, 0, 255),
-                   stroke_width=stroke_width, stroke_fill=(0, 0, 0, 255))
+        # 2. Crisp subtle outer stroke (never blobs or closes letters)
+        crisp_stroke = max(2, min(4, int(fs * 0.025)))
+        _draw_text_with_tracking(
+            d_txt, (cur_x, cur_y), txt, fnt,
+            fill=(0, 0, 0, 255), stroke_w=crisp_stroke, stroke_fill=(0, 0, 0, 255),
+            tracking=trk
+        )
 
-        # Front Gradient Fill
-        bb = d["bb"]
-        line_w = bb[2] - bb[0] + stroke_width * 2
-        line_h = bb[3] - bb[1] + stroke_width * 2
-        mask_im = Image.new("L", (line_w, line_h), 0)
-        d_mask = ImageDraw.Draw(mask_im)
-        d_mask.text((-bb[0] + stroke_width, -bb[1] + stroke_width), txt, font=fnt, fill=255)
+        # 3. Front gradient fill using exact glyph mask
+        mask = Image.new("L", (W, H), 0)
+        d_m = ImageDraw.Draw(mask)
+        _draw_text_with_tracking(d_m, (cur_x, cur_y), txt, fnt, fill=255, stroke_w=0, tracking=trk)
+        m_bbox = mask.getbbox()
 
-        top_c, bot_c = d["colors"]
-        grad_im = Image.new("RGBA", (line_w, line_h))
-        for y_i in range(line_h):
-            t = y_i / float(max(1, line_h - 1))
-            t = t * t * (3 - 2 * t)
-            r = int(top_c[0] * (1 - t) + bot_c[0] * t)
-            g = int(top_c[1] * (1 - t) + bot_c[1] * t)
-            b = int(top_c[2] * (1 - t) + bot_c[2] * t)
-            ImageDraw.Draw(grad_im).line([(0, y_i), (line_w, y_i)], fill=(r, g, b, 255))
+        if m_bbox:
+            y1, y2 = m_bbox[1], m_bbox[3]
+            span_y = max(1, y2 - y1)
+            top_c, bot_c = d["colors"]
+            grad_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            d_g = ImageDraw.Draw(grad_layer)
+            for y_i in range(y1, y2 + 1):
+                t = (y_i - y1) / float(span_y)
+                t = t * t * (3 - 2 * t)  # Smoothstep
+                r = int(top_c[0] * (1 - t) + bot_c[0] * t)
+                g = int(top_c[1] * (1 - t) + bot_c[1] * t)
+                b = int(top_c[2] * (1 - t) + bot_c[2] * t)
+                d_g.line([(m_bbox[0] - 5, y_i), (m_bbox[2] + 5, y_i)], fill=(r, g, b, 255))
 
-        if add_cracks:
-            grad_np = np.array(grad_im)
-            rng = np.random.RandomState(42 + idx)
-            cracks = np.zeros((line_h, line_w), dtype=np.uint8)
-            num_cracks = rng.randint(3, 6)
-            for _ in range(num_cracks):
-                cx = rng.randint(0, line_w)
-                cy = rng.randint(0, max(1, line_h // 3))
-                for _step in range(rng.randint(20, 50)):
-                    cx = np.clip(cx + rng.randint(-3, 4), 0, line_w - 1)
-                    cy = np.clip(cy + rng.randint(1, 4), 0, line_h - 1)
-                    cracks[cy, cx] = 160
-            cracks_im = Image.fromarray(cracks, mode="L").filter(ImageFilter.GaussianBlur(0.8))
-            cracks_np = np.array(cracks_im)
-            crack_mask = cracks_np > 30
-            for c_ch in range(3):
-                grad_np[:, :, c_ch] = np.where(crack_mask, (grad_np[:, :, c_ch] * 0.55).astype(np.uint8), grad_np[:, :, c_ch])
-            grad_im = Image.fromarray(grad_np, mode="RGBA")
+            if add_cracks:
+                grad_arr = np.array(grad_layer)
+                rng = np.random.RandomState(42 + idx)
+                cracks = np.zeros((H, W), dtype=np.uint8)
+                for _ in range(rng.randint(2, 4)):
+                    cx = rng.randint(m_bbox[0], m_bbox[2])
+                    cy = rng.randint(y1, y1 + span_y // 2)
+                    for _step in range(rng.randint(15, 30)):
+                        cx = np.clip(cx + rng.randint(-2, 3), 0, W - 1)
+                        cy = np.clip(cy + rng.randint(1, 3), 0, H - 1)
+                        cracks[cy, cx] = 150
+                if np.any(cracks > 0):
+                    cracks_mask = cracks > 30
+                    for c_ch in range(3):
+                        grad_arr[:, :, c_ch] = np.where(cracks_mask, (grad_arr[:, :, c_ch] * 0.65).astype(np.uint8), grad_arr[:, :, c_ch])
+                    grad_layer = Image.fromarray(grad_arr, mode="RGBA")
 
-        px = cur_x + bb[0] - stroke_width
-        py = cur_y + bb[1] - stroke_width
-        text_overlay.paste(grad_im, (px, py), mask=mask_im)
+            text_layer.paste(grad_layer, (0, 0), mask=mask)
 
         cur_y += d["h"] + tight_gap
 
-    return text_overlay
+    # Blur shadow layer for ultra-realistic soft drop shadow
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(5))
+    return Image.alpha_composite(shadow_layer, text_layer)
+
+
+def render_tall_3d_viral_typography(
+    canvas_size: Tuple[int, int],
+    lines: List[str],
+    text_box: Tuple[int, int, int, int],
+    font_path: str = "C:/Windows/Fonts/impact.ttf",
+    extrusion_depth: int = 20,
+    stroke_width: int = 18,
+    genre: Optional[str] = "stoic",
+    **kwargs
+) -> Image.Image:
+    """
+    Renders high-CTR typography with proper tracking, soft drop shadow, and crisp definition.
+    Eliminates letter-overlap and unnatural aspect-ratio stretching.
+    """
+    return render_viral_3d_text_overlay(
+        canvas_size=canvas_size,
+        lines=lines,
+        text_box=text_box,
+        font_path=font_path,
+        extrusion_depth=extrusion_depth,
+        stroke_width=stroke_width,
+        add_cracks=False,
+        genre=genre
+    )
 
 
 def render_pro_50_50_thumbnail(
@@ -1016,60 +1109,68 @@ def _smart_bust_crop_and_fit(
 
 
 
-    # If faces are detected, crop to emphasize the upper body
-
+    # If faces are detected, crop to emphasize the upper body as a colossal heroic bust
     if face_boxes:
-
         largest_face = max(face_boxes, key=lambda b: b[2] * b[3])
-
         fx, fy, fw, fh = largest_face
 
-        # Character bust: from slightly above head (fy - 0.25*fh) down to chest (fy + 3.2*fh)
-
-        top_y = max(0, int(fy - fh * 0.25))
-
-        bot_y = min(h, int(fy + fh * 3.4))
-
+        # Colossal Heroic Bust Crop: from just above head down to mid-pectoral chest
+        top_y = max(0, int(fy - fh * 0.20))
+        bot_y = min(h, int(fy + fh * 1.85))
         crop_h = bot_y - top_y
 
-
-
-        left_x = max(0, int(fx - fw * 0.9))
-
-        right_x = min(w, int(fx + fw * 1.9))
-
+        left_x = max(0, int(fx - fw * 1.20))
+        right_x = min(w, int(fx + fw * 1.60))
         crop_w = right_x - left_x
 
-
-
-        if crop_h > 150 and crop_w > 150:
-
+        if crop_h > 100 and crop_w > 100:
             hero = im.crop((left_x, top_y, right_x, bot_y))
 
-            # Scale hero so height equals target_h
+            # Colossal Hero Scaling:
+            # Scale so the hero's broad shoulders and chest occupy 52-55% width and 100% height!
+            target_hero_w = int(target_w * 0.54)
+            scale_h = target_h / float(hero.height)
+            scale_w = target_hero_w / float(hero.width)
+            scale = max(scale_h, scale_w)
 
-            scale = target_h / float(hero.height)
+            scaled_w = int(hero.width * scale)
+            scaled_h = int(hero.height * scale)
+            hero_scaled = hero.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
 
-            scaled_w = min(int(hero.width * scale), int(target_w * 0.52))
+            # Crop excess vertical height from bottom
+            if hero_scaled.height > target_h:
+                hero_scaled = hero_scaled.crop((0, 0, hero_scaled.width, target_h))
 
-            hero_scaled = hero.resize((scaled_w, target_h), Image.Resampling.LANCZOS)
-
-
-
-            # Create full canvas with deep cinematic dark backdrop
-
-            canvas = im.resize((target_w, target_h), Image.Resampling.BILINEAR)
-
-            canvas = canvas.filter(ImageFilter.GaussianBlur(6))
-
-            # Soft cinematic contrast
-
-            canvas = ImageEnhance.Brightness(canvas).enhance(0.75)
+            # Bound horizontal width to max 56% so text side retains at least 44%
+            max_allowed_w = int(target_w * 0.56)
+            if hero_scaled.width > max_allowed_w:
+                if subject_on_left:
+                    hero_scaled = hero_scaled.crop((0, 0, max_allowed_w, target_h))
+                else:
+                    hero_scaled = hero_scaled.crop((hero_scaled.width - max_allowed_w, 0, hero_scaled.width, target_h))
+            scaled_w = hero_scaled.width
 
 
+
+            # Create full canvas with clean, deep obsidian dark atmospheric backdrop
+            canvas = Image.new("RGB", (target_w, target_h), (4, 6, 12))
+            # Background behind hero gets soft atmospheric texture (no sharp ghost statues)
+            bg_ambient = im.resize((target_w, target_h), Image.Resampling.BILINEAR).filter(ImageFilter.GaussianBlur(30))
+            bg_ambient = ImageEnhance.Brightness(bg_ambient).enhance(0.45)
+            
+            # Mask so ambient only appears softly on hero side, leaving text side 100% pitch dark
+            bg_mask = Image.new("L", (target_w, target_h), 0)
+            d_bg_mask = ImageDraw.Draw(bg_mask)
+            span_bg = int(target_w * 0.55)
+            if subject_on_left:
+                for x in range(span_bg):
+                    d_bg_mask.line([(x, 0), (x, target_h)], fill=int(255 * (1.0 - (x / span_bg)**1.4)))
+            else:
+                for x in range(target_w - span_bg, target_w):
+                    d_bg_mask.line([(x, 0), (x, target_h)], fill=int(255 * (((x - (target_w - span_bg)) / span_bg)**1.4)))
+            canvas.paste(bg_ambient, (0, 0), bg_mask)
 
             # Feather the seam edge of the hero
-
             hero_rgba = hero_scaled.convert("RGBA")
 
             hero_arr = np.array(hero_rgba, dtype=np.float32)
@@ -1160,33 +1261,21 @@ def _apply_ambient_text_backdrop(
 
 
 
-    span = int(target_w * 0.54)  # Covers 54% width softly
-
-    max_alpha = 135  # Subtle cinematic sapphire vignette, preserves Acropolis & stars!
-
-
+    # Strict 45% span prevents text backdrop from ever crossing into or shading the hero's face (which starts at x >= 50%)
+    span = int(target_w * 0.45)
+    max_alpha = 248  # Deep obsidian black negative space, eliminates ghost statues and background noise behind typography
 
     if text_on_left:
-
         for x in range(0, span, 4):
-
             prog = x / float(span)
-
-            alpha = int(max_alpha * ((1.0 - prog) ** 1.3))
-
-            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(6, 12, 24, alpha))
-
+            alpha = int(max_alpha * ((1.0 - prog) ** 1.35))
+            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(4, 6, 12, alpha))
     else:
-
         start_x = target_w - span
-
         for x in range(start_x, target_w, 4):
-
             prog = (x - start_x) / float(span)
-
-            alpha = int(max_alpha * (prog ** 1.3))
-
-            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(6, 12, 24, alpha))
+            alpha = int(max_alpha * (prog ** 1.35))
+            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(4, 6, 12, alpha))
 
 
 
@@ -1242,15 +1331,19 @@ def _resolve_clean_hook_lines(
 
             elif len(words) == 5:
 
-                return [" ".join(words[:2]), " ".join(words[2:4]), words[4]]
+                return [f"{words[0]} {words[1]}".upper(), f"{words[2]} {words[3]}".upper(), words[4].upper()]
 
             elif len(words) == 4:
-
-                return [" ".join(words[:2]), " ".join(words[2:])]
+                # 4 punchy words: Stack 1 word per line to reach 85-90% canvas height (e.g. TU / AUSENCIA / ES / PODER)
+                return [w.upper() for w in words]
 
             elif len(words) == 3:
                 # 3 punchy words stack 1 per line for maximum viral impact (e.g. DOMINA / TU / MENTE)
-                return [words[0].upper(), words[1].upper(), words[2].upper()]
+                return [w.upper() for w in words]
+
+            elif len(words) == 2:
+                # 2 punchy words stack 1 per line (e.g. SE / FUERTE)
+                return [w.upper() for w in words]
 
             return cleaned
 
@@ -1290,20 +1383,16 @@ def _draw_full_height_typography(
 
 
 
-    # Resolve fonts
+    # Resolve fonts (prefer open-counter bold typefaces over cramped ones)
 
     font_candidates = [
-
-        "C:/Windows/Fonts/impact.ttf",
-
         str(STUDIO_DIR / "web/fonts/Anton.ttf"),
-
+        str(STUDIO_DIR / "web/fonts/BebasNeue-Bold.ttf"),
+        str(STUDIO_DIR / "web/fonts/BebasNeue.ttf"),
+        "C:/Windows/Fonts/impact.ttf",
         "C:/Windows/Fonts/ariblk.ttf",
-
         "C:/Windows/Fonts/arialbd.ttf",
-
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-
     ]
 
     font_path = next((f for f in font_candidates if Path(f).exists()), "C:/Windows/Fonts/arialbd.ttf")
@@ -1317,19 +1406,14 @@ def _draw_full_height_typography(
 
 
     if text_on_left:
-
         text_x_start = margin_x
-
-        safe_x_end = target_w // 2 + 30
-
+        # Safe boundary at 43% width ensures >120px separation gap from hero face/body
+        safe_x_end = int(target_w * 0.43)
         max_line_w = safe_x_end - text_x_start
-
     else:
-
-        text_x_start = target_w // 2 + 20
-
+        # If text is on right, start at 57% width to keep left-side hero completely unobstructed
+        text_x_start = int(target_w * 0.57)
         safe_x_end = target_w - margin_x
-
         max_line_w = safe_x_end - text_x_start
 
 
@@ -1412,11 +1496,11 @@ def _draw_full_height_typography(
 
 
 
-    # Step 5: Render Ultra High-CTR 3D Viral Typography
+    # Step 5: Render Ultra High-CTR 3D Viral Typography spanning full canvas height
     tb_x1 = text_x_start
     tb_x2 = text_x_start + max_line_w
-    tb_y1 = cur_y
-    tb_y2 = cur_y + total_h
+    tb_y1 = 30
+    tb_y2 = target_h - 35
     t_overlay = render_viral_3d_text_overlay(
         canvas_size=(target_w, target_h),
         lines=[c['line'] for c in line_configs],
@@ -1431,7 +1515,12 @@ def _draw_full_height_typography(
     cur_y += total_h
 
     # Draw Elegant Brand Tagline below text (e.g. — VALOR ESTOICO —)
-    brand_text = preset.get("brand_tag") or "VALOR ESTOICO"
+    # Draw Elegant Brand Tagline below text only if specified for this genre
+    brand_text = preset.get("brand_tag")
+    if not brand_text and "stoic" in str(preset.get("name", "")).lower():
+        brand_text = "VALOR ESTOICO"
+    else:
+        brand_text = brand_text or ""
 
     if brand_text:
 
@@ -1596,39 +1685,27 @@ def audit_thumbnail_vidiq_real(
 
 
     # Pillar 1: Subject Prominence (Bust vs Tiny Figure) [Max: 25]
-
-    # Check left vs right half to find subject zone
-
     left_half = gray[:, :w // 2]
-
     right_half = gray[:, w // 2:]
-
     left_std = float(np.std(left_half))
-
     right_std = float(np.std(right_half))
 
-
-
-    subject_on_left = (left_std >= right_std)
+    # 1. Face Scale & Subject Placement Inspection via YuNet
+    face_boxes = _detect_faces_or_energy(im)
+    if face_boxes:
+        largest_face = max(face_boxes, key=lambda b: b[2] * b[3])
+        fx, fy, fw, fh = largest_face
+        subject_on_left = ((fx + fw / 2.0) < (w / 2.0))
+    else:
+        subject_on_left = (left_std >= right_std)
 
     subject_zone = left_half if subject_on_left else right_half
-
     text_zone = right_half if subject_on_left else left_half
 
-
-
-    # 1. Face Scale Inspection via YuNet
-
-    face_boxes = _detect_faces_or_energy(im)
-
     if face_boxes:
-
         # Get largest face
-
         largest_face = max(face_boxes, key=lambda b: b[2] * b[3])
-
         fx, fy, fw, fh = largest_face
-
         face_area_ratio = (fw * fh) / float(w * h)
 
         if fh >= 135 and fw >= 95:

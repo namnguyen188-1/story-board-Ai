@@ -87,6 +87,8 @@ def _show_chrome_window(pid):
     if hwnds:
         for hwnd in hwnds:
             try:
+                # Clear any clipping region so the full window is restored
+                u.SetWindowRgn(hwnd, 0, True)
                 u.ShowWindowAsync(hwnd, 9)  # SW_RESTORE
                 u.ShowWindow(hwnd, 5)       # SW_SHOW
                 u.ShowWindow(hwnd, 9)
@@ -165,18 +167,21 @@ def _chrome_hwnds_for_pid(pid=None):
     return windows
 
 def minimize_chrome_window(pid=None):
-    """Keep Chrome running, completely hidden from desktop AND taskbar."""
-    if os.name!="nt":
+    """Keep Chrome running, neatly minimized on the Windows Taskbar."""
+    if os.name != "nt":
         return False
-    u=ctypes.windll.user32
-    hwnds=_chrome_hwnds_for_pid(pid)
-    success=False
+    _attach_desktop()
+    u = ctypes.windll.user32
+    hwnds = _chrome_hwnds_for_pid(pid)
+    success = False
     if hwnds:
         for hwnd in hwnds:
             try:
-                # SW_HIDE (0) completely removes window from screen and taskbar
-                u.ShowWindow(hwnd, 0)
-                success=True
+                # Remove any clipping region so the window is normal
+                u.SetWindowRgn(hwnd, 0, True)
+                # SW_SHOWMINNOACTIVE (7) minimizes window to taskbar without taking focus
+                u.ShowWindow(hwnd, 7)
+                success = True
             except OSError:
                 pass
     return success
@@ -376,7 +381,7 @@ def open_login(identifier):
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
         "--disable-features=CalculateNativeWinOcclusion,AutomaticTabDiscarding,IntensiveWakeUpThrottling,HighEfficiencyModeTier1",
-        "--window-size=1024,820","--window-position=80,70",
+        "--window-size=516,450","--window-position=1389,575",
         base.account_tool_url(account) or base.bundled_shared_tool_url() or "https://flow.google.com"
     ]
     start_flow_heartbeat(HOME)
