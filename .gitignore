@@ -29,6 +29,7 @@ studio/.venv/
 
 # Large media & audio artifacts
 *.wav
+*.mp3
 *.mp4
 *.mkv
 *.words.json
@@ -38,6 +39,7 @@ test_utf8.txt
 
 # Binaries & Distribution
 dist/
+dist_package/
 *.exe
 *.dll
 *.so
@@ -45,6 +47,13 @@ dist/
 *.zip
 *.rar
 *.7z
+
+# Movie Recap Studio Pro
+recap_engine/recap_config.json
+recap_engine/.recap_desktop_profile/
+recap_engine/.recap_qt6_profile/
+recap_engine/temp_*
+recap_exports/
 
 studio/engine/bin/
 studio/studio_mcp/node/

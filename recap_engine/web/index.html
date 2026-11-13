@@ -1,0 +1,2391 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>🎬 Movie Recap Studio Pro v0.0.1 - Phim Review Bất Bại</title>
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Ultra-clean slim scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.35); }
+
+    .drag-active {
+      cursor: grabbing !important;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="bg-[#070a12] text-[#cbd5e1] font-sans antialiased h-screen overflow-hidden flex flex-col text-xs">
+
+  <!-- TOP BAR -->
+  <header class="h-11 bg-[#0b0f19] border-b border-[#1a2336] px-4 flex items-center justify-between shrink-0 z-20 shadow-md">
+    <div class="flex items-center gap-2.5">
+      <!-- Official Brand Logo -->
+      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500/20 via-rose-500/20 to-purple-500/30 p-0.5 border border-amber-500/40 shadow-sm flex items-center justify-center shrink-0">
+        <img src="/assets/logo.png" onerror="this.outerHTML='<span class=\'text-base\'>🎬</span>'" class="w-full h-full object-contain rounded-md" alt="Logo">
+      </div>
+      <!-- Tool Name & Branding -->
+      <div class="flex items-center gap-2">
+        <span class="font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-white text-xs tracking-wider">
+          MOVIE RECAP STUDIO PRO
+        </span>
+        <!-- Version Badge -->
+        <span class="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold tracking-tight shadow-xs">
+          v0.0.1
+        </span>
+        <span class="hidden sm:inline-block text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-semibold font-mono">
+          PRO EDITION
+        </span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <button onclick="openScriptModal()" class="h-7 px-3 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-slate-200 border border-[#223048] text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
+        <span>📜</span> Kịch Bản
+      </button>
+      <button onclick="openExportsModal()" class="h-7 px-3 rounded-lg bg-[#102319] hover:bg-[#163023] text-emerald-300 border border-emerald-500/30 text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
+        <span>🎬</span> Video Đã Xuất (<span id="txtExportsCount" class="text-amber-400 font-bold">0</span>)
+      </button>
+      <button onclick="openSettingsModal()" class="h-7 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-amber-300 border border-amber-500/25 text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
+        <span>⚙️</span> API Keys
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN SPLIT VIEW -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- CỘT TRÁI: BẢNG ĐIỀU KHIỂN & CẤU HÌNH (BO GÓC BO CARD HIỆN ĐẠI) -->
+    <aside class="w-[360px] xl:w-[385px] shrink-0 bg-[#080c14] border-r border-[#192236] flex flex-col h-full overflow-hidden z-10">
+
+      <div class="flex-1 overflow-y-auto p-3 space-y-3 bg-[#080c14]">
+
+        <!-- 1. NGUỒN VIDEO (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-rose-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <span class="text-rose-400 font-bold flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+              1. Nguồn Video
+            </span>
+            <span id="txtChosenDuration" class="text-amber-400 font-mono text-[10px] bg-[#070a12] px-2 py-0.5 rounded-md border border-[#1c2538]">--:-- • ---</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="flex gap-1.5">
+              <input type="file" id="realFileInput" accept="video/*" class="hidden" onchange="onLocalFileChosen(this)">
+              <button onclick="document.getElementById('realFileInput').click()" class="h-7 px-3 rounded-lg bg-[#161f30] hover:bg-[#1f2b42] border border-rose-500/30 text-rose-300 font-medium text-[11px] flex items-center gap-1 shrink-0 transition shadow-xs">
+                <span>📁</span> Chọn File
+              </button>
+              <div class="flex-1 flex gap-1">
+                <input id="inputVideoUrl" type="text" placeholder="Dán link YouTube / Drive..." class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1 text-[11px] text-white focus:outline-none focus:border-rose-500 transition-colors">
+                <button onclick="fetchOnlineVideo()" class="h-7 px-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-[11px] shrink-0 transition shadow-xs">
+                  Tải Link
+                </button>
+              </div>
+            </div>
+
+            <select id="selQuickVideo" onchange="onQuickVideoChosen(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1.5 text-[10px] text-amber-300 font-mono focus:outline-none transition-colors">
+              <option value="">-- Chọn video có sẵn trong máy --</option>
+            </select>
+            <div id="txtChosenFileName" class="text-[10px] font-mono text-slate-400 truncate px-1">Chưa chọn video</div>
+          </div>
+
+          <!-- Cut Range & Subtitle -->
+          <div class="grid grid-cols-2 gap-1.5 pt-0.5">
+            <div class="flex items-center bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538]">
+              <span class="text-[10px] text-slate-400 mr-1.5">Từ:</span>
+              <input id="inputCutStart" type="text" value="00:00:00" class="w-full bg-transparent font-mono text-[11px] text-white focus:outline-none">
+            </div>
+            <div class="flex items-center bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538]">
+              <span class="text-[10px] text-slate-400 mr-1.5">Đến:</span>
+              <input id="inputCutEnd" type="text" value="00:00:00" class="w-full bg-transparent font-mono text-[11px] text-white focus:outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <select id="selSubSource" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none">
+              <option value="auto" selected>⚡ Tự động dò phụ đề</option>
+              <option value="whisper">⚡ Whisper AI</option>
+              <option value="track">Track Vietsub trong file</option>
+            </select>
+            <label class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] cursor-pointer text-[11px]">
+              <span class="text-slate-300">Lọc 18+/Máu me</span>
+              <input type="checkbox" checked class="accent-rose-500 w-3 h-3">
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. NỘI DUNG & KỊCH BẢN (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-amber-500/40 transition-all space-y-2">
+          <!-- Hàng 1: Tiêu đề + Huy hiệu thời lượng -->
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <span class="text-amber-400 font-bold whitespace-nowrap flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              2. Nội Dung & Kịch Bản
+            </span>
+            <span id="lblDuration" class="bg-[#070a12] px-2 py-0.5 rounded-lg border border-[#1c2538] text-amber-400 font-mono text-[10px] font-bold whitespace-nowrap shadow-xs">2p (30 đoạn)</span>
+          </div>
+
+          <!-- Hàng 2: Thanh kéo thời lượng dài mượt mà, dễ kéo từ 1p đến 120p -->
+          <div class="flex items-center gap-2 bg-[#070a12] px-2.5 py-1.5 rounded-lg border border-[#1c2538]">
+            <span class="text-[10px] text-slate-400 whitespace-nowrap select-none">⏱️ Thời lượng:</span>
+            <input id="sliderDuration" type="range" min="1" max="120" value="2" step="1" oninput="updateDuration(this.value, true)" class="flex-1 h-1.5 accent-amber-500 cursor-pointer" title="Kéo để chỉnh thời lượng recap từ 1p đến 120p (2 giờ)">
+          </div>
+
+          <!-- Hàng 3: Nút chọn nhanh thời lượng từ Short đến 1h, 2h -->
+          <div class="flex items-center justify-between gap-1 text-[9px] pt-0.5">
+            <span class="text-slate-500 text-[9px] shrink-0 select-none">Nhanh:</span>
+            <div class="flex gap-1 overflow-x-auto py-0.5 scrollbar-none">
+              <button type="button" onclick="setQuickDuration(1)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-slate-300 border border-[#1c2538] transition">1p</button>
+              <button type="button" onclick="setQuickDuration(3)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-slate-300 border border-[#1c2538] transition">3p</button>
+              <button type="button" onclick="setQuickDuration(5)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-slate-300 border border-[#1c2538] transition">5p</button>
+              <button type="button" onclick="setQuickDuration(10)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-slate-300 border border-[#1c2538] transition">10p</button>
+              <button type="button" onclick="setQuickDuration(15)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-slate-300 border border-[#1c2538] transition">15p</button>
+              <button type="button" onclick="setQuickDuration(30)" class="px-2 py-0.5 rounded-md bg-[#161f30] hover:bg-[#1e2a40] text-amber-300 border border-amber-500/30 font-semibold transition">30p</button>
+              <button type="button" onclick="setQuickDuration(60)" class="px-2 py-0.5 rounded-md bg-[#1e1b4b] hover:bg-[#2e2b6b] text-indigo-300 border border-indigo-500/40 font-bold transition" title="Review dài 1 Giờ">1h</button>
+              <button type="button" onclick="setQuickDuration(90)" class="px-2 py-0.5 rounded-md bg-[#1e1b4b] hover:bg-[#2e2b6b] text-indigo-300 border border-indigo-500/40 font-bold transition" title="Review dài 1.5 Giờ">1.5h</button>
+              <button type="button" onclick="setQuickDuration(120)" class="px-2 py-0.5 rounded-md bg-[#2e1065] hover:bg-[#3b1285] text-pink-300 border border-pink-500/40 font-bold transition" title="Review trọn bộ 2 Giờ">2h</button>
+            </div>
+          </div>
+
+          <div>
+            <input id="inputMovieTitle" type="text" value="" placeholder="Tên phim hoặc chủ đề video..." class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1.5 text-[11px] text-amber-300 font-semibold focus:outline-none focus:border-amber-500 transition-colors">
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <select id="selStyle" onchange="try{localStorage.setItem('recap_genre', this.value);}catch(e){}" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none">
+              <option value="Ly kỳ, hồi hộp, Twist" selected>Ly kỳ, hồi hộp, Twist</option>
+              <option value="Hài hước, bắt trend dí dỏm">Hài hước, dí dỏm</option>
+              <option value="Điện ảnh sâu sắc, bi tráng">Điện ảnh sâu sắc</option>
+              <option value="Hành động, Kịch tính">Hành động, Kịch tính</option>
+              <option value="Kinh dị, giật gân rùng rợn">Kinh dị, giật gân</option>
+            </select>
+            <label class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] cursor-pointer text-[11px]">
+              <span class="text-slate-300">Siêu Hook 3s đầu</span>
+              <input id="chkHook3s" type="checkbox" checked class="accent-amber-500 w-3 h-3">
+            </label>
+          </div>
+        </div>
+
+        <!-- 3. KỊCH BẢN HOẶC Ý TƯỞNG CỐT TRUYỆN (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-amber-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <span class="text-amber-400 font-bold whitespace-nowrap flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              3. Kịch Bản & Ý Tưởng
+            </span>
+            <span id="badgeScriptSource" class="text-[10px] text-slate-400 font-mono bg-[#070a12] px-2 py-0.5 rounded-md border border-[#1c2538]">Tự động AI</span>
+          </div>
+
+          <div>
+            <textarea id="inputStoryIdea" rows="3" oninput="onStoryIdeaChanged(this.value)"
+              class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg p-2.5 text-[11px] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 font-sans leading-relaxed resize-y transition-colors"
+              placeholder="Nhập kịch bản hoặc ý tưởng cốt truyện tại đây... (hoặc để trống để AI tự động viết)"></textarea>
+          </div>
+
+          <div class="flex items-center justify-between text-[10px] pt-0.5">
+            <span id="ideaCharCounter" class="text-slate-500 font-mono">0 chữ</span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="btnGenerateScript" onclick="generateAiScript()" class="px-2.5 py-1 rounded-lg bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 text-[10px] font-medium flex items-center gap-1 transition whitespace-nowrap shadow-xs" title="Bấm để AI viết kịch bản 3 hồi">
+                <span>✨</span> AI Viết Kịch Bản
+              </button>
+              <button type="button" onclick="openScriptModal()" class="px-2 py-1 rounded-lg bg-[#070a12] hover:bg-[#1e293b] text-slate-300 border border-[#1c2538] text-[10px] flex items-center gap-0.5 transition whitespace-nowrap" title="Xem danh sách từng cảnh">
+                <span>📜</span> (<span id="txtScriptSegmentsCount">0</span>)
+              </button>
+            </div>
+          </div>
+
+          <!-- THU GỌN BIỆT DANH NHÂN VẬT GỌN GÀNG -->
+          <details id="detailsAliases" class="group bg-[#070a12] border border-[#1c2538] rounded-lg p-2 text-[11px]">
+            <summary class="cursor-pointer flex items-center justify-between text-slate-400 hover:text-amber-300 font-medium select-none text-[10px]">
+              <span class="flex items-center gap-1.5">
+                <span>🏷️</span>
+                <span>Đổi tên & Biệt danh nhân vật</span>
+                <span id="badgeAliasCount" class="text-[9px] text-amber-400 font-mono bg-amber-950/60 px-1.5 py-0.2 rounded-md border border-amber-500/20">Tự động</span>
+              </span>
+              <span class="text-[9px] text-slate-500 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div class="pt-2 space-y-1.5 border-t border-[#1c2538]/60 mt-1.5">
+              <div id="characterAliasesList" class="space-y-1 text-[11px]">
+                <div class="text-[10px] text-slate-500 py-0.5 italic">
+                  AI sẽ tự động diễn xuất và đặt tên nhân vật phù hợp.
+                </div>
+              </div>
+              <div class="flex justify-end pt-0.5">
+                <button type="button" onclick="addCharacterRow()" class="text-[10px] text-amber-400 hover:underline">+ Thêm nhân vật</button>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- 4. GIỌNG ĐỌC & ÂM THANH (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-sky-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <span class="text-sky-400 font-bold flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+              4. Lồng Tiếng & Âm Thanh
+            </span>
+            <div class="flex items-center gap-1.5 bg-[#070a12] px-2 py-0.5 rounded-lg border border-[#1c2538]">
+              <span class="text-[10px] text-slate-400">Tốc độ:</span>
+              <input id="sliderSpeed" type="range" min="1.0" max="1.3" value="1.15" step="0.05" oninput="updatePacing(this.value)" class="w-14 h-1 accent-sky-500 cursor-pointer">
+              <span id="lblPacing" class="text-sky-400 font-mono text-[10px] font-bold">1.15x</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <select id="selVoice" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
+              <option value="Fenrir" selected>🎙️ Gemini TTS - Fenrir</option>
+              <option value="Aoede">🎙️ Gemini TTS - Aoede</option>
+              <option value="Puck">🎙️ Gemini TTS - Puck (Hài hước)</option>
+              <option value="Kore">🎙️ Gemini TTS - Kore</option>
+              <option value="vi-VN-NamMinhNeural">🎙️ Edge NamMinh (Miễn phí)</option>
+              <option value="vi-VN-HoaiMyNeural">🎙️ Edge HoaiMy (Miễn phí)</option>
+            </select>
+            <select id="selBgm" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
+              <option selected>BGM Suspense Thriller</option>
+              <option>BGM Epic Cinematic</option>
+              <option>BGM Mystery Drama</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <div class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] text-[11px]">
+              <span class="text-slate-400">Auto-Duck BGM:</span>
+              <span class="text-emerald-400 font-mono font-bold">-18dB</span>
+            </div>
+            <label class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] cursor-pointer text-[11px]">
+              <span class="text-slate-300">SFX Whoosh/Ting</span>
+              <input type="checkbox" checked class="accent-sky-500 w-3 h-3">
+            </label>
+          </div>
+        </div>
+
+        <!-- 5. BẢN QUYỀN & MÀU SẮC (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-emerald-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              5. Bản Quyền & Màu Sắc
+            </span>
+            <span class="text-[10px] text-emerald-400 font-mono bg-[#070a12] px-2 py-0.5 rounded-md border border-[#1c2538]">Fair-Use</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+            <label class="flex items-center gap-1.5 bg-[#070a12] px-2 py-1 rounded-lg border border-[#1c2538] cursor-not-allowed">
+              <input type="checkbox" checked disabled class="accent-emerald-500 w-3 h-3">
+              <span class="text-slate-300 truncate">Cắt &lt;4s</span>
+            </label>
+            <label class="flex items-center gap-1.5 bg-[#070a12] px-2 py-1 rounded-lg border border-[#1c2538] cursor-pointer hover:border-emerald-500/40 transition">
+              <input id="chkKenBurns" type="checkbox" checked onchange="applyVideoFilters()" class="accent-emerald-500 w-3 h-3">
+              <span class="text-slate-300 truncate">Ken Burns</span>
+            </label>
+            <label class="flex items-center gap-1.5 bg-[#070a12] px-2 py-1 rounded-lg border border-[#1c2538] cursor-pointer hover:border-emerald-500/40 transition">
+              <input id="chkSpeed" type="checkbox" checked onchange="applyVideoFilters()" class="accent-emerald-500 w-3 h-3">
+              <span class="text-slate-300 truncate">Speed 1.04x</span>
+            </label>
+            <label class="flex items-center gap-1.5 bg-[#070a12] px-2 py-1 rounded-lg border border-[#1c2538] cursor-pointer hover:border-emerald-500/40 transition">
+              <input id="chkFlip" type="checkbox" onchange="applyVideoFilters()" class="accent-emerald-500 w-3 h-3">
+              <span class="text-slate-300 truncate">Lật Gương</span>
+            </label>
+            <label class="flex items-center gap-1.5 bg-[#070a12] px-2 py-1 rounded-lg border border-[#1c2538] cursor-pointer hover:border-emerald-500/40 transition">
+              <input id="chkGrain" type="checkbox" checked onchange="applyVideoFilters()" class="accent-emerald-500 w-3 h-3">
+              <span class="text-slate-300 truncate">Grain Film</span>
+            </label>
+            <label class="flex items-center gap-1.5 bg-[#070a12] px-2 py-1 rounded-lg border border-[#1c2538] cursor-pointer hover:border-emerald-500/40 transition">
+              <input id="chkLut" type="checkbox" checked onchange="applyVideoFilters()" class="accent-emerald-500 w-3 h-3">
+              <span class="text-slate-300 truncate">LUT Màu</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5 pt-0.5 text-[10px]">
+            <div class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538]">
+              <span class="text-slate-400">Sáng:</span>
+              <input id="sliderBrightness" type="range" min="80" max="140" value="108" oninput="applyVideoFilters()" class="w-14 h-1 accent-amber-500 cursor-pointer">
+              <span id="lblBrightness" class="text-amber-400 font-mono font-bold">+8%</span>
+            </div>
+            <div class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538]">
+              <span class="text-slate-400">Tương phản:</span>
+              <input id="sliderContrast" type="range" min="80" max="140" value="112" oninput="applyVideoFilters()" class="w-14 h-1 accent-amber-500 cursor-pointer">
+              <span id="lblContrast" class="text-amber-400 font-mono font-bold">+12%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. PHỤ ĐỀ TRÊN VIDEO (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-pink-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+              <span class="text-pink-400 font-bold">6. Phụ Đề Video</span>
+              <span class="text-[9px] bg-pink-950/80 text-pink-300 px-1.5 py-0.2 rounded-md border border-pink-500/30">Cụm 3-5 Chữ</span>
+            </div>
+            <span id="lblCoords" class="text-pink-400 font-mono text-[10px] bg-[#070a12] px-2 py-0.5 rounded-md border border-[#1c2538]">X: 50%, Y: 90%</span>
+          </div>
+
+          <div>
+            <input id="inputSubText" type="text" value="Cao thủ khét tiếng đang lướt mạng thì vô tình phát hiện ra bí mật..." oninput="updateSubText(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-pink-500 transition-colors" placeholder="Xem trước phụ đề...">
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <select id="selFontFamily" onchange="changeFontFamily(this.value)" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
+              <option value="'Montserrat', sans-serif" selected>Montserrat ExtraBold</option>
+              <option value="'Anton', sans-serif">Anton Bold</option>
+              <option value="'Be Vietnam Pro', sans-serif">Be Vietnam Pro</option>
+              <option value="'Impact', sans-serif">Impact Heavy</option>
+            </select>
+            <select id="selSubStyle" onchange="changeSubStyle(this.value)" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-amber-300 font-bold focus:outline-none">
+              <option value="karaoke_box" selected>🎤 Karaoke + Hộp Đen Che Sub</option>
+              <option value="karaoke">🎤 Karaoke (Chữ nổi, Không hộp)</option>
+              <option value="box">⬛ Chữ Tĩnh + Hộp Đen Che Sub</option>
+              <option value="outline">🔲 Chữ Viền Dày (Không hộp)</option>
+            </select>
+          </div>
+
+          <!-- Kích thước phụ đề: Slider + Nút Nhanh + Màu Highlight + Vị trí -->
+          <div class="space-y-1.5 pt-0.5">
+            <div class="flex items-center justify-between text-[10px]">
+              <div class="flex items-center gap-1.5 bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538]">
+                <span class="text-slate-400">Cỡ chữ:</span>
+                <input id="sliderFontSize" type="range" min="16" max="48" value="24" step="1" oninput="changeFontSize(this.value)" class="w-14 h-1 accent-pink-500 cursor-pointer">
+                <span id="lblFontSize" class="font-mono text-amber-400 font-bold min-w-[28px] text-right">24px</span>
+              </div>
+              <div class="flex gap-1 items-center">
+                <span class="text-slate-500 text-[9px]">Nhanh:</span>
+                <button type="button" onclick="changeFontSize(18)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-[10px] text-slate-300 border border-[#1c2538] transition">18</button>
+                <button type="button" onclick="changeFontSize(24)" class="px-2 py-0.5 rounded-md bg-[#1a2336] hover:bg-[#25324d] text-[10px] text-amber-300 font-bold border border-amber-500/40 transition">24</button>
+                <button type="button" onclick="changeFontSize(32)" class="px-2 py-0.5 rounded-md bg-[#070a12] hover:bg-[#1a2336] text-[10px] text-slate-300 border border-[#1c2538] transition">32</button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-0.5">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-400 mr-0.5">Màu:</span>
+                <button onclick="setHlColor('#facc15')" class="w-4 h-4 rounded-full bg-yellow-400 border border-white hover:scale-110 transition shadow" title="Vàng Gold"></button>
+                <button onclick="setHlColor('#fb7185')" class="w-4 h-4 rounded-full bg-rose-400 border border-transparent hover:border-white hover:scale-110 transition shadow" title="Hồng"></button>
+                <button onclick="setHlColor('#38bdf8')" class="w-4 h-4 rounded-full bg-sky-400 border border-transparent hover:border-white hover:scale-110 transition shadow" title="Xanh lam"></button>
+                <button onclick="setHlColor('#4ade80')" class="w-4 h-4 rounded-full bg-emerald-400 border border-transparent hover:border-white hover:scale-110 transition shadow" title="Xanh lá"></button>
+                <button onclick="setHlColor('#fb923c')" class="w-4 h-4 rounded-full bg-orange-400 border border-transparent hover:border-white hover:scale-110 transition shadow" title="Cam"></button>
+              </div>
+              <div class="flex gap-1" id="snapSubButtonGroup">
+                <button type="button" id="btnSnapTop" onclick="snapSub('top')" class="px-2 py-0.5 rounded-md bg-[#070a12] text-[10px] text-slate-300 border border-[#1c2538] hover:bg-[#1e293b] transition">Trên</button>
+                <button type="button" id="btnSnapCenter" onclick="snapSub('center')" class="px-2 py-0.5 rounded-md bg-[#070a12] text-[10px] text-slate-300 border border-[#1c2538] hover:bg-[#1e293b] transition">Giữa</button>
+                <button type="button" id="btnSnapBottom" onclick="snapSub('bottom')" class="px-2 py-0.5 rounded-md bg-pink-600 text-[10px] text-white font-bold hover:bg-pink-500 transition shadow-xs">Dưới</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. WATERMARK (CARD BO GÓC) -->
+        <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-indigo-500/40 transition-all space-y-2">
+          <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
+            <span class="text-indigo-400 font-bold flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+              7. Watermark Kênh
+            </span>
+          </div>
+          <div>
+            <input id="inputWatermarkText" type="text" value="@ReviewPhim" oninput="updateWatermarkText(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1 text-[11px] text-amber-300 font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Watermark...">
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+            <select id="selWatermarkPos" onchange="changeWatermarkPos(this.value)" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-slate-200 focus:outline-none">
+              <option value="top-right" selected>Góc trên phải</option>
+              <option value="top-left">Góc trên trái</option>
+              <option value="bottom-right">Góc dưới phải</option>
+              <option value="bottom-left">Góc dưới trái</option>
+            </select>
+            <select id="selBg916" onchange="changeBgMode916(this.value)" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-slate-200 focus:outline-none">
+              <option value="blur" selected>Nền mờ (Blur BG)</option>
+              <option value="crop">Crop toàn màn</option>
+              <option value="black">Viền đen</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM EXPORT BAR (NÚT XUẤT VIDEO GRADIENT NỔI BẬT BO GÓC) -->
+      <div class="p-3 bg-[#0a0e17] border-t border-[#192236] shrink-0">
+        <button id="btnStartProduction" onclick="startProduction(event)" class="h-10 w-full rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs shadow-lg shadow-rose-950/50 flex items-center justify-center gap-2 transition active:scale-95 border border-rose-400/30">
+          <span class="text-base">🚀</span> Xuất Video Review Chuyên Nghiệp
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ======================================================== -->
+    <!-- CỘT PHẢI: HỆ THỐNG 2 MÀN HÌNH PREVIEW SONG SONG (DUAL MONITORS) -->
+    <!-- ======================================================== -->
+    <main class="flex-1 bg-[#06090f] flex flex-col h-full overflow-hidden relative">
+
+      <!-- TOOLBAR TRÊN CANVAS (BO GÓC NÚT BẤM HIỆN ĐẠI) -->
+      <div class="h-10 bg-[#0b0f19] border-b border-[#1a2336] px-4 flex items-center justify-between shrink-0 z-10">
+        <!-- Khung hình & Chế độ xem -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] text-slate-400">Khung hình:</span>
+            <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538]">
+              <button id="btn169" onclick="setRatio('16:9')" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white shadow-xs text-[11px] transition">
+                16:9
+              </button>
+              <button id="btn916" onclick="setRatio('9:16')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
+                9:16 Shorts
+              </button>
+              <button id="btn11" onclick="setRatio('1:1')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
+                1:1
+              </button>
+            </div>
+          </div>
+
+          <!-- Chế độ hiển thị 2 màn hình -->
+          <div class="flex items-center gap-1.5 border-l border-[#1c2538] pl-3">
+            <span class="text-[11px] text-slate-400">Chế độ xem:</span>
+            <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538]">
+              <button id="btnViewDual" onclick="setDualViewMode('dual')" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1 transition">
+                <span>⊞</span> 2 Màn Hình Song Song
+              </button>
+              <button id="btnViewSource" onclick="setDualViewMode('source')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition">
+                <span>🎥</span> Chỉ Bàn Dựng
+              </button>
+              <button id="btnViewOutput" onclick="setDualViewMode('output')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition">
+                <span>🎬</span> Chỉ Thành Phẩm
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zoom, Vùng An Toàn & Thư Mục -->
+        <div class="flex items-center gap-2">
+          <button id="btnSafe" onclick="toggleSafeGrid()" class="h-6 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-slate-300 text-[11px] border border-[#223048] flex items-center gap-1 transition shadow-xs">
+            <span>📐</span> Vùng An Toàn
+          </button>
+
+          <button onclick="openExportsFolder()" class="h-6 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-amber-300 border border-amber-500/30 text-[11px] flex items-center gap-1 transition shadow-xs">
+            <span>📂</span> Mở Thư Mục Xuất
+          </button>
+        </div>
+      </div>
+
+      <!-- WORKSPACE CHỨA 2 MÀN HÌNH PREVIEW -->
+      <div id="previewDualContainer" class="flex-1 overflow-hidden p-3 grid grid-cols-2 gap-3 items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]">
+
+        <!-- ============================================== -->
+        <!-- MÀN HÌNH 1: BÀN DỰNG & CĂN CHỈNH LAYOUT (VIDEO GỐC) -->
+        <!-- ============================================== -->
+        <div id="monitorSourceBox" class="w-full h-full flex flex-col bg-[#0c101a] rounded-xl border border-[#232f48] overflow-hidden shadow-2xl transition-all">
+          
+          <!-- Monitor 1 Header -->
+          <div class="h-8 bg-[#0f172a] px-3 flex items-center justify-between border-b border-[#1e293b] shrink-0 text-xs">
+            <div class="flex items-center gap-1.5 font-bold text-rose-400">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              <span>1. BÀN DỰNG (VIDEO GỐC & CĂN CHỈNH)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="lblCoordsMonitor" class="text-pink-400 font-mono text-[10px]">X: 50%, Y: 90%</span>
+              <span class="text-slate-500">•</span>
+              <span class="text-amber-400 font-mono text-[10px]">Khớp 1:1 Khung Hình Video</span>
+            </div>
+          </div>
+
+          <!-- Video Monitor Screen Layer -->
+          <div id="videoMonitor" class="flex-1 relative bg-black flex items-center justify-center overflow-hidden select-none">
+            
+            <!-- Blur Background for 9:16 -->
+            <div id="blurBgLayer" class="hidden absolute inset-0 overflow-hidden pointer-events-none">
+              <video id="blurVideo" class="w-full h-full object-cover filter blur-xl scale-125 opacity-60" loop muted playsinline></video>
+            </div>
+
+            <!-- Active Video Frame Canvas Wrapper (Khung hình chuẩn 1:1 tuyệt đối với video xuất bản) -->
+            <div id="videoCanvasWrapper" class="relative overflow-hidden flex items-center justify-center pointer-events-auto shadow-2xl transition-all" style="position: relative; aspect-ratio: 16/9; max-width: 100%; max-height: 100%; width: 100%; height: auto;">
+
+              <!-- Main Source Video Player -->
+              <div id="videoScreenLayer" class="absolute inset-0 overflow-hidden flex items-center justify-center">
+                <video id="mainVideoPlayer" class="w-full h-full object-cover pointer-events-auto" loop playsinline preload="auto" muted>
+                  Trình duyệt không hỗ trợ thẻ video.
+                </video>
+                <div id="grainOverlay" class="absolute inset-0 bg-repeat opacity-[0.08] pointer-events-none" style="background-image: radial-gradient(black 1px, transparent 0); background-size: 3px 3px;"></div>
+              </div>
+
+              <!-- Center Big Play Button Overlay -->
+              <div id="centerPlayBtnOverlay" onclick="togglePlaySource()" class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px] cursor-pointer z-20 transition-opacity hover:bg-black/20">
+                <div class="w-12 h-12 rounded-full bg-rose-600 hover:bg-rose-500 hover:scale-110 flex items-center justify-center text-white text-lg shadow-xl transition transform border-2 border-white/60">
+                  ▶
+                </div>
+              </div>
+
+              <!-- Safe Grid Overlay -->
+              <div id="safeGrid" class="hidden absolute inset-0 pointer-events-none border border-emerald-500/40 m-4 border-dashed flex flex-col justify-between p-2 z-20">
+                <span class="text-[9px] text-emerald-400 font-mono">SAFE AREA (MARGIN)</span>
+                <div class="border-t border-emerald-500/25 w-full"></div>
+                <span class="text-[9px] text-emerald-400 font-mono text-right">TIKTOK / YOUTUBE SAFE</span>
+              </div>
+
+              <!-- Watermark Overlay -->
+              <div id="channelWatermark" class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white/90 border border-white/10 z-20 flex items-center gap-1 shadow">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span id="txtWatermarkDisplay">@ReviewPhim</span>
+              </div>
+
+              <!-- ============================================== -->
+              <!-- DRAGGABLE & RESIZABLE SUBTITLE (BẰNG TAY)      -->
+              <!-- ============================================== -->
+              <div id="subDragBox" class="absolute z-30 cursor-grab active:cursor-grabbing px-3.5 py-1.5 rounded-lg bg-black/95 backdrop-blur-md border border-white/30 shadow-2xl hover:ring-2 hover:ring-pink-500/70 select-none transition-all" style="top: 90%; left: 50%; transform: translate(-50%, -50%);">
+                <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-pink-600 text-white text-[8px] px-1 py-0.2 rounded font-bold shadow pointer-events-none whitespace-nowrap">
+                  ⠿ Kéo vị trí • Co giãn ↘
+                </div>
+                <p id="subDisplay" class="font-extrabold text-white text-center tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] whitespace-nowrap" style="font-size: 24px;">
+                  Trình chiếu phụ đề review <span id="hlWord1" style="color: #facc15;">tự động khớp</span> theo video!
+                </p>
+                <!-- Resize Corner Handle (Co giãn cỡ chữ bằng tay) -->
+                <div id="subResizeGrip" class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-pink-500 hover:bg-pink-400 rounded-sm cursor-nwse-resize shadow flex items-center justify-center text-[8px] text-white select-none" title="Kéo để co giãn kích thước phụ đề">
+                  ↘
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Monitor 1 Playback Dock -->
+          <div class="h-9 bg-[#090d16] px-3 flex items-center justify-between border-t border-[#1e293b] shrink-0 text-xs">
+            <div class="flex items-center gap-2">
+              <button onclick="stepSourceVideo(-5)" class="w-5 h-5 rounded bg-[#1e293b] hover:bg-slate-700 text-white flex items-center justify-center text-[10px]">⏪</button>
+              <button id="btnPlaySource" onclick="togglePlaySource()" class="w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-[10px]">▶</button>
+              <button onclick="stepSourceVideo(5)" class="w-5 h-5 rounded bg-[#1e293b] hover:bg-slate-700 text-white flex items-center justify-center text-[10px]">⏩</button>
+              <span id="txtSourceTime" class="text-[10px] font-mono text-slate-300 ml-1">00:00 / 00:00</span>
+            </div>
+            <div class="flex-1 mx-3">
+              <input type="range" id="sourceScrubber" min="0" max="100" value="0" step="0.1" oninput="seekSource(this.value)" class="w-full h-1 accent-rose-500 cursor-pointer">
+            </div>
+            <span id="txtSourceStatus" class="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">Video Gốc</span>
+          </div>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- MÀN HÌNH 2: KẾT QUẢ RECAP THÀNH PHẨM (XUẤT BẢN) -->
+        <!-- ============================================== -->
+        <div id="monitorOutputBox" class="w-full h-full flex flex-col bg-[#0c101a] rounded-xl border border-emerald-500/30 overflow-hidden shadow-2xl transition-all">
+
+          <!-- Monitor 2 Header -->
+          <div class="h-8 bg-[#0b1b14] px-3 flex items-center justify-between border-b border-emerald-500/20 shrink-0 text-xs">
+            <div class="flex items-center gap-1.5 font-bold text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>2. THÀNH PHẨM (KẾT QUẢ RECAP ĐÃ DỰNG)</span>
+            </div>
+            <span id="txtOutputBadge" class="text-emerald-400 font-mono text-[10px] font-semibold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+              Sẵn Sàng Phát
+            </span>
+          </div>
+
+          <!-- Video Output Screen Layer -->
+          <div class="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+            
+            <!-- Output Video Player -->
+            <video id="outputVideoPlayer" class="w-full h-full object-contain pointer-events-auto" controls playsinline loop preload="auto">
+              Trình duyệt không hỗ trợ thẻ video.
+            </video>
+
+            <!-- Output Empty Placeholder (Khi chưa có video render) -->
+            <div id="outputEmptyPlaceholder" class="hidden absolute inset-0 bg-[#070c14] flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
+              <div class="w-14 h-14 rounded-full bg-[#111c2e] border border-emerald-500/20 flex items-center justify-center text-2xl shadow-inner">
+                🎬
+              </div>
+              <div class="space-y-1">
+                <p class="text-xs font-bold text-slate-200">Chưa Có Bản Recap Mới Xuất</p>
+                <p class="text-[11px] text-slate-400 max-w-xs">Bấm "🚀 Xuất Video Review" ở cột bên trái. Bản hoàn thiện (đã ghép giọng đọc AI, nhạc nền và phụ đề đúng vị trí căn chỉnh) sẽ tự động hiển thị và phát tại đây.</p>
+              </div>
+              <button onclick="loadLatestExportToOutput(true)" class="px-3.5 py-1.5 rounded bg-[#162338] hover:bg-[#1f3352] text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1.5 transition">
+                <span>▶</span> Phát Bản Xuất Gần Nhất
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Monitor 2 Playback & Export Actions Dock -->
+          <div class="h-9 bg-[#091510] px-3 flex items-center justify-between border-t border-emerald-500/20 shrink-0 text-xs">
+            <span id="txtOutputDetails" class="text-[10px] font-mono text-emerald-400 truncate max-w-[220px]">Video Thành Phẩm (1080p FHD)</span>
+            <div class="flex items-center gap-1.5">
+              <a id="btnDownloadOutput" href="#" download class="h-6 px-2.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[10px] flex items-center gap-1 transition">
+                <span>⬇</span> Tải Về (.mp4)
+              </a>
+              <button onclick="openExportsFolder()" class="h-6 px-2 rounded bg-[#13231b] hover:bg-[#1a3326] text-amber-300 border border-amber-500/30 text-[10px] flex items-center gap-1 transition">
+                <span>📂</span> Thư Mục
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- SCRIPT MODAL -->
+  <div id="scriptModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0f172a] border border-[#2d3a52] rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-3 bg-[#131b2e] border-b border-[#2d3a52] flex justify-between items-center">
+        <span class="font-bold text-white text-xs flex items-center gap-1.5">
+          <span>📜</span> <span id="modalScriptTitle">Kịch Bản Review Phim AI (3 Hồi)</span>
+        </span>
+        <button onclick="closeScriptModal()" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">✕</button>
+      </div>
+
+      <div id="modalScriptContent" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
+        <!-- Rendered dynamically from current script -->
+      </div>
+
+      <div class="p-2.5 bg-[#131b2e] border-t border-[#2d3a52] flex justify-between items-center text-xs">
+        <span id="txtScriptFooterInfo" class="text-slate-400 text-[11px]">21 phân đoạn • Ước tính 112 giây</span>
+        <div class="flex items-center gap-2">
+          <button onclick="generateAiScript()" class="px-2.5 py-1 rounded bg-[#1e293b] hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[11px] font-medium flex items-center gap-1">
+            <span>✨</span> Viết Lại Bản Khác
+          </button>
+          <button onclick="closeScriptModal()" class="px-3 py-1 rounded bg-rose-600 text-white font-bold text-xs hover:bg-rose-500">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL (CÀI ĐẶT API & KEYS) -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0f172a] border border-[#2d3a52] rounded-xl w-full max-w-xl flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-3.5 bg-[#131b2e] border-b border-[#2d3a52] flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-base text-amber-400">⚙️</span>
+          <span class="font-bold text-white text-xs tracking-wide">CÀI ĐẶT API & KHÓA DỊCH VỤ (RECAP ENGINE)</span>
+        </div>
+        <button onclick="closeSettingsModal()" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-4 space-y-3 text-xs overflow-y-auto max-h-[75vh]">
+        <!-- 1. Google Gemini API Keys -->
+        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-400 flex items-center gap-1.5">
+              <span>🤖</span> Google Gemini API Keys (Biên Kịch & Giọng Đọc)
+            </span>
+            <button onclick="testGeminiKeys()" class="px-2 py-0.5 rounded bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/50 text-[10px] font-semibold transition">
+              🔍 Kiểm Tra Key (Ping)
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400">
+            Dùng chung cho viết kịch bản 3 hồi và sinh giọng đọc Gemini TTS. Hỗ trợ nhiều key (mỗi dòng 1 key để quay vòng tự động):
+          </p>
+          <textarea id="txtGeminiKeys" rows="3" class="w-full bg-[#0d131f] border border-[#2d3a52] rounded p-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500 resize-none">AIzaSyB_demoKey01_abc123
+AIzaSyC_demoKey02_def456
+AIzaSyD_demoKey03_ghi789</textarea>
+          <div class="flex items-center justify-between text-[10px] text-slate-400">
+            <span>Model biên kịch:</span>
+            <select class="bg-[#0d131f] border border-[#2d3a52] rounded px-1.5 py-0.5 text-slate-200">
+              <option selected>gemini-3.5-flash (Khuyên dùng)</option>
+              <option>gemini-flash-lite-latest (Nhanh nhất)</option>
+              <option>gemini-3.8-flash</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. Giọng Đọc Gemini TTS Engine -->
+        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2">
+          <span class="font-bold text-sky-400 flex items-center gap-1.5">
+            <span>🎙️</span> Cấu Hình Giọng Đọc Gemini TTS
+          </span>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Giọng mặc định:</label>
+              <select class="w-full bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 text-slate-200">
+                <option selected>Fenrir (Nam kịch tính - Phù hợp phim hành động)</option>
+                <option>Aoede (Nữ ấm áp - Phù hợp phim tình cảm)</option>
+                <option>Puck (Nam hài hước - Phù hợp review bắt trend)</option>
+                <option>Kore (Nữ trầm - Phù hợp phim giật gân)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Dự phòng khi hết Quota:</label>
+              <select class="w-full bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 text-slate-200">
+                <option selected>Edge-TTS NamMinh (Miễn phí 100%)</option>
+                <option>Edge-TTS HoaiMy (Miễn phí 100%)</option>
+                <option>Chuyển sang Key Gemini tiếp theo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Whisper Speech-to-Text -->
+        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2">
+          <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+            <span>⚡</span> Whisper Trích Xuất Lời Thoại Phim Gốc
+          </span>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-1.5 bg-[#0d131f] rounded border border-[#2d3a52] cursor-pointer">
+              <input type="radio" name="whisperEngine" checked class="accent-emerald-500">
+              <span>Local GPU (WhisperX)</span>
+            </label>
+            <label class="flex items-center gap-2 p-1.5 bg-[#0d131f] rounded border border-[#2d3a52] cursor-pointer">
+              <input type="radio" name="whisperEngine" class="accent-emerald-500">
+              <span>OpenAI Whisper API</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Thư Mục Xuất Video -->
+        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-1.5">
+          <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+            <span>💾</span> Thư Mục Xuất Video (Độc lập với Storyboard)
+          </span>
+          <div class="flex gap-1.5">
+            <input type="text" value="D:/MOVIE_RECAP_EXPORTS/" class="w-full bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 font-mono text-slate-200 focus:outline-none">
+            <button onclick="alert('Đã chọn thư mục: D:/MOVIE_RECAP_EXPORTS/')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium shrink-0">
+              📁 Duyệt
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 bg-[#131b2e] border-t border-[#2d3a52] flex justify-between items-center">
+        <span id="txtSaveStatus" class="text-[10px] text-emerald-400">Đã kết nối 3 API Keys</span>
+        <div class="flex gap-2">
+          <button onclick="closeSettingsModal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Hủy</button>
+          <button onclick="saveApiSettings()" class="px-4 py-1 rounded bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold shadow-md">💾 Lưu Cài Đặt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORTS MODAL (DANH SÁCH VIDEO ĐÃ XUẤT) -->
+  <div id="exportsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0f172a] border border-[#2d3a52] rounded-xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden max-h-[85vh]">
+      <div class="p-3.5 bg-[#131b2e] border-b border-[#2d3a52] flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-base text-emerald-400">🎬</span>
+          <span class="font-bold text-white text-xs tracking-wide">DANH SÁCH VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openExportsFolder()" class="h-6 px-2.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-medium flex items-center gap-1 transition">
+            <span>📂</span> Mở Thư Mục Chứa Video
+          </button>
+          <button onclick="closeExportsModal()" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">✕</button>
+        </div>
+      </div>
+
+      <div id="exportsListContainer" class="p-3.5 space-y-2.5 text-xs overflow-y-auto max-h-[65vh]">
+        <!-- Dynamic content -->
+      </div>
+
+      <div class="p-3 bg-[#131b2e] border-t border-[#2d3a52] flex justify-between items-center text-[11px] text-slate-400">
+        <span>Thư mục xuất: <strong class="text-slate-200 font-mono">D:\STORYBOARD_AI\recap_exports</strong></span>
+        <button onclick="closeExportsModal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // 1. Ratio & 9:16 BG Mode
+    let currentRatio = '16:9';
+    let userLockedDuration = false;
+
+    function fitVideoCanvas() {
+      const monitor = document.getElementById('videoMonitor');
+      const canvas = document.getElementById('videoCanvasWrapper');
+      if (!monitor || !canvas) return;
+      const mRect = monitor.getBoundingClientRect();
+      if (mRect.width === 0 || mRect.height === 0) return;
+
+      const [rw, rh] = currentRatio === '9:16' ? [9, 16] : (currentRatio === '1:1' ? [1, 1] : [16, 9]);
+      const targetAspect = rw / rh;
+      const containerAspect = mRect.width / mRect.height;
+
+      let fitW, fitH;
+      if (containerAspect > targetAspect) {
+        fitH = mRect.height;
+        fitW = fitH * targetAspect;
+      } else {
+        fitW = mRect.width;
+        fitH = fitW / targetAspect;
+      }
+      canvas.style.width = Math.round(fitW) + 'px';
+      canvas.style.height = Math.round(fitH) + 'px';
+      canvas.style.aspectRatio = `${rw}/${rh}`;
+    }
+
+    window.addEventListener('resize', fitVideoCanvas);
+
+    function setRatio(r) {
+      currentRatio = r;
+      const monitor = document.getElementById('videoMonitor');
+      const b169 = document.getElementById('btn169');
+      const b916 = document.getElementById('btn916');
+      const b11 = document.getElementById('btn11');
+      const blurBg = document.getElementById('blurBgLayer');
+
+      [b169, b916, b11].forEach(b => {
+        if (b) b.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px]";
+      });
+
+      if (r === '16:9') {
+        monitor.style.width = '800px';
+        monitor.style.aspectRatio = '16/9';
+        if (b169) b169.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px]";
+        blurBg.classList.add('hidden');
+      } else if (r === '9:16') {
+        monitor.style.width = '350px';
+        monitor.style.aspectRatio = '9/16';
+        if (b916) b916.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px]";
+        applyBg916();
+      } else {
+        monitor.style.width = '500px';
+        monitor.style.aspectRatio = '1/1';
+        if (b11) b11.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px]";
+        blurBg.classList.add('hidden');
+      }
+      fitVideoCanvas();
+    }
+
+    function changeBgMode916(mode) {
+      if (currentRatio === '9:16') {
+        applyBg916();
+      }
+    }
+
+    function applyBg916() {
+      const mode = document.getElementById('selBg916').value;
+      const blurBg = document.getElementById('blurBgLayer');
+      const player = document.getElementById('mainVideoPlayer');
+      if (mode === 'blur') {
+        blurBg.classList.remove('hidden');
+        player.style.objectFit = 'contain';
+      } else if (mode === 'crop') {
+        blurBg.classList.add('hidden');
+        player.style.objectFit = 'cover';
+      } else {
+        blurBg.classList.add('hidden');
+        player.style.objectFit = 'contain';
+      }
+    }
+
+    // 2. Zoom & Flip & Real-time CSS Filters
+    let curZoom = 105;
+    let flipped = false;
+
+    function applyZoom(val) {
+      curZoom = parseInt(val);
+      const _sz = document.getElementById('sliderZoom'); if (_sz) _sz.value = curZoom;
+      const _lz = document.getElementById('lblZoom'); if (_lz) _lz.innerText = curZoom + "%";
+      applyVideoFilters();
+    }
+
+    function stepZoom(d) {
+      applyZoom(Math.min(200, Math.max(100, curZoom + d)));
+    }
+
+    function toggleFlip() {
+      const chk = document.getElementById('chkFlip');
+      chk.checked = !chk.checked;
+      applyVideoFilters();
+    }
+
+    function applyVideoFilters() {
+      const player = document.getElementById('mainVideoPlayer');
+      if (!player) return;
+
+      const chkFlip = document.getElementById('chkFlip');
+      flipped = chkFlip ? chkFlip.checked : false;
+
+      const btnFlip = document.getElementById('btnFlip');
+      if (btnFlip) {
+        if (flipped) btnFlip.className = "h-6 px-2 rounded bg-emerald-600 text-white text-[11px] border border-emerald-500 flex items-center gap-1";
+        else btnFlip.className = "h-6 px-2 rounded bg-[#1e293b] hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700 flex items-center gap-1";
+      }
+
+      // Brightness & Contrast
+      const sBright = document.getElementById('sliderBrightness');
+      const sContr = document.getElementById('sliderContrast');
+      const bPct = sBright ? parseInt(sBright.value) : 108;
+      const cPct = sContr ? parseInt(sContr.value) : 112;
+
+      const bDiff = bPct - 100;
+      const cDiff = cPct - 100;
+      document.getElementById('lblBrightness').innerText = (bDiff > 0 ? '+' : '') + bDiff + '%';
+      document.getElementById('lblContrast').innerText = (cDiff > 0 ? '+' : '') + cDiff + '%';
+
+      const bVal = (bPct / 100).toFixed(2);
+      const cVal = (cPct / 100).toFixed(2);
+
+      let filterStr = `brightness(${bVal}) contrast(${cVal})`;
+
+      // LUT Màu
+      const chkLut = document.getElementById('chkLut');
+      if (chkLut && chkLut.checked) {
+        filterStr += ` saturate(1.2) sepia(0.08)`;
+      }
+      player.style.filter = filterStr;
+
+      // Grain Overlay
+      const chkGrain = document.getElementById('chkGrain');
+      const grain = document.getElementById('grainOverlay');
+      if (grain) {
+        if (chkGrain && chkGrain.checked) grain.classList.remove('hidden');
+        else grain.classList.add('hidden');
+      }
+
+      // Zoom & Flip Transform
+      const chkKen = document.getElementById('chkKenBurns');
+      const activeZoom = (chkKen && chkKen.checked) ? curZoom : 100;
+      const sx = (activeZoom / 100) * (flipped ? -1 : 1);
+      const sy = activeZoom / 100;
+      player.style.transform = `scale(${sx}, ${sy})`;
+    }
+
+    // 3. Subtitle Font, Size, Color & Live Dynamic Karaoke Animation
+    let currentHlColor = "#facc15";
+    let karaokeTimer = null;
+    let karaokeWordIdx = 0;
+
+    function getSubPreviewWords() {
+      const text = (document.getElementById('inputSubText')?.value || "").trim();
+      if (!text) return ["Trình", "chiếu", "phụ", "đề", "review"];
+      return text.split(/\s+/).filter(Boolean);
+    }
+
+    function renderSubPreview() {
+      const sub = document.getElementById('subDisplay');
+      if (!sub) return;
+
+      const style = document.getElementById('selSubStyle')?.value || "karaoke_box";
+      const isBoxed = (style === "karaoke_box" || style === "box");
+      const dragBoxEl = document.getElementById('subDragBox');
+      if (dragBoxEl) {
+        if (isBoxed) {
+          dragBoxEl.className = "absolute z-30 cursor-grab active:cursor-grabbing px-3.5 py-1.5 rounded-lg bg-black/95 backdrop-blur-md border border-white/30 shadow-2xl hover:ring-2 hover:ring-pink-500/70 select-none transition-all";
+        } else {
+          dragBoxEl.className = "absolute z-30 cursor-grab active:cursor-grabbing px-2.5 py-1 rounded border border-dashed border-white/40 hover:border-pink-500 select-none transition-all";
+        }
+      }
+
+      const words = getSubPreviewWords();
+
+      if (style === "karaoke" || style === "karaoke_box") {
+        // Dynamic Karaoke Mode: 3-4 word chunk illuminated word-by-word
+        const chunkSize = 4;
+        const totalWords = Math.max(1, words.length);
+        const chunkIndex = Math.floor(karaokeWordIdx / chunkSize) % Math.ceil(totalWords / chunkSize);
+        const chunkStart = chunkIndex * chunkSize;
+        const currentChunk = words.slice(chunkStart, chunkStart + chunkSize);
+        const activeInChunk = karaokeWordIdx - (chunkIndex * chunkSize);
+
+        sub.style.textShadow = isBoxed ? "none" : "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 3px 8px rgba(0,0,0,0.95)";
+        sub.innerHTML = currentChunk.map((w, idx) => {
+          const isSpoken = idx <= activeInChunk;
+          const color = isSpoken ? currentHlColor : "#ffffff";
+          const pop = isSpoken && idx === activeInChunk 
+            ? "transform: scale(1.08); display: inline-block; font-weight: 900;" 
+            : "display: inline-block;";
+          return `<span style="color: ${color}; ${pop} transition: color 0.12s ease, transform 0.12s ease;">${w}</span>`;
+        }).join(" ");
+
+      } else if (style === "outline") {
+        // Outline Mode: 3-4 word chunk with high contrast stroke
+        sub.style.textShadow = "-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 4px 12px rgba(0,0,0,0.95)";
+        const chunk = words.slice(0, 4).join(" ");
+        sub.innerHTML = `<span style="color: #ffffff; font-weight: 800;">${chunk}</span>`;
+
+      } else {
+        // Short Chunk / Solid Box Mode: 3-4 word punchy phrase
+        sub.style.textShadow = isBoxed ? "none" : "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 2px 6px rgba(0,0,0,0.95)";
+        const chunk = words.slice(0, 4).join(" ");
+        sub.innerHTML = `<span style="color: ${currentHlColor}; font-weight: 800;">${chunk}</span>`;
+      }
+    }
+
+    function startKaraokeAnimation() {
+      if (karaokeTimer) clearInterval(karaokeTimer);
+      karaokeWordIdx = 0;
+      renderSubPreview();
+
+      karaokeTimer = setInterval(() => {
+        const style = document.getElementById('selSubStyle')?.value || "karaoke_box";
+        if (style !== "karaoke" && style !== "karaoke_box") return;
+
+        const words = getSubPreviewWords();
+        karaokeWordIdx++;
+        if (karaokeWordIdx >= words.length) {
+          karaokeWordIdx = 0;
+        }
+        renderSubPreview();
+      }, 450);
+    }
+
+    function updateSubText(text) {
+      karaokeWordIdx = 0;
+      renderSubPreview();
+    }
+
+    function changeFontFamily(font) {
+      const sub = document.getElementById('subDisplay');
+      if (sub) sub.style.fontFamily = font;
+    }
+
+    function changeFontSize(px) {
+      const size = Math.max(16, Math.min(54, parseInt(px) || 24));
+      const lbl = document.getElementById('lblFontSize');
+      if (lbl) lbl.innerText = size + "px";
+      const slider = document.getElementById('sliderFontSize');
+      if (slider && slider.value != size) slider.value = size;
+      const sub = document.getElementById('subDisplay');
+      if (sub) sub.style.fontSize = size + "px";
+    }
+
+    function setHlColor(c) {
+      currentHlColor = c;
+      renderSubPreview();
+    }
+
+    function changeSubStyle(style) {
+      karaokeWordIdx = 0;
+      renderSubPreview();
+      if ((style === "karaoke" || style === "karaoke_box") && !karaokeTimer) {
+        startKaraokeAnimation();
+      }
+    }
+
+    function snapSub(pos) {
+      const box = document.getElementById('subDragBox');
+      if (!box) return;
+      const bTop = document.getElementById('btnSnapTop');
+      const bCenter = document.getElementById('btnSnapCenter');
+      const bBottom = document.getElementById('btnSnapBottom');
+      [bTop, bCenter, bBottom].forEach(b => {
+        if (b) b.className = "px-1.5 py-0.5 rounded bg-[#080c14] text-[10px] text-slate-300 border border-[#1e293b] hover:bg-[#1e293b]";
+      });
+
+      if (pos === 'top') {
+        box.style.top = '12%'; box.style.left = '50%';
+        updateCoords('50%', '12%');
+        if (bTop) bTop.className = "px-1.5 py-0.5 rounded bg-pink-600 text-[10px] text-white font-bold hover:bg-pink-500";
+      } else if (pos === 'center') {
+        box.style.top = '50%'; box.style.left = '50%';
+        updateCoords('50%', '50%');
+        if (bCenter) bCenter.className = "px-1.5 py-0.5 rounded bg-pink-600 text-[10px] text-white font-bold hover:bg-pink-500";
+      } else {
+        box.style.top = '90%'; box.style.left = '50%';
+        updateCoords('50%', '90%');
+        if (bBottom) bBottom.className = "px-1.5 py-0.5 rounded bg-pink-600 text-[10px] text-white font-bold hover:bg-pink-500";
+      }
+    }
+
+    function updateCoords(x, y) {
+      const c1 = document.getElementById('lblCoords');
+      const c2 = document.getElementById('lblCoordsMonitor');
+      if (c1) c1.innerText = `X: ${x}, Y: ${y}`;
+      if (c2) c2.innerText = `X: ${x}, Y: ${y}`;
+    }
+
+    // 4. Draggable & Resizable Subtitle Box (Kéo & Co giãn bằng tay)
+    const dragBox = document.getElementById("subDragBox");
+    const resizeGrip = document.getElementById("subResizeGrip");
+    const monitor = document.getElementById("videoMonitor");
+
+    let isDrag = false;
+    let isResize = false;
+    let sX, sY;
+    let initL, initT, initFontSize;
+
+    if (dragBox && monitor) {
+      dragBox.addEventListener("mousedown", (e) => {
+        if (e.target === resizeGrip || e.target.closest('#subResizeGrip')) {
+          isResize = true;
+          sX = e.clientX;
+          sY = e.clientY;
+          initFontSize = parseInt(document.getElementById('sliderFontSize')?.value || "24");
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
+
+        isDrag = true;
+        dragBox.classList.add("drag-active");
+        sX = e.clientX;
+        sY = e.clientY;
+
+        const canvas = document.getElementById("videoCanvasWrapper") || monitor;
+        const rect = dragBox.getBoundingClientRect();
+        const parentRect = canvas.getBoundingClientRect();
+
+        initL = rect.left + rect.width / 2 - parentRect.left;
+        initT = rect.top + rect.height / 2 - parentRect.top;
+        e.preventDefault();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (isDrag) {
+          const canvas = document.getElementById("videoCanvasWrapper") || monitor;
+          const parentRect = canvas.getBoundingClientRect();
+          const dx = e.clientX - sX;
+          const dy = e.clientY - sY;
+
+          let nX = initL + dx;
+          let nY = initT + dy;
+
+          nX = Math.max(10, Math.min(parentRect.width - 10, nX));
+          nY = Math.max(10, Math.min(parentRect.height - 10, nY));
+
+          const pctX = Math.round((nX / parentRect.width) * 100);
+          const pctY = Math.round((nY / parentRect.height) * 100);
+
+          dragBox.style.left = pctX + "%";
+          dragBox.style.top = pctY + "%";
+
+          updateCoords(pctX + "%", pctY + "%");
+        } else if (isResize) {
+          const delta = Math.round((e.clientX - sX) / 3);
+          const newSize = Math.max(16, Math.min(54, initFontSize + delta));
+          changeFontSize(newSize);
+          const slider = document.getElementById('sliderFontSize');
+          if (slider) slider.value = newSize;
+        }
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDrag) {
+          isDrag = false;
+          dragBox.classList.remove("drag-active");
+        }
+        if (isResize) {
+          isResize = false;
+        }
+      });
+
+      dragBox.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        const curSize = parseInt(document.getElementById('sliderFontSize')?.value || "24");
+        const nextSize = e.deltaY < 0 ? Math.min(54, curSize + 2) : Math.max(16, curSize - 2);
+        changeFontSize(nextSize);
+        const slider = document.getElementById('sliderFontSize');
+        if (slider) slider.value = nextSize;
+      });
+    }
+
+    // 5. Watermark & Progress Bar Toggles
+    function updateWatermarkText(text) {
+      document.getElementById('txtWatermarkDisplay').innerText = text.trim() || "@ReviewPhimHay";
+    }
+
+    function changeWatermarkPos(pos) {
+      const el = document.getElementById('channelWatermark');
+      el.className = "absolute bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold text-white/90 border border-white/10 z-20 flex items-center gap-1.5 shadow transition-all duration-150";
+      if (pos === 'top-left') {
+        el.classList.add('top-3', 'left-3');
+      } else if (pos === 'bottom-right') {
+        el.classList.add('bottom-8', 'right-3');
+      } else if (pos === 'bottom-left') {
+        el.classList.add('bottom-8', 'left-3');
+      } else {
+        el.classList.add('top-3', 'right-3');
+      }
+    }
+
+    function toggleWatermark(checked) {
+      const el = document.getElementById('channelWatermark');
+      if (checked) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+
+    function toggleProgressBar(checked) {
+      const el = document.getElementById('videoProgressBar');
+      if (checked) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+
+    function toggleSafeGrid() {
+      const g = document.getElementById('safeGrid');
+      const b = document.getElementById('btnSafe');
+      if (g.classList.contains('hidden')) {
+        g.classList.remove('hidden');
+        b.className = "h-6 px-2 rounded bg-emerald-600 text-white text-[11px] border border-emerald-500 flex items-center gap-1";
+      } else {
+        g.classList.add('hidden');
+        b.className = "h-6 px-2 rounded bg-[#1e293b] hover:bg-slate-700 text-slate-300 text-[11px] border border-slate-700 flex items-center gap-1";
+      }
+    }
+
+    // 6. Video Source Switcher: Recap Video vs Source Movie
+    let currentSourceMode = 'recap';
+    function switchVideoSource(mode) {
+      currentSourceMode = mode;
+      const player = document.getElementById('mainVideoPlayer');
+      const blurVid = document.getElementById('blurVideo');
+      const btnRecap = document.getElementById('btnSwitchToRecap');
+      const btnSource = document.getElementById('btnSwitchToSource');
+      const topTxt = document.getElementById('txtTopStatus');
+      const activeTitle = document.getElementById('activeExportTitle');
+      const activeMeta = document.getElementById('activeExportMeta');
+
+      if (mode === 'recap') {
+        if (currentExports.length > 0) {
+          player.src = currentExports[0].url;
+          if (blurVid) blurVid.src = currentExports[0].url;
+          activeTitle.innerText = currentExports[0].name;
+          activeMeta.innerText = `${currentExports[0].size_mb} MB • ${currentExports[0].time_str}`;
+        }
+        btnRecap.className = "px-2.5 py-0.5 rounded font-bold bg-emerald-600 text-white text-[11px] flex items-center gap-1 shadow-sm transition";
+        btnSource.className = "px-2.5 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition";
+        topTxt.innerText = "XEM VIDEO RECAP THÀNH PHẨM (1:52)";
+        player.play().catch(() => {});
+      } else {
+        const sourceUrl = (selectedVideoPath && selectedVideoPath.includes('downloads'))
+          ? `/exports/downloads/${encodeURIComponent(selectedVideoPath.split(/[\\/]/).pop())}`
+          : (selectedVideoPath ? `/source/${encodeURIComponent(selectedVideoPath.split(/[\\/]/).pop())}` : "/source/demo_real_movie.mp4");
+        player.src = sourceUrl;
+        if (blurVid) blurVid.src = sourceUrl;
+        btnSource.className = "px-2.5 py-0.5 rounded font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1 shadow-sm transition";
+        btnRecap.className = "px-2.5 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition";
+        const fn = selectedVideoPath ? selectedVideoPath.split(/[\\/]/).pop() : "Video Gốc";
+        activeTitle.innerText = `${fn} (Phim Gốc)`;
+        topTxt.innerText = `PREVIEW PHIM GỐC • KÉO CĂN CHỈNH LAYOUT`;
+        player.currentTime = 0;
+        player.play().catch(() => {});
+      }
+    }
+
+    // 7. Input Source Switcher
+    function switchInputSource(type) {
+      const bFile = document.getElementById('btnSrcFile');
+      const bUrl = document.getElementById('btnSrcUrl');
+      const bBatch = document.getElementById('btnSrcBatch');
+      const boxFile = document.getElementById('srcBoxFile');
+      const boxUrl = document.getElementById('srcBoxUrl');
+      const boxBatch = document.getElementById('srcBoxBatch');
+
+      [bFile, bUrl, bBatch].forEach(b => {
+        b.className = "px-2 py-0.5 rounded bg-[#080c14] text-slate-400 hover:text-white border border-[#1e293b]";
+      });
+      [boxFile, boxUrl, boxBatch].forEach(box => box.classList.add('hidden'));
+
+      if (type === 'file') {
+        bFile.className = "px-2 py-0.5 rounded bg-rose-600 text-white font-semibold";
+        boxFile.classList.remove('hidden');
+      } else if (type === 'url') {
+        bUrl.className = "px-2 py-0.5 rounded bg-rose-600 text-white font-semibold";
+        boxUrl.classList.remove('hidden');
+      } else {
+        bBatch.className = "px-2 py-0.5 rounded bg-rose-600 text-white font-semibold";
+        boxBatch.classList.remove('hidden');
+      }
+    }
+
+    // AUTO-SCAN & CONFIGURE LOGIC
+    let autoScanData = null;
+
+    async function triggerAutoScan() {
+      await runAutoScan(selectedVideoPath);
+    }
+
+    async function loadAvailableVideos() {
+      try {
+        const res = await fetch('/api/videos/list');
+        if (!res.ok) return;
+        const data = await res.json();
+        const sel = document.getElementById('selQuickVideo');
+        if (!sel || !data.videos) return;
+        sel.innerHTML = '<option value="">-- Chọn video máy / đã tải --</option>';
+        data.videos.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.path;
+          opt.innerText = `[${v.folder}] ${v.name} (${v.size_mb} MB)`;
+          sel.appendChild(opt);
+        });
+
+        // Automatically select the first real video if not selected yet
+        if (!selectedVideoPath && data.videos.length > 0) {
+          const firstVid = data.videos[0];
+          sel.value = firstVid.path;
+          await onQuickVideoChosen(firstVid.path);
+        }
+      } catch (err) {
+        console.warn("loadAvailableVideos error:", err);
+      }
+    }
+
+    async function onQuickVideoChosen(videoPath) {
+      if (!videoPath) return;
+      selectedVideoPath = videoPath;
+      const fn = videoPath.split(/[\\/]/).pop();
+      const player = document.getElementById('mainVideoPlayer');
+      const blurVid = document.getElementById('blurVideo');
+      const videoUrl = videoPath.includes('downloads') 
+        ? `/exports/downloads/${encodeURIComponent(fn)}`
+        : `/source/${encodeURIComponent(fn)}`;
+
+      if (player) {
+        player.src = videoUrl;
+        if (blurVid) blurVid.src = videoUrl;
+        player.currentTime = 0.05;
+        player.play().catch(() => {});
+      }
+      const titleEl = document.getElementById('activeExportTitle');
+      if (titleEl) titleEl.innerText = fn;
+      const topStatus = document.getElementById('txtTopStatus');
+      if (topStatus) if (topStatus) topStatus.innerText = `ĐANG CHỌN: ${fn}`;
+
+      await runAutoScan(videoPath);
+    }
+
+    async function runAutoScan(videoPath = null) {
+      try {
+        const targetPath = videoPath || selectedVideoPath;
+        const res = await fetch('/api/scan-auto', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ video_path: targetPath })
+        });
+        if (!res.ok) throw new Error("Server trả về mã lỗi: " + res.status);
+        const data = await res.json();
+        if (data.status !== 'ok') throw new Error(data.message || "Lỗi phân tích video");
+
+        autoScanData = data;
+        applyAutoScanConfig(data);
+      } catch (err) {
+        console.warn("runAutoScan error:", err);
+      }
+    }
+
+    function applyAutoScanConfig(data) {
+      if (!data) return;
+      const meta = data.metadata || {};
+      const cfg = data.suggested_config || {};
+      const subInfo = data.subtitle_info || {};
+
+      // 1. Cấu hình Mục 1 (Nguồn & Cắt)
+      const txtChosen = document.getElementById('txtChosenFileName');
+      const txtDur = document.getElementById('txtChosenDuration');
+      const cutStart = document.getElementById('inputCutStart');
+      const cutEnd = document.getElementById('inputCutEnd');
+      const selSub = document.getElementById('selSubSource');
+
+      if (txtChosen) txtChosen.innerText = `${data.video_file || 'video.mp4'} (${meta.size_mb || 0} MB)`;
+      if (txtDur) txtDur.innerText = `${meta.duration_hms || '00:00'} • ${meta.aspect_ratio || '16:9'} • ${meta.fps || 24}fps`;
+      if (cutStart) cutStart.value = cfg.cut_start || "00:00:00";
+      if (cutEnd) cutEnd.value = cfg.cut_end || meta.duration_hms || "00:00:00";
+
+      if (selSub) {
+        if (subInfo.found && subInfo.file) {
+          selSub.innerHTML = `
+            <option value="srt" selected>📄 ${subInfo.file} (${subInfo.lines_count} dòng)</option>
+            <option value="whisper">⚡ Whisper AI (Word-level)</option>
+            <option value="track">🌐 Track Vietsub trong file</option>
+          `;
+        } else {
+          selSub.innerHTML = `
+            <option value="whisper" selected>⚡ Whisper AI (Tự động nhận diện)</option>
+            <option value="track">🌐 Track Vietsub trong file</option>
+            <option value="online">🎙️ Sub tự động từ YouTube</option>
+          `;
+        }
+      }
+
+      // 2. Cấu hình Mục 2 (Biên Kịch AI - Gán chuẩn xác tên video)
+      const movieTitle = document.getElementById('inputMovieTitle');
+      const sliderDur = document.getElementById('sliderDuration');
+      const selStyle = document.getElementById('selStyle');
+      const titleClean = cfg.movie_title || data.video_file.replace(/\.[^/.]+$/, "");
+
+      if (movieTitle) {
+        movieTitle.value = titleClean;
+      }
+
+      // Tự động gán câu hook & xem trước phụ đề theo đúng video đang chọn
+      const subInp = document.getElementById('inputSubText');
+      const hookText = `Bí mật và kịch tính đằng sau ${titleClean}!`;
+      if (subInp) {
+        subInp.value = hookText;
+      }
+      updateSubText(hookText);
+      const topBadge = document.getElementById('txtTopStatus');
+      if (topBadge) topBadge.innerText = `PREVIEW: ${titleClean.toUpperCase()}`;
+      // Bảo toàn 100% thời lượng của người dùng - không bị tự động reset đè mất
+      let savedDuration = null;
+      try { savedDuration = localStorage.getItem('recap_target_duration'); } catch (e) {}
+
+      if (sliderDur) {
+        if (userLockedDuration && sliderDur.value) {
+          // Người dùng đã chủ động chọn thời lượng -> Giữ nguyên tuyệt đối
+          updateDuration(sliderDur.value, false);
+        } else if (savedDuration) {
+          // Đã có cấu hình lưu trước đó -> Giữ nguyên
+          sliderDur.value = savedDuration;
+          updateDuration(savedDuration, false);
+        } else if (cfg.target_minutes) {
+          // Chưa từng chỉnh -> Dùng giá trị đề xuất ban đầu
+          sliderDur.value = cfg.target_minutes;
+          updateDuration(cfg.target_minutes, false);
+        }
+      }
+
+      let savedGenre = null;
+      try { savedGenre = localStorage.getItem('recap_genre'); } catch (e) {}
+      if (selStyle) {
+        if (savedGenre) {
+          selStyle.value = savedGenre;
+        } else if (cfg.genre) {
+          selStyle.value = cfg.genre;
+        }
+      }
+
+      // 3. Cấu hình Mục 3 (Kịch Bản Hoặc Ý Tưởng Cốt Truyện Tự Động)
+      const ideaBox = document.getElementById('inputStoryIdea');
+      if (ideaBox && (!ideaBox.value.trim() || ideaBox.value.startsWith("Tóm tắt cốt truyện:"))) {
+        const autoIdea = `Tóm tắt cốt truyện: Phim xoay quanh ${titleClean} với nhịp độ ${cfg.genre || 'kịch tính'}. Mở đầu hé lộ bí mật then chốt, xung đột leo thang và cái kết bùng nổ.`;
+        ideaBox.value = autoIdea;
+        onStoryIdeaChanged(autoIdea);
+      }
+
+      const chars = data.detected_characters || [];
+      const badgeAlias = document.getElementById('badgeAliasCount');
+      if (badgeAlias) {
+        badgeAlias.innerText = chars.length > 0 ? `${chars.length} nhân vật` : "Tự động";
+      }
+
+      const charContainer = document.getElementById('characterAliasesList');
+      if (charContainer) {
+        if (chars.length > 0) {
+          charContainer.innerHTML = chars.map((c, i) => `
+            <div class="flex items-center gap-1.5 bg-[#0b101a] p-1 rounded border border-[#1e293b]">
+              <input type="text" id="aliasOrig${i+1}" value="${c.orig}" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-1.5 py-0.5 text-slate-300 focus:outline-none text-[10px]">
+              <span class="text-slate-500 text-[10px]">➔</span>
+              <input type="text" id="aliasTarget${i+1}" value="${c.alias}" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-1.5 py-0.5 text-amber-300 font-semibold focus:outline-none text-[10px]">
+            </div>
+          `).join('');
+        } else {
+          charContainer.innerHTML = `
+            <div class="text-[10px] text-slate-500 py-1 italic">
+              AI sẽ tự động diễn xuất và đặt tên nhân vật phù hợp.
+            </div>
+          `;
+        }
+      }
+
+      // 4. Cấu hình Mục 4 (Giọng đọc & BGM theo thể loại)
+      const selVoice = document.getElementById('selVoice');
+      if (selVoice) {
+        if (cfg.voice_name) {
+          selVoice.value = cfg.voice_name;
+        } else if (cfg.genre && cfg.genre.includes("Hài hước")) {
+          selVoice.value = "Puck";
+        } else {
+          selVoice.value = "Fenrir";
+        }
+      }
+
+      // 5. Cấu hình Mục 5 (Khung hình 16:9 hoặc 9:16)
+      if (cfg.aspect_ratio) {
+        setRatio(cfg.aspect_ratio);
+      }
+
+      // 7. Cấu hình Mục 7 (Watermark)
+      if (cfg.watermark_text) {
+        const inpW = document.getElementById('inputWatermarkText');
+        if (inpW) {
+          inpW.value = cfg.watermark_text;
+          updateWatermarkText(cfg.watermark_text);
+        }
+      }
+
+      // Bật sáng badge "✓ Tự động" tại từng mục tương ứng
+      ['badgeAutoM1', 'badgeAutoM2', 'badgeAutoM3', 'badgeAutoM4', 'badgeAutoM5', 'badgeAutoM7'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+      });
+    }
+
+    function onLocalFileChosen(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        document.getElementById('txtChosenFileName').innerText = `${file.name} (${sizeMb} MB)`;
+        document.getElementById('txtChosenDuration').innerText = `Đã nạp vào trình phát`;
+        selectedVideoPath = file.name;
+
+        // Immediately load into player
+        const objUrl = URL.createObjectURL(file);
+        const player = document.getElementById('mainVideoPlayer');
+        const blurVid = document.getElementById('blurVideo');
+        if (player) {
+          player.src = objUrl;
+          if (blurVid) blurVid.src = objUrl;
+          player.play().catch(() => {});
+        }
+        const _aet = document.getElementById('activeExportTitle'); if (_aet) _aet.innerText = file.name;
+        const _aem = document.getElementById('activeExportMeta'); if (_aem) _aem.innerText = `${sizeMb} MB`;
+        const _tts = document.getElementById('txtTopStatus'); if (_tts) _tts.innerText = `FILE RIÊNG: ${file.name}`;
+
+        // Auto scan new file
+        runAutoScan(file.name);
+      }
+    }
+
+    async function fetchOnlineVideo() {
+      const url = document.getElementById('inputVideoUrl').value.trim();
+      if (!url) {
+        alert("Vui lòng dán đường link video (YouTube / Bilibili / Drive)!");
+        return;
+      }
+      const btn = event.target;
+      const origText = btn.innerText;
+      btn.innerText = "⏳ Đang tải...";
+      try {
+        const res = await fetch('/api/fetch-url', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          selectedVideoPath = data.video_path;
+          const fn = data.metadata.filename;
+          const player = document.getElementById('mainVideoPlayer');
+          const blurVid = document.getElementById('blurVideo');
+          const url = `/exports/downloads/${encodeURIComponent(fn)}`;
+          if (player) {
+            player.src = url;
+            if (blurVid) blurVid.src = url;
+            player.play().catch(() => {});
+          }
+          await loadAvailableVideos();
+          await runAutoScan(data.video_path);
+          alert(`✅ Đã tải và tự động cấu hình video thành công!\n- Tên: ${data.metadata.filename}\n- Thời lượng: ${data.metadata.duration_hms}`);
+        } else {
+          alert("❌ Không thể tải video: " + data.message);
+        }
+      } catch (e) {
+        alert("❌ Lỗi kết nối: " + e.message);
+      } finally {
+        btn.innerText = origText;
+      }
+    }
+
+    // 8. Character Aliases
+    function updateAliasInPreview() {
+      const a1 = document.getElementById('aliasTarget1')?.value || '';
+      const a2 = document.getElementById('aliasTarget2')?.value || '';
+      if (a1 && a2) {
+        updateSubText(`${a1} chạm trán kịch tính cùng ${a2}!`);
+      } else if (a1) {
+        updateSubText(`Câu chuyện kịch tính của ${a1}...`);
+      }
+    }
+
+    function addCharacterRow() {
+      const name = prompt("Nhập tên nhân vật gốc (ví dụ: chú rể):");
+      if (!name) return;
+      const alias = prompt(`Nhập biệt danh dí dỏm cho "${name}":`);
+      if (!alias) return;
+
+      const container = document.getElementById('characterAliasesList');
+      const div = document.createElement('div');
+      div.className = "flex items-center gap-1.5";
+      div.innerHTML = `
+        <input type="text" value="${name}" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-1.5 py-0.5 text-slate-300 focus:outline-none">
+        <span class="text-slate-500">➔</span>
+        <input type="text" value="${alias}" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-1.5 py-0.5 text-amber-300 font-semibold focus:outline-none">
+      `;
+      container.appendChild(div);
+      updateAliasInPreview();
+    }
+
+    // 9. Duration & Pacing
+    function updateDuration(val, isUserAction = false) {
+      const mins = Math.max(1, Math.round(parseFloat(val) || 2));
+      const slider = document.getElementById('sliderDuration');
+      if (slider && parseInt(slider.value) !== mins) {
+        slider.value = mins;
+      }
+
+      let clips;
+      let labelText;
+      if (mins <= 15) {
+        clips = Math.round(mins * 15);
+        labelText = `${mins}p (${clips} đoạn)`;
+      } else if (mins < 60) {
+        clips = Math.round(mins * 6);
+        labelText = `${mins}p (~${clips} cảnh)`;
+      } else {
+        const hrs = (mins / 60).toFixed(1).replace('.0', '');
+        clips = Math.round(mins * 4);
+        labelText = `${mins}p (~${hrs}h - ${clips} cảnh)`;
+      }
+
+      const lbl = document.getElementById('lblDuration');
+      if (lbl) lbl.innerText = labelText;
+      const est = document.getElementById('txtEstimatedClips');
+      if (est) est.innerText = `${clips} clips • ~${mins} phút`;
+
+      if (isUserAction) {
+        userLockedDuration = true;
+        try {
+          localStorage.setItem('recap_target_duration', String(mins));
+        } catch (e) {}
+      }
+    }
+
+    function setQuickDuration(m) {
+      updateDuration(m, true);
+    }
+
+    function updatePacing(val) {
+      document.getElementById('lblPacing').innerText = val + 'x';
+      const player = document.getElementById('mainVideoPlayer');
+      if (player) {
+        player.playbackRate = parseFloat(val);
+      }
+    }
+
+    // 10. Voice Preview
+    async function previewVoice() {
+      const icon = document.getElementById('iconVoiceLoading');
+      if (icon) icon.innerText = "⏳";
+      try {
+        const text = document.getElementById('inputSubText')?.value.trim() || "Trình chiếu câu thoại review tại đây";
+        const voice = document.getElementById('selVoice').value;
+        const speed = parseFloat(document.getElementById('sliderSpeed').value);
+        const res = await fetch('/api/voice/preview', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ text, voice, speed })
+        });
+        const data = await res.json();
+        if (data.status === 'ok' && data.audio_base64) {
+          const audio = new Audio(data.audio_base64);
+          audio.play();
+        } else {
+          alert("Lỗi tạo giọng đọc: " + (data.message || "Unknown error"));
+        }
+      } catch (e) {
+        alert("Lỗi nghe thử giọng đọc: " + e.message);
+      } finally {
+        if (icon) icon.innerText = "🔊";
+      }
+    }
+
+    // Helper to safely collect character aliases
+    function getCollectedCharacterAliases() {
+      const aliases = {};
+      const charRows = document.querySelectorAll('#characterAliasesList > div');
+      charRows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        if (inputs.length >= 2) {
+          const orig = inputs[0].value.trim();
+          const target = inputs[1].value.trim();
+          if (orig && target) aliases[orig] = target;
+        }
+      });
+      return aliases;
+    }
+
+    // 11. Script Generation, Idea Input & Modal
+    let activeScript = null;
+
+    function onStoryIdeaChanged(val) {
+      const words = val.trim().split(/\s+/).filter(Boolean);
+      const counter = document.getElementById('ideaCharCounter');
+      if (counter) counter.innerText = `${words.length} chữ`;
+
+      const badge = document.getElementById('badgeScriptSource');
+      if (badge) {
+        if (val.includes("Cảnh 1:") || words.length > 50) {
+          badge.innerText = "Kịch bản tùy chỉnh";
+        } else if (words.length > 0) {
+          badge.innerText = "Ý tưởng riêng";
+        } else {
+          badge.innerText = "Tự động AI";
+        }
+      }
+    }
+
+    async function generateAiScript() {
+      const btn = document.getElementById('btnGenerateScript');
+      const origText = btn ? btn.innerHTML : "<span>✨</span> AI Viết Kịch Bản";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳</span> Đang viết...`;
+      }
+
+      try {
+        const title = (document.getElementById('inputMovieTitle')?.value || "").trim() || "Review Phim Điện Ảnh Thực Tế";
+        const genre = document.getElementById('selStyle')?.value || "Hành động, Kịch tính";
+        const targetMins = parseFloat(document.getElementById('sliderDuration')?.value || "3");
+        const aliases = getCollectedCharacterAliases();
+        const storyIdea = (document.getElementById('inputStoryIdea')?.value || "").trim();
+
+        const res = await fetch('/api/script/generate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            movie_title: title,
+            genre: genre,
+            target_minutes: targetMins,
+            character_aliases: aliases,
+            story_idea: storyIdea,
+            source_video: selectedVideoPath
+          })
+        });
+
+        const data = await res.json();
+        if (data.status === 'ok') {
+          activeScript = data.script;
+          renderScriptModal(activeScript);
+
+          // Tự động hiện toàn bộ kịch bản vào ô Kịch Bản / Ý Tưởng kèm timecode chuẩn xác
+          const ideaBox = document.getElementById('inputStoryIdea');
+          if (ideaBox && activeScript.segments) {
+            const player = document.getElementById('mainVideoPlayer');
+            const totalDur = (player && player.duration) ? player.duration : 1200;
+            const formattedScript = activeScript.segments.map((s, idx) => {
+              let timeSec = 0;
+              if (s.source_time !== undefined && s.source_time !== null) {
+                timeSec = parseFloat(s.source_time);
+              } else if (s.film_pos_pct !== undefined) {
+                timeSec = Math.round(parseFloat(s.film_pos_pct) * totalDur);
+              } else {
+                timeSec = Math.round((idx / Math.max(1, activeScript.segments.length)) * totalDur);
+              }
+              const tc = `[${formatTimeSec(timeSec)}] `;
+              return `Cảnh ${idx + 1} ${tc}: ${s.text}`;
+            }).join('\n\n');
+            ideaBox.value = formattedScript;
+            onStoryIdeaChanged(formattedScript);
+          }
+
+          const badgeCount = document.getElementById('txtScriptSegmentsCount');
+          if (badgeCount) badgeCount.innerText = activeScript.segments?.length || 0;
+          const badgeSource = document.getElementById('badgeScriptSource');
+          if (badgeSource) badgeSource.innerText = "✨ AI đã viết";
+
+          // Cập nhật câu thoại mở đầu vào ô xem trước phụ đề
+          if (activeScript.segments && activeScript.segments[0]) {
+            document.getElementById('inputSubText').value = activeScript.segments[0].text;
+            updateSubText(activeScript.segments[0].text);
+          }
+        } else {
+          alert("Lỗi sinh kịch bản: " + data.message);
+        }
+      } catch (err) {
+        alert("Lỗi kết nối biên kịch: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      }
+    }
+
+    async function loadCurrentScript() {
+      try {
+        const stem = selectedVideoPath ? selectedVideoPath.split(/[\\/]/).pop().replace(/\.[^/.]+$/, "").substring(0, 30) : "";
+        const url = stem ? `/api/script/current?video_stem=${encodeURIComponent(stem)}` : '/api/script/current';
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'ok') {
+            activeScript = data.script;
+            renderScriptModal(activeScript);
+
+            // Tự động hiển thị kịch bản vào ô nhập kịch bản nếu chưa có kèm timecode
+            const ideaBox = document.getElementById('inputStoryIdea');
+            if (ideaBox && (!ideaBox.value.trim() || ideaBox.value.startsWith("Tóm tắt cốt truyện:")) && activeScript.segments) {
+              const player = document.getElementById('mainVideoPlayer');
+              const totalDur = (player && player.duration) ? player.duration : 1200;
+              const formattedScript = activeScript.segments.map((s, idx) => {
+                let timeSec = 0;
+                if (s.source_time !== undefined && s.source_time !== null) {
+                  timeSec = parseFloat(s.source_time);
+                } else if (s.film_pos_pct !== undefined) {
+                  timeSec = Math.round(parseFloat(s.film_pos_pct) * totalDur);
+                } else {
+                  timeSec = Math.round((idx / Math.max(1, activeScript.segments.length)) * totalDur);
+                }
+                const tc = `[${formatTimeSec(timeSec)}] `;
+                return `Cảnh ${idx + 1} ${tc}: ${s.text}`;
+              }).join('\n\n');
+              ideaBox.value = formattedScript;
+              onStoryIdeaChanged(formattedScript);
+            }
+            const badgeCount = document.getElementById('txtScriptSegmentsCount');
+            if (badgeCount) badgeCount.innerText = activeScript.segments?.length || 0;
+            const badgeSource = document.getElementById('badgeScriptSource');
+            if (badgeSource) badgeSource.innerText = "✨ Đã có kịch bản";
+            return;
+          }
+        }
+        activeScript = null;
+        renderEmptyScriptModal();
+      } catch (err) {
+        console.warn("loadCurrentScript:", err);
+        activeScript = null;
+        renderEmptyScriptModal();
+      }
+    }
+
+    function renderEmptyScriptModal() {
+      const titleEl = document.getElementById('modalScriptTitle');
+      const curTitle = (document.getElementById('inputMovieTitle')?.value || "").trim() || "Video Hiện Tại";
+      if (titleEl) titleEl.innerText = `Kịch Bản: ${curTitle}`;
+      const footerInfo = document.getElementById('txtScriptFooterInfo');
+      if (footerInfo) footerInfo.innerText = "Chưa có kịch bản đã lưu cho video này";
+      const container = document.getElementById('modalScriptContent');
+      if (!container) return;
+      container.innerHTML = `
+        <div class="p-8 text-center space-y-3">
+          <div class="text-3xl">📜</div>
+          <p class="text-sm font-semibold text-slate-200">Chưa có kịch bản cho "${curTitle}"</p>
+          <p class="text-xs text-slate-400">AI sẽ tự động viết kịch bản 3 hồi khi bấm "Xuất Video Review", hoặc bấm nút bên dưới để viết ngay và xem trước.</p>
+          <div class="pt-2">
+            <button id="btnModalGenScript" onclick="generateAiScript()" class="px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md inline-flex items-center gap-1.5 transition">
+              <span>✨</span> AI Viết Kịch Bản Ngay
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderScriptModal(script) {
+      if (!script) return;
+      document.getElementById('modalScriptTitle').innerText = script.title || "Kịch Bản Review Phim AI";
+      const countEl = document.getElementById('txtScriptSegmentsCount');
+      const segs = script.segments || [];
+      if (countEl) countEl.innerText = segs.length;
+
+      document.getElementById('txtScriptFooterInfo').innerText = `${segs.length} phân đoạn • Hook: "${script.hook || ''}"`;
+
+      const container = document.getElementById('modalScriptContent');
+      if (!container) return;
+
+      const player = document.getElementById('mainVideoPlayer');
+      const totalDur = (player && player.duration) ? player.duration : 1200;
+
+      container.innerHTML = segs.map((s, idx) => {
+        let timeSec = 0;
+        if (s.source_time !== undefined && s.source_time !== null) {
+          timeSec = parseFloat(s.source_time);
+        } else if (s.film_pos_pct !== undefined) {
+          timeSec = Math.round(parseFloat(s.film_pos_pct) * totalDur);
+        } else {
+          timeSec = Math.round((idx / Math.max(1, segs.length)) * totalDur);
+        }
+        const timeLabel = formatTimeSec(timeSec);
+
+        return `
+        <div class="p-2.5 rounded-lg bg-[#090d18] border border-[#1e293b] hover:border-amber-500/40 space-y-1.5 transition">
+          <div class="flex justify-between items-center text-[10px] text-amber-400 font-mono">
+            <span class="font-bold flex items-center gap-1">
+              <span>CẢNH ${idx + 1}</span>
+              <span class="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 text-[9px]">[${timeLabel}]</span>
+              <span class="text-slate-400 font-normal">(${s.est_duration || 3.5}s)</span>
+            </span>
+            <div class="flex items-center gap-2">
+              <button onclick="previewSceneAtTime(${timeSec})" class="text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-0.5 font-sans" title="Xem cảnh này trong phim">
+                <span>🎬</span> Xem Cảnh Gốc
+              </button>
+              <button onclick="pickSentenceForPreview('${s.text.replace(/'/g, "\\'")}')" class="text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-0.5 font-sans">
+                <span>▶</span> Đưa vào Preview
+              </button>
+            </div>
+          </div>
+          <p class="text-slate-100 text-xs leading-relaxed">${s.text}</p>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function formatTimeSec(s) {
+      if (s === undefined || s === null || isNaN(s)) return "00:00";
+      const total = Math.max(0, Math.floor(s));
+      const m = Math.floor(total / 60);
+      const sec = Math.floor(total % 60);
+      return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function previewSceneAtTime(timeSec) {
+      const player = document.getElementById('mainVideoPlayer');
+      if (player) {
+        player.currentTime = Math.max(0, timeSec);
+        player.play().catch(() => {});
+        closeScriptModal();
+        const mon = document.getElementById('videoMonitor');
+        if (mon) mon.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    function pickSentenceForPreview(text) {
+      document.getElementById('inputSubText').value = text;
+      updateSubText(text);
+      closeScriptModal();
+    }
+
+    function openScriptModal() {
+      if (!activeScript) loadCurrentScript();
+      document.getElementById('scriptModal').classList.remove('hidden');
+    }
+    function closeScriptModal() { document.getElementById('scriptModal').classList.add('hidden'); }
+
+    // 12. Exports List & Playback
+    let currentExports = [];
+    let selectedVideoPath = "";
+
+    async function loadExports(autoSelectLatest = false) {
+      try {
+        const res = await fetch('/api/exports');
+        if (!res.ok) return;
+        const data = await res.json();
+        currentExports = data.exports || [];
+
+        const badge = document.getElementById('txtExportsCount');
+        if (badge) badge.innerText = currentExports.length;
+
+        renderExportsList();
+        loadLatestExportToOutput(autoSelectLatest);
+      } catch (err) {
+        console.error("loadExports error:", err);
+      }
+    }
+
+    function selectVideoForPlayback(item, autoPlay = true) {
+      const player = document.getElementById('mainVideoPlayer');
+      const blurVid = document.getElementById('blurVideo');
+      if (player) {
+        player.src = item.url;
+        if (blurVid) blurVid.src = item.url;
+        if (autoPlay) {
+          player.play().catch(() => {});
+        }
+      }
+      const _aet = document.getElementById('activeExportTitle'); if (_aet) _aet.innerText = item.name;
+      const _aem = document.getElementById('activeExportMeta'); if (_aem) _aem.innerText = `${item.size_mb} MB • ${item.time_str}`;
+      const btnDl = document.getElementById('btnDownloadExport');
+      if (btnDl) btnDl.href = item.url;
+      const bannerDetails = document.getElementById('bannerExportDetails');
+      if (bannerDetails) bannerDetails.innerText = `${item.name} (${item.size_mb} MB • ${item.time_str})`;
+      const bannerDl = document.getElementById('bannerDownloadBtn');
+      if (bannerDl) bannerDl.href = item.url;
+      const curStatus = document.getElementById('txtCurrentClipStatus');
+      if (curStatus) curStatus.innerText = item.name;
+    }
+
+    function renderExportsList() {
+      const container = document.getElementById('exportsListContainer');
+      if (!container) return;
+      if (!currentExports.length) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400">Chưa có video thành phẩm nào trong thư mục recap_exports.</div>`;
+        return;
+      }
+      container.innerHTML = currentExports.map((exp, idx) => `
+        <div class="p-3 rounded-lg bg-[#090d18] border border-[#1e293b] hover:border-emerald-500/50 flex items-center justify-between transition">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-white">${idx === 0 ? '🌟 MỚI NHẤT: ' : ''}${exp.name}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">${exp.size_mb} MB</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-mono">Đã xuất: ${exp.time_str}</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="selectVideoForPlayback(currentExports[${idx}], true); closeExportsModal();" class="h-7 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow">
+              <span>▶</span> Phát Trên Tool
+            </button>
+            <a href="${exp.url}" download class="h-7 px-2.5 rounded bg-[#1e293b] hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1">
+              <span>⬇</span> Tải Về
+            </a>
+            <button onclick="openExportsFolder('${exp.full_path.replace(/\\/g, '/')}')" class="h-7 px-2.5 rounded bg-[#1e293b] hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1">
+              <span>📂</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function openExportsFolder(path = "") {
+      try {
+        await fetch('/api/open-folder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ path })
+        });
+      } catch (err) {
+        alert("Lỗi mở thư mục: " + err.message);
+      }
+    }
+
+    function openExportsModal() {
+      renderExportsList();
+      document.getElementById('exportsModal').classList.remove('hidden');
+    }
+    function closeExportsModal() { document.getElementById('exportsModal').classList.add('hidden'); }
+
+    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+    // 13. Dual View Mode & Playback Controls
+    function setDualViewMode(mode) {
+      const container = document.getElementById('previewDualContainer');
+      const boxSrc = document.getElementById('monitorSourceBox');
+      const boxOut = document.getElementById('monitorOutputBox');
+      const bDual = document.getElementById('btnViewDual');
+      const bSrc = document.getElementById('btnViewSource');
+      const bOut = document.getElementById('btnViewOutput');
+
+      if (!container || !boxSrc || !boxOut) return;
+
+      if (mode === 'dual') {
+        container.className = "flex-1 overflow-hidden p-3 grid grid-cols-2 gap-3 items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]";
+        boxSrc.classList.remove('hidden');
+        boxSrc.style.maxWidth = "";
+        boxOut.classList.remove('hidden');
+        boxOut.style.maxWidth = "";
+
+        if (bDual) bDual.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1";
+        if (bSrc) bSrc.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
+        if (bOut) bOut.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
+      } else if (mode === 'source') {
+        container.className = "flex-1 overflow-hidden p-3 flex items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]";
+        boxSrc.classList.remove('hidden');
+        boxSrc.style.maxWidth = "860px";
+        boxOut.classList.add('hidden');
+
+        if (bSrc) bSrc.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1";
+        if (bDual) bDual.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
+        if (bOut) bOut.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
+      } else if (mode === 'output') {
+        container.className = "flex-1 overflow-hidden p-3 flex items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]";
+        boxSrc.classList.add('hidden');
+        boxOut.classList.remove('hidden');
+        boxOut.style.maxWidth = "860px";
+
+        if (bOut) bOut.className = "px-2 py-0.5 rounded font-bold bg-emerald-600 text-white text-[11px] flex items-center gap-1";
+        if (bDual) bDual.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
+        if (bSrc) bSrc.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
+      }
+    }
+
+    function togglePlaySource() {
+      const player = document.getElementById('mainVideoPlayer');
+      const btn = document.getElementById('btnPlaySource');
+      const centerBtn = document.getElementById('centerPlayBtnOverlay');
+      if (!player) return;
+      if (player.paused) {
+        player.muted = false;
+        player.play().catch(() => {});
+        if (btn) btn.innerText = "⏸";
+        if (centerBtn) centerBtn.classList.add('hidden');
+      } else {
+        player.pause();
+        if (btn) btn.innerText = "▶";
+        if (centerBtn) centerBtn.classList.remove('hidden');
+      }
+    }
+
+    function stepSourceVideo(sec) {
+      const player = document.getElementById('mainVideoPlayer');
+      if (player) {
+        player.currentTime = Math.max(0, Math.min(player.duration || 0, player.currentTime + sec));
+      }
+    }
+
+    function seekSource(pct) {
+      const player = document.getElementById('mainVideoPlayer');
+      if (player && player.duration) {
+        player.currentTime = (parseFloat(pct) / 100) * player.duration;
+      }
+    }
+
+    function loadLatestExportToOutput(autoPlay = false) {
+      const outPlayer = document.getElementById('outputVideoPlayer');
+      const placeholder = document.getElementById('outputEmptyPlaceholder');
+      if (!outPlayer) return;
+
+      if (currentExports && currentExports.length > 0) {
+        const latest = currentExports[0];
+        outPlayer.src = latest.url;
+        outPlayer.currentTime = 0.05;
+        if (placeholder) placeholder.classList.add('hidden');
+        outPlayer.classList.remove('hidden');
+
+        const btnDl = document.getElementById('btnDownloadOutput');
+        if (btnDl) {
+          btnDl.href = latest.url;
+          btnDl.download = latest.name;
+        }
+        const txtDetails = document.getElementById('txtOutputDetails');
+        if (txtDetails) txtDetails.innerText = `${latest.name} (${latest.size_mb} MB)`;
+        const badge = document.getElementById('txtOutputBadge');
+        if (badge) badge.innerText = "Sẵn Sàng Phát";
+
+        if (autoPlay) {
+          outPlayer.play().catch(() => {});
+        }
+      } else {
+        if (placeholder) placeholder.classList.remove('hidden');
+      }
+    }
+
+    // 13. Playback Controls
+    function togglePlay() {
+      const player = document.getElementById('mainVideoPlayer');
+      if (player) {
+        if (player.paused) player.play();
+        else player.pause();
+      }
+    }
+
+    function stepVideo(delta) {
+      const player = document.getElementById('mainVideoPlayer');
+      if (player) {
+        player.currentTime = Math.max(0, Math.min(player.duration || 0, player.currentTime + delta));
+      }
+    }
+
+    function seekFromBottomTrack(event) {
+      const player = document.getElementById('mainVideoPlayer');
+      const track = document.getElementById('bottomProgressTrack');
+      if (player && track && player.duration) {
+        const rect = track.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const pct = Math.max(0, Math.min(1, clickX / rect.width));
+        player.currentTime = pct * player.duration;
+      }
+    }
+
+    function initVideoEvents() {
+      const player = document.getElementById('mainVideoPlayer');
+      if (!player) return;
+
+      const formatTime = s => {
+        if (!s || isNaN(s)) return "00:00";
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+      };
+
+      player.addEventListener('timeupdate', () => {
+        if (!player.duration) return;
+        const cur = player.currentTime;
+        const dur = player.duration;
+        const pct = (cur / dur) * 100;
+
+        const scrubber = document.getElementById('sourceScrubber');
+        if (scrubber) scrubber.value = pct;
+
+        const txt = document.getElementById('txtSourceTime');
+        if (txt) txt.innerText = `${formatTime(cur)} / ${formatTime(dur)}`;
+      });
+
+      player.addEventListener('play', () => {
+        const _bp = document.getElementById('btnPlay') || document.getElementById('btnPlaySource'); if (_bp) _bp.innerText = '⏸';
+        document.getElementById('centerPlayBtnOverlay')?.classList.add('hidden');
+        const blurVid = document.getElementById('blurVideo');
+        if (blurVid && blurVid.paused) blurVid.play().catch(() => {});
+      });
+
+      player.addEventListener('pause', () => {
+        const _bp2 = document.getElementById('btnPlay') || document.getElementById('btnPlaySource'); if (_bp2) _bp2.innerText = '▶';
+        document.getElementById('centerPlayBtnOverlay')?.classList.remove('hidden');
+        const blurVid = document.getElementById('blurVideo');
+        if (blurVid && !blurVid.paused) blurVid.pause();
+      });
+
+      player.addEventListener('loadedmetadata', () => {
+        const txt = document.getElementById('txtSourceTime') || document.getElementById('txtPlaybackTime');
+        if (txt) txt.innerText = `00:00 / ${formatTime(player.duration)}`;
+      });
+    }
+
+    // 14. Start Production
+    let renderInterval = null;
+    async function startProduction(e) {
+      const evt = e || window.event;
+      const btn = evt ? (evt.target.closest('button') || evt.target) : document.getElementById('btnStartProduction');
+      const origText = btn ? btn.innerHTML : "<span>🚀</span> Xuất Video Review";
+
+      if (renderInterval) {
+        alert("Đang có tiến trình xuất video đang chạy! Vui lòng theo dõi hộp tiến trình góc dưới.");
+        return;
+      }
+
+      if (!confirm("Bắt đầu quy trình sản xuất video Review Phim tự động với Standalone Engine?")) {
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳</span> Đang dựng...`;
+      }
+
+      try {
+        const title = (document.getElementById('inputMovieTitle')?.value || "").trim() || "Review Phim Điện Ảnh Thực Tế";
+        const genre = document.getElementById('selStyle')?.value || "Hành động, Kịch tính";
+        const targetMins = parseFloat(document.getElementById('sliderDuration')?.value || "3");
+        const voice = document.getElementById('selVoice')?.value || "Fenrir";
+        const speed = parseFloat(document.getElementById('sliderSpeed')?.value || "1.15");
+        const watermark = (document.getElementById('inputWatermarkText')?.value || "").trim();
+        const aliases = getCollectedCharacterAliases();
+
+        const subBox = document.getElementById('subDragBox');
+        let posX = 50;
+        let posY = 90;
+        if (subBox) {
+          posX = parseFloat(subBox.style.left) || 50;
+          posY = parseFloat(subBox.style.top) || 90;
+        }
+        const fontSize = parseInt(document.getElementById('sliderFontSize')?.value || "24");
+        const fontFamily = document.getElementById('selFontFamily')?.value || "Montserrat";
+        const subStyle = document.getElementById('selSubStyle')?.value || "karaoke_box";
+
+        const storyIdea = (document.getElementById('inputStoryIdea')?.value || "").trim();
+
+        const payload = {
+          source_video: selectedVideoPath,
+          movie_title: title,
+          genre: genre,
+          target_minutes: targetMins,
+          aspect_ratio: currentRatio,
+          voice_name: voice,
+          voice_speed: speed,
+          character_aliases: aliases,
+          story_idea: storyIdea,
+          watermark_text: watermark,
+          subtitle_config: {
+            pos_x_pct: posX,
+            pos_y_pct: posY,
+            font_size: fontSize,
+            font_family: fontFamily,
+            color: currentHlColor || "#facc15",
+            style: subStyle
+          }
+        };
+
+        const res = await fetch('/api/render', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.status !== 'ok') {
+          alert("Lỗi khởi chạy render: " + data.message);
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+          }
+          return;
+        }
+
+        const jobId = data.job_id;
+        let progressOverlay = document.getElementById('renderProgressOverlay');
+        if (!progressOverlay) {
+          progressOverlay = document.createElement('div');
+          progressOverlay.id = 'renderProgressOverlay';
+          progressOverlay.className = 'fixed bottom-6 right-6 z-50 bg-[#0f172a] border border-amber-500/50 rounded-xl p-4 shadow-2xl w-80 space-y-2';
+          document.body.appendChild(progressOverlay);
+        }
+        progressOverlay.innerHTML = `
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-amber-400 flex items-center gap-1.5">
+              <span class="animate-spin">⚙️</span> Đang Xuất Video Review...
+            </span>
+            <span id="txtRenderPct" class="font-mono text-emerald-400 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="barRenderPct" class="bg-gradient-to-r from-rose-500 to-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <p id="txtRenderMsg" class="text-[10px] text-slate-300 truncate">Khởi tạo tiến trình...</p>
+        `;
+
+        renderInterval = setInterval(async () => {
+          try {
+            const pRes = await fetch(`/api/progress/${jobId}`);
+            if (pRes.ok) {
+              const pData = await pRes.json();
+              const pctEl = document.getElementById('txtRenderPct');
+              const barEl = document.getElementById('barRenderPct');
+              const msgEl = document.getElementById('txtRenderMsg');
+              if (pctEl) pctEl.innerText = `${pData.progress}%`;
+              if (barEl) barEl.style.width = `${pData.progress}%`;
+              if (msgEl) msgEl.innerText = pData.message;
+
+              if (pData.status === 'completed') {
+                clearInterval(renderInterval);
+                renderInterval = null;
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = origText;
+                }
+                if (msgEl) msgEl.innerText = "🎉 Hoàn thành!";
+
+                await loadExports();
+                loadLatestExportToOutput(true);
+                const badge = document.getElementById('txtOutputBadge');
+                if (badge) badge.innerText = "✅ VỪA XUẤT XONG";
+
+                setTimeout(() => { progressOverlay?.remove(); }, 3500);
+              } else if (pData.status === 'failed') {
+                clearInterval(renderInterval);
+                renderInterval = null;
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = origText;
+                }
+                alert("❌ Lỗi render: " + pData.error);
+                progressOverlay?.remove();
+              }
+            }
+          } catch (err) {
+            console.error("Polling error:", err);
+          }
+        }, 1200);
+
+      } catch (e) {
+        alert("Lỗi kết nối render: " + e.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      }
+    }
+
+    // Auto initialize on load
+    window.addEventListener('DOMContentLoaded', async () => {
+      // 1. Phục hồi ngay lập tức thời lượng & thể loại đã lưu của người dùng (Không bị nhấp nháy, không bị nhảy giá trị)
+      try {
+        const savedDur = localStorage.getItem('recap_target_duration');
+        if (savedDur) {
+          const slider = document.getElementById('sliderDuration');
+          if (slider) slider.value = savedDur;
+          updateDuration(savedDur, false);
+          userLockedDuration = true;
+        } else {
+          updateDuration(2, false);
+        }
+        const savedGen = localStorage.getItem('recap_genre');
+        if (savedGen) {
+          const selGen = document.getElementById('selStyle');
+          if (selGen) selGen.value = savedGen;
+        }
+      } catch (e) {}
+
+      initVideoEvents();
+      startKaraokeAnimation();
+      loadExports(false); // Update badge count without overriding source player
+      applyVideoFilters();
+      fitVideoCanvas();
+      await loadAvailableVideos(); // Auto-picks first video, sets player & runs auto-scan
+      loadCurrentScript();
+    });
+  </script>
+</body>
+</html>
