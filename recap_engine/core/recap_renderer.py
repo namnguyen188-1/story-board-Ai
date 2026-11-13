@@ -16,10 +16,18 @@ WIN_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 try:
     from .ffmpeg_utils import get_ffmpeg_path, check_nvenc_available
-    from .fair_use_fx import build_fair_use_video_filter, get_target_dimensions, build_watermark_drawtext, build_cta_drawtext
+    from .fair_use_fx import (
+        build_fair_use_video_filter, get_target_dimensions,
+        build_watermark_drawtext, build_cta_drawtext,
+        compute_cta_times, get_cta_asset_path, build_cta_chromakey_filter
+    )
 except (ImportError, ValueError):
     from core.ffmpeg_utils import get_ffmpeg_path, check_nvenc_available
-    from core.fair_use_fx import build_fair_use_video_filter, get_target_dimensions, build_watermark_drawtext, build_cta_drawtext
+    from core.fair_use_fx import (
+        build_fair_use_video_filter, get_target_dimensions,
+        build_watermark_drawtext, build_cta_drawtext,
+        compute_cta_times, get_cta_asset_path, build_cta_chromakey_filter
+    )
 
 
 class RecapRenderer:
@@ -193,18 +201,57 @@ class RecapRenderer:
             ]
             subprocess.run(cmd_voice, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=WIN_NO_WINDOW)
 
-            # 5. Final Assembly: Video + Master Voice + BGM Auto-Ducking + Subtitles + Watermark
+            # 5. Final Assembly: Video + Master Voice + BGM Auto-Ducking + Subtitles + Watermark + Chromakey CTA
             if progress_callback:
-                progress_callback("Đang dập phụ đề và xuất bản phẩm hoàn thiện...", 75.0)
+                progress_callback("Đang dập phụ đề, hiệu ứng CTA và xuất bản phẩm hoàn thiện...", 75.0)
+
+            # Determine video duration for CTA scheduling
+            total_dur = 0.0
+            try:
+                ffprobe_path = Path(self.ffmpeg).parent / ("ffprobe.exe" if sys.platform == "win32" else "ffprobe")
+                cmd_probe = [
+                    str(ffprobe_path), "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    str(raw_video_path)
+                ]
+                p_res = subprocess.run(cmd_probe, capture_output=True, text=True, creationflags=WIN_NO_WINDOW)
+                total_dur = float(p_res.stdout.strip())
+            except Exception:
+                total_dur = sum(float(c.get("end", 0)) - float(c.get("start", 0)) for c in timeline_cuts)
+                if speed_factor and abs(speed_factor - 1.0) > 0.01:
+                    total_dur /= speed_factor
 
             inputs = ["-i", str(raw_video_path), "-i", str(master_voice_path)]
+            next_idx = 2
 
-            # Filter complex for audio and video overlays
-            v_filters_final = []
+            # CTA Chromakey setup
+            cta_input_idx = None
+            cta_times = []
+            cta_asset = get_cta_asset_path() if cta_overlay else None
+            if cta_overlay and cta_asset and cta_asset.is_file():
+                cta_times = compute_cta_times(total_dur, is_vertical=(aspect_ratio == "9:16"))
+                if cta_times:
+                    cta_input_idx = next_idx
+                    inputs.extend(["-i", str(cta_asset)])
+                    next_idx += 1
+
+            # BGM setup
+            bgm_input_idx = None
+            if bgm_file and Path(bgm_file).is_file():
+                bgm_input_idx = next_idx
+                inputs.extend(["-stream_loop", "-1", "-i", str(bgm_file)])
+                next_idx += 1
+
+            # Filter complex constructions
+            fc_parts = []
+            curr_v = "0:v"
+
+            # Step 5A: Subtitle and Watermark
+            base_vf = []
             if subtitle_ass_file and Path(subtitle_ass_file).is_file():
-                # Escape path for FFmpeg filter on Windows
                 escaped_sub = Path(subtitle_ass_file).as_posix().replace(":", r"\:")
-                v_filters_final.append(f"ass='{escaped_sub}'")
+                base_vf.append(f"ass='{escaped_sub}'")
 
             if watermark_text:
                 wm_f = build_watermark_drawtext(
@@ -215,39 +262,66 @@ class RecapRenderer:
                     aspect_ratio=aspect_ratio
                 )
                 if wm_f:
-                    v_filters_final.append(wm_f)
+                    base_vf.append(wm_f)
 
-            if cta_overlay:
+            # Fallback text CTA if video asset is missing
+            if cta_overlay and not cta_input_idx:
                 cta_f = build_cta_drawtext(
                     text=cta_text or "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ",
                     font_size=32 if aspect_ratio != "9:16" else 28,
                     aspect_ratio=aspect_ratio
                 )
                 if cta_f:
-                    v_filters_final.append(cta_f)
+                    base_vf.append(cta_f)
 
-            # Assemble video final filter
-            v_arg = []
-            if v_filters_final:
-                v_arg = ["-vf", ",".join(v_filters_final)]
+            if base_vf:
+                fc_parts.append(f"[{curr_v}]{','.join(base_vf)}[v_base]")
+                curr_v = "v_base"
 
-            # Audio mixing: Voice + BGM or Voice alone
-            if bgm_file and Path(bgm_file).is_file():
-                inputs.extend(["-stream_loop", "-1", "-i", str(bgm_file)])
-                # Auto ducking: BGM at -18dB while Voice is 0dB
-                a_filter = (
-                    "[1:a]volume=1.0[v_voice];"
-                    "[2:a]volume=0.15[v_bgm];"
-                    "[v_voice][v_bgm]amix=inputs=2:duration=first:dropout_transition=2[a_out]"
+            # Step 5B: Chromakey CTA Overlay (Transparent Green Screen)
+            if cta_input_idx is not None and cta_times:
+                target_w, _ = get_target_dimensions(aspect_ratio)
+                cta_clauses, out_v_tag = build_cta_chromakey_filter(
+                    cta_idx=cta_input_idx,
+                    times=cta_times,
+                    base_stream=curr_v,
+                    target_w=target_w,
+                    is_vertical=(aspect_ratio == "9:16")
                 )
-                a_arg = ["-filter_complex", a_filter, "-map", "0:v", "-map", "[a_out]"]
+                fc_parts.extend(cta_clauses)
+                curr_v = out_v_tag
+
+            # Step 5C: Audio Mixing (Voice + BGM auto-ducking)
+            if bgm_input_idx is not None:
+                fc_parts.append(
+                    f"[1:a]volume=1.0[v_voice];"
+                    f"[{bgm_input_idx}:a]volume=0.15[v_bgm];"
+                    f"[v_voice][v_bgm]amix=inputs=2:duration=first:dropout_transition=2[a_out]"
+                )
+                audio_map_tag = "[a_out]"
             else:
-                a_arg = ["-c:a", "aac", "-b:a", "192k", "-map", "0:v", "-map", "1:a"]
+                audio_map_tag = "1:a"
+
+            # Build command arguments
+            filter_complex_str = ";".join(fc_parts)
+            if filter_complex_str:
+                v_audio_args = [
+                    "-filter_complex", filter_complex_str,
+                    "-map", f"[{curr_v}]" if not curr_v.startswith("[") else curr_v,
+                    "-map", audio_map_tag
+                ]
+            else:
+                v_audio_args = [
+                    "-map", "0:v",
+                    "-map", "1:a"
+                ]
 
             cmd_final = [
                 self.ffmpeg, "-y"
-            ] + inputs + v_arg + a_arg + [
+            ] + inputs + v_audio_args + [
                 "-c:v", v_codec,
+                "-c:a", "aac",
+                "-b:a", "192k",
                 "-pix_fmt", "yuv420p",
                 str(out_path)
             ]

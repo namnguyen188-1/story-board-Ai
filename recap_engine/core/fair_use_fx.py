@@ -9,6 +9,7 @@ Generates robust FFmpeg video filter complexes to defeat automated fingerprintin
 6. Optional selective horizontal flip
 """
 
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 
@@ -194,4 +195,92 @@ def build_cta_drawtext(
         f"x='{x_pos}':y='{y_pos}':"
         f"enable='between(t,5,16)+gte(t,180)'"
     )
+
+
+def compute_cta_times(dur: float, is_vertical: bool = False) -> List[float]:
+    """Computes periodic CTA appearance timestamps based on video duration."""
+    if dur < 8.0:
+        return []
+
+    # Case 1: Shorts 9:16 or short clips (<= 90s)
+    if is_vertical or dur <= 90.0:
+        t_first = round(max(8.0, min(14.0, dur * 0.25)), 1)
+        times = [t_first]
+        if dur >= 30.0 and (dur - 6.5) > (t_first + 8.0):
+            times.append(round(dur - 6.5, 1))
+        return times
+
+    # Case 2: Standard Long/Mid-form Video (16:9)
+    times = [round(min(45.0, max(15.0, dur * 0.25)), 1)]
+    curr = times[0] + 160.0
+    while curr < dur - 40.0:
+        times.append(round(curr, 1))
+        curr += 160.0
+    if dur >= 60.0 and (dur - 8.5) > (times[-1] + 25.0):
+        times.append(round(dur - 8.5, 1))
+    return times
+
+
+def get_cta_asset_path() -> Optional[Path]:
+    """Finds the CTA Subscribe/Like/Bell video asset."""
+    candidates = [
+        Path(__file__).resolve().parent.parent / "web" / "assets" / "cta_like_subscribe_bell_v9.mp4",
+        Path("D:/MOVIE_RECAP_STUDIO/web/assets/cta_like_subscribe_bell_v9.mp4"),
+        Path("D:/STORYBOARD_AI/recap_engine/web/assets/cta_like_subscribe_bell_v9.mp4"),
+        Path("D:/STORYBOARD_AI/studio/engine/assets/social_cta/cta_like_subscribe_bell_v9.mp4"),
+    ]
+    for c in candidates:
+        try:
+            if c.is_file():
+                return c
+        except Exception:
+            pass
+    return None
+
+
+def build_cta_chromakey_filter(
+    cta_idx: int,
+    times: List[float],
+    base_stream: str,
+    target_w: int,
+    is_vertical: bool = False
+) -> Tuple[List[str], str]:
+    """
+    Builds FFmpeg filter complex expressions for CTA video overlay using chromakey (green screen removal).
+    Returns (filter_clauses_list, output_stream_tag).
+    """
+    if not times:
+        return [], base_stream
+
+    cta_w = int(target_w * (0.75 if is_vertical else 0.38))
+    margin_b = 160 if is_vertical else 35
+
+    clauses = []
+    if len(times) == 1:
+        t0 = times[0]
+        clauses.append(
+            f"[{cta_idx}:v]chromakey=0x00FF00:0.25:0.08,scale={cta_w}:-1,setpts=PTS-STARTPTS+{t0}/TB,format=rgba[cta_fx]"
+        )
+        clauses.append(
+            f"[{base_stream}][cta_fx]overlay=(W-w)/2:H-h-{margin_b}:eof_action=pass[v_cta_out]"
+        )
+        return clauses, "v_cta_out"
+
+    # Multi-times split
+    split_tags = "".join(f"[c{i}]" for i in range(len(times)))
+    clauses.append(
+        f"[{cta_idx}:v]chromakey=0x00FF00:0.25:0.08,scale={cta_w}:-1,format=rgba,split={len(times)}{split_tags}"
+    )
+
+    curr_stream = base_stream
+    for i, t in enumerate(times):
+        cta_tag = f"cta_{i}"
+        clauses.append(f"[c{i}]setpts=PTS-STARTPTS+{t}/TB[{cta_tag}]")
+        next_stream = f"v_cta_{i+1}"
+        clauses.append(
+            f"[{curr_stream}][{cta_tag}]overlay=(W-w)/2:H-h-{margin_b}:eof_action=pass[{next_stream}]"
+        )
+        curr_stream = next_stream
+
+    return clauses, curr_stream
 
