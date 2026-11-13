@@ -150,20 +150,32 @@ def run_qt6_fallback(server_proc=None):
 def main():
     proc = start_backend_server()
 
-    # Try native WebView2 (EdgeChromium) first for 100% video codec compatibility (H.264/AAC)
+    # 1. Try native WebView2 (EdgeChromium) for 100% video codec compatibility (H.264/AAC)
     try:
         run_webview2_desktop(server_proc=proc)
         return
     except Exception as e:
         print(f"[DESKTOP] WebView2 unavailable ({e}), trying PyQt6 fallback...")
 
-    # Fallback to PyQt6
+    # 2. Try PyQt6 fallback
     try:
         run_qt6_fallback(server_proc=proc)
+        return
+    except Exception as e:
+        print(f"[DESKTOP] PyQt6 fallback unavailable ({e}), trying Edge/Chrome App Mode...")
+
+    # 3. Try Windows Native Edge/Chromium App Mode (100% available on all Windows 10/11)
+    try:
+        from desktop_app import find_app_browser, run_native_app_window
+        browser_exe = find_app_browser()
+        if browser_exe:
+            run_native_app_window(browser_exe, server_proc=proc)
+            return
     except Exception as e:
         print(f"[FATAL] Could not launch desktop interface: {e}")
-        if proc:
-            proc.terminate()
+
+    if proc:
+        proc.terminate()
 
 
 if __name__ == "__main__":
