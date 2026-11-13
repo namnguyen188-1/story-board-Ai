@@ -19,7 +19,7 @@ from typing import Dict, Any
 
 from aiohttp import web
 import yt_dlp
-from config import load_config, save_config, KeyRotator
+from config import load_config, save_config, KeyRotator, get_safe_export_dir
 from core.video_analyzer import VideoAnalyzer
 from core.scriptwriter import RecapScriptwriter
 from core.voice_engine import RecapVoiceEngine
@@ -28,7 +28,7 @@ from pipeline import MovieRecapPipeline
 RECAP_ROOT = Path(__file__).resolve().parent
 WEB_DIR = RECAP_ROOT / "web"
 INDEX_FILE = WEB_DIR / "index.html"
-EXPORT_DIR = Path(load_config().get("export_dir", r"D:\STORYBOARD_AI\recap_exports"))
+EXPORT_DIR = get_safe_export_dir(load_config().get("export_dir"))
 
 jobs: Dict[str, Dict[str, Any]] = {}
 
@@ -301,14 +301,19 @@ def find_video_file(path_str: str) -> Path:
     except Exception:
         p = Path("video.mp4")
 
-    # Search in RECAP_ROOT and EXPORT_DIR and Storyboard downloads
+    # Search in RECAP_ROOT, demo_assets, and EXPORT_DIR
     search_dirs = [
         RECAP_ROOT,
+        RECAP_ROOT / "demo_assets",
         EXPORT_DIR,
         EXPORT_DIR / "downloads",
-        Path(r"D:\STORYBOARD_AI\recap_exports\downloads"),
-        Path(r"D:\STORYBOARD_AI\recap_engine")
     ]
+    try:
+        legacy_dl = Path(r"D:\STORYBOARD_AI\recap_exports\downloads")
+        if legacy_dl.is_dir():
+            search_dirs.append(legacy_dl)
+    except Exception:
+        pass
     for d in search_dirs:
         if not d.is_dir():
             continue
@@ -483,7 +488,7 @@ async def handle_get_exports(request):
             except Exception:
                 pass
         files.sort(key=lambda x: x["mtime"], reverse=True)
-        return web.json_response({"status": "ok", "exports": files}, headers=cors_headers())
+        return web.json_response({"status": "ok", "exports": files, "export_dir": str(EXPORT_DIR)}, headers=cors_headers())
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
 
@@ -611,7 +616,12 @@ def create_app():
     app.router.add_post("/api/open-folder", handle_open_folder)
 
     # Static file serving for exports and source videos
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    global EXPORT_DIR
+    try:
+        EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        EXPORT_DIR = RECAP_ROOT / "exports"
+        EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     app.router.add_static("/exports/", path=str(EXPORT_DIR), show_index=True)
     app.router.add_static("/source/", path=str(RECAP_ROOT), show_index=True)
     (WEB_DIR / "assets").mkdir(parents=True, exist_ok=True)

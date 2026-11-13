@@ -13,7 +13,7 @@
   "edge_voice": "vi-VN-NamMinhNeural",
   "voice_speed": 1.15,
   "whisper_mode": "local",
-  "export_dir": "recap_exports",
+  "export_dir": "exports",
   "anti_content_id": {
     "max_clip_seconds": 4.0,
     "ken_burns_zoom": true,

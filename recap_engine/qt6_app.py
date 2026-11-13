@@ -108,7 +108,7 @@ def start_backend_server():
             creationflags=flags
         )
         log_app(f"server.py spawned with PID: {proc.pid}")
-        for i in range(50):
+        for i in range(80):
             time.sleep(0.15)
             if is_server_ready():
                 log_app(f"Server became ready after {i*0.15:.2f}s")
@@ -124,9 +124,9 @@ def start_backend_server():
 
 def get_icon_path() -> Path | None:
     candidates = [
+        RECAP_ROOT / "web" / "assets" / "recap_icon.ico",
         RECAP_ROOT / "web" / "assets" / "storyboard_ai_icon.ico",
         RECAP_ROOT.parent / "studio" / "web" / "assets" / "storyboard_ai_icon.ico",
-        Path(r"D:\STORYBOARD_AI\studio\web\assets\storyboard_ai_icon.ico"),
     ]
     for p in candidates:
         if p.is_file():

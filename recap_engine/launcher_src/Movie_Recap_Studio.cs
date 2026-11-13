@@ -61,28 +61,48 @@ namespace MovieRecapStudio
             Directory.SetCurrentDirectory(baseDir);
             Log("BaseDir: " + baseDir);
 
-            // 1. Locate recap_engine directory
-            string recapDir = baseDir;
-            if (Directory.Exists(Path.Combine(baseDir, "recap_engine")))
-            {
-                recapDir = Path.Combine(baseDir, "recap_engine");
-            }
-            else if (File.Exists(Path.Combine(baseDir, "qt6_app.py")))
-            {
-                recapDir = baseDir;
-            }
-            else if (Directory.Exists(@"D:\STORYBOARD_AI\recap_engine"))
-            {
-                recapDir = @"D:\STORYBOARD_AI\recap_engine";
-            }
-            Log("RecapDir resolved to: " + recapDir);
+            // Locate bundled python executable
+            string pythonwExe = Path.Combine(baseDir, "runtime", "python", "pythonw.exe");
+            string pythonExe = Path.Combine(baseDir, "runtime", "python", "python.exe");
+            string pyToUse = File.Exists(pythonwExe) ? pythonwExe : (File.Exists(pythonExe) ? pythonExe : "python.exe");
 
-            // 1. Ensure backend server is running on port 8095
+            string appScript = Path.Combine(baseDir, "qt6_app.py");
+            if (!File.Exists(appScript))
+            {
+                appScript = Path.Combine(baseDir, "desktop_app.py");
+            }
+
+            Log("Launching Native Desktop App via: " + pyToUse + " " + appScript);
+            if (File.Exists(appScript) && (File.Exists(pythonExe) || File.Exists(pythonwExe)))
+            {
+                try
+                {
+                    var appPsi = new ProcessStartInfo
+                    {
+                        FileName = pyToUse,
+                        Arguments = "-u \"" + appScript + "\"",
+                        WorkingDirectory = baseDir,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+                    var p = Process.Start(appPsi);
+                    p.WaitForExit();
+                    Log("Desktop app process exited normally with code: " + p.ExitCode);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Log("Exception running desktop app via python: " + ex.Message);
+                }
+            }
+
+            // Fallback: Ensure backend server is running on port 8095
             bool serverReady = false;
             try
             {
                 var req = (System.Net.HttpWebRequest)System.Net.WebRequest.Create("http://127.0.0.1:8095/api/status");
-                req.Timeout = 800;
+                req.Timeout = 1000;
                 using (var resp = (System.Net.HttpWebResponse)req.GetResponse())
                 {
                     if (resp.StatusCode == System.Net.HttpStatusCode.OK) serverReady = true;
@@ -94,12 +114,9 @@ namespace MovieRecapStudio
             {
                 Log("Starting backend server.py...");
                 string serverScript = Path.Combine(baseDir, "server.py");
-                string pythonExe = Path.Combine(baseDir, "runtime", "python", "python.exe");
-                if (!File.Exists(pythonExe)) pythonExe = "python.exe";
-
                 var serverPsi = new ProcessStartInfo
                 {
-                    FileName = pythonExe,
+                    FileName = pyToUse,
                     Arguments = "-u \"" + serverScript + "\"",
                     WorkingDirectory = baseDir,
                     UseShellExecute = false,
@@ -107,10 +124,23 @@ namespace MovieRecapStudio
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
                 Process.Start(serverPsi);
-                Thread.Sleep(1200);
+                for (int i = 0; i < 40; i++)
+                {
+                    Thread.Sleep(200);
+                    try
+                    {
+                        var req = (System.Net.HttpWebRequest)System.Net.WebRequest.Create("http://127.0.0.1:8095/api/status");
+                        req.Timeout = 500;
+                        using (var resp = (System.Net.HttpWebResponse)req.GetResponse())
+                        {
+                            if (resp.StatusCode == System.Net.HttpStatusCode.OK) { serverReady = true; break; }
+                        }
+                    }
+                    catch { }
+                }
             }
 
-            // 2. Launch visible Desktop App window (Edge / Chrome / Default Browser)
+            // Fallback: Launch app mode via Edge / Chrome
             string[] browsers = new string[]
             {
                 Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
@@ -142,7 +172,6 @@ namespace MovieRecapStudio
                     };
                     Process.Start(appPsi);
 
-                    // Ensure window is fully maximized on desktop
                     new Thread(delegate ()
                     {
                         for (int i = 0; i < 40; i++)

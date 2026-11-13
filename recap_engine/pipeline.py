@@ -11,7 +11,7 @@ import re
 from typing import Dict, Any, List, Optional, Callable
 
 try:
-    from .config import load_config
+    from .config import load_config, get_safe_export_dir
     from .core.video_analyzer import VideoAnalyzer
     from .core.scriptwriter import RecapScriptwriter
     from .core.voice_engine import RecapVoiceEngine
@@ -19,7 +19,7 @@ try:
     from .core.timeline_builder import TimelineBuilder
     from .core.recap_renderer import RecapRenderer
 except (ImportError, ValueError):
-    from config import load_config
+    from config import load_config, get_safe_export_dir
     from core.video_analyzer import VideoAnalyzer
     from core.scriptwriter import RecapScriptwriter
     from core.voice_engine import RecapVoiceEngine
@@ -66,7 +66,7 @@ class MovieRecapPipeline:
         Executes end-to-end recap generation.
         """
         t0 = time.time()
-        export_dir = Path(self.config.get("export_dir", r"D:\STORYBOARD_AI\recap_exports")).resolve()
+        export_dir = get_safe_export_dir(self.config.get("export_dir"))
         export_dir.mkdir(parents=True, exist_ok=True)
 
         session_id = f"recap_{int(time.time())}"

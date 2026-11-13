@@ -14,7 +14,7 @@ PROJECT_ROOT = RECAP_ROOT.parent
 
 CONFIG_FILE = RECAP_ROOT / "recap_config.json"
 EXAMPLE_CONFIG_FILE = RECAP_ROOT / "recap_config.example.json"
-DEFAULT_EXPORT_DIR = PROJECT_ROOT / "recap_exports"
+DEFAULT_EXPORT_DIR = RECAP_ROOT / "exports"
 STUDIO_ENV_FILE = PROJECT_ROOT / "studio" / ".env"
 
 DEFAULT_CONFIG = {
@@ -79,6 +79,28 @@ def load_keys_from_env() -> List[str]:
     return keys
 
 
+def get_safe_export_dir(configured_path: Optional[str] = None) -> Path:
+    """Returns a valid, writable export directory that is guaranteed to exist on any Windows system."""
+    if configured_path:
+        try:
+            p = Path(configured_path).expanduser()
+            if p.drive:
+                if Path(p.drive + "\\").exists():
+                    p.mkdir(parents=True, exist_ok=True)
+                    return p.resolve()
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+                return p.resolve()
+        except Exception:
+            pass
+    fallback = RECAP_ROOT / "exports"
+    try:
+        fallback.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    return fallback.resolve()
+
+
 def load_config() -> dict:
     """Load config from recap_config.json, populated with defaults and discovered keys."""
     config = dict(DEFAULT_CONFIG)
@@ -103,9 +125,9 @@ def load_config() -> dict:
             config["gemini_keys"] = discovered
             save_config(config)
 
-    # Ensure export directory exists
-    export_path = Path(config["export_dir"])
-    export_path.mkdir(parents=True, exist_ok=True)
+    # Ensure safe, existing export directory on any machine/drive
+    safe_export = get_safe_export_dir(config.get("export_dir"))
+    config["export_dir"] = str(safe_export)
 
     return config
 
