@@ -272,6 +272,7 @@ async def handle_start_render(request):
                     genre=data.get("genre", "Hành động"),
                     target_minutes=float(data.get("target_minutes", 3)),
                     aspect_ratio=data.get("aspect_ratio", "16:9"),
+                    vertical_style=data.get("vertical_style", "blurred_background"),
                     voice_name=data.get("voice_name", "Fenrir"),
                     voice_speed=float(data.get("voice_speed", 1.15)),
                     user_aliases=data.get("character_aliases"),

@@ -38,6 +38,7 @@ class RecapRenderer:
         bgm_file: Optional[str] = None,
         output_file: str = "recap_final.mp4",
         aspect_ratio: str = "16:9",
+        vertical_style: str = "blurred_background",
         speed_factor: float = 1.04,
         ken_burns: bool = True,
         film_grain: bool = True,
@@ -60,6 +61,7 @@ class RecapRenderer:
             # 1. Video filter for each slice
             v_filter = build_fair_use_video_filter(
                 aspect_ratio=aspect_ratio,
+                vertical_style=vertical_style,
                 speed_factor=speed_factor,
                 ken_burns=ken_burns,
                 film_grain=film_grain,

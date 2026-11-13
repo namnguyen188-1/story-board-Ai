@@ -28,57 +28,60 @@ def build_fair_use_video_filter(
     ken_burns: bool = True,
     film_grain: bool = True,
     hflip: bool = False,
-    vertical_style: str = "blurred_background"  # "blurred_background" or "crop"
+    vertical_style: str = "blurred_background"  # "blurred_background" or "crop" or "black"
 ) -> str:
     """
     Constructs an optimized FFmpeg filtergraph string for a video slice.
+    Supports 16:9 landscape, 9:16 Shorts with blurred background, and 1:1 square.
     """
     target_w, target_h = get_target_dimensions(aspect_ratio)
-    filters = []
 
-    # 1. Horizontal Flip if requested
+    pre_filters = []
     if hflip:
-        filters.append("hflip")
-
-    # 2. Color Grading (Contrast + Saturation + Brightness)
-    filters.append("eq=contrast=1.04:brightness=0.01:saturation=1.06")
-
-    # 3. Film Grain / Temporal Noise (defeats Content-ID hash)
+        pre_filters.append("hflip")
+    pre_filters.append("eq=contrast=1.04:brightness=0.01:saturation=1.06")
     if film_grain:
-        filters.append("noise=alls=3:allf=t")
-
-    # 4. Aspect Ratio & Framing
-    if aspect_ratio == "9:16":
-        if vertical_style == "blurred_background":
-            # Blurred background behind main video:
-            # [0:v] split [fg][bg];
-            # [bg] scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:5 [blurred];
-            # [fg] scale=1080:1920:force_original_aspect_ratio=decrease [sharp];
-            # [blurred][sharp] overlay=(W-w)/2:(H-h)/2
-            pass
-        else:
-            # Direct crop to 9:16
-            filters.append(f"scale={target_w}:{target_h}:force_original_aspect_ratio=increase")
-            filters.append(f"crop={target_w}:{target_h}")
-    elif aspect_ratio == "1:1":
-        filters.append(f"scale={target_w}:{target_h}:force_original_aspect_ratio=increase")
-        filters.append(f"crop={target_w}:{target_h}")
-    else:
-        # Standard 16:9
-        filters.append(f"scale={target_w}:{target_h}:force_original_aspect_ratio=decrease")
-        filters.append(f"pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:black")
-
-    # 5. Ken Burns Slow Zoom (Phóng to nhẹ và crop chuẩn tâm về đúng kích thước chuẩn)
-    if ken_burns:
-        filters.append("scale=trunc(iw*1.05/2)*2:trunc(ih*1.05/2)*2")
-        filters.append(f"crop={target_w}:{target_h}")
-
-    # 6. Micro Speed Shift
+        pre_filters.append("noise=alls=3:allf=t")
     if abs(speed_factor - 1.0) > 0.01:
         pts_factor = 1.0 / speed_factor
-        filters.append(f"setpts={pts_factor:.4f}*PTS")
+        pre_filters.append(f"setpts={pts_factor:.4f}*PTS")
 
-    return ",".join(filters)
+    pre_chain = ",".join(pre_filters)
+    pre_prefix = f"{pre_chain}," if pre_chain else ""
+
+    if aspect_ratio == "9:16":
+        if vertical_style == "crop":
+            kb = f",scale=trunc(iw*1.05/2)*2:trunc(ih*1.05/2)*2,crop={target_w}:{target_h}" if ken_burns else ""
+            return f"{pre_prefix}scale={target_w}:{target_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h}{kb}"
+        elif vertical_style == "black":
+            return f"{pre_prefix}scale={target_w}:{target_h}:force_original_aspect_ratio=decrease,pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:black"
+        else:  # default blurred_background (Chuẩn 100% video Shorts/TikTok với nền mờ)
+            return (
+                f"split=2[fg][bg];"
+                f"[bg]scale={target_w}:{target_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h},boxblur=25:5[bg_blur];"
+                f"[fg]scale={target_w}:{target_h}:force_original_aspect_ratio=decrease[fg_sharp];"
+                f"[bg_blur][fg_sharp]overlay=(W-w)/2:(H-h)/2"
+                f"{',' + pre_chain if pre_chain else ''}"
+            )
+
+    elif aspect_ratio == "1:1":
+        if vertical_style == "crop":
+            kb = f",scale=trunc(iw*1.05/2)*2:trunc(ih*1.05/2)*2,crop={target_w}:{target_h}" if ken_burns else ""
+            return f"{pre_prefix}scale={target_w}:{target_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h}{kb}"
+        elif vertical_style == "blur":
+            return (
+                f"split=2[fg][bg];"
+                f"[bg]scale={target_w}:{target_h}:force_original_aspect_ratio=increase,crop={target_w}:{target_h},boxblur=25:5[bg_blur];"
+                f"[fg]scale={target_w}:{target_h}:force_original_aspect_ratio=decrease[fg_sharp];"
+                f"[bg_blur][fg_sharp]overlay=(W-w)/2:(H-h)/2"
+                f"{',' + pre_chain if pre_chain else ''}"
+            )
+        else:  # default letterbox viền đen chuẩn 1:1
+            return f"{pre_prefix}scale={target_w}:{target_h}:force_original_aspect_ratio=decrease,pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:black"
+
+    else:  # Standard 16:9
+        kb = f",scale=trunc(iw*1.05/2)*2:trunc(ih*1.05/2)*2,crop={target_w}:{target_h}" if ken_burns else ""
+        return f"{pre_prefix}scale={target_w}:{target_h}:force_original_aspect_ratio=decrease,pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:black{kb}"
 
 
 def build_9_16_blurred_filter_complex(

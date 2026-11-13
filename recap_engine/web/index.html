@@ -428,13 +428,13 @@
           <div class="flex items-center gap-1.5">
             <span class="text-[11px] text-slate-400">Khung hình:</span>
             <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538]">
-              <button id="btn169" onclick="setRatio('16:9')" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white shadow-xs text-[11px] transition">
+              <button id="btn169" onclick="setRatio('16:9', true)" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white shadow-xs text-[11px] transition">
                 16:9
               </button>
-              <button id="btn916" onclick="setRatio('9:16')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
+              <button id="btn916" onclick="setRatio('9:16', true)" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
                 9:16 Shorts
               </button>
-              <button id="btn11" onclick="setRatio('1:1')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
+              <button id="btn11" onclick="setRatio('1:1', true)" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
                 1:1
               </button>
             </div>
@@ -582,12 +582,15 @@
           </div>
 
           <!-- Video Output Screen Layer -->
-          <div class="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+          <div id="outputMonitor" class="flex-1 relative bg-black flex items-center justify-center overflow-hidden select-none">
             
-            <!-- Output Video Player -->
-            <video id="outputVideoPlayer" class="w-full h-full object-contain pointer-events-auto" controls playsinline loop preload="auto">
-              Trình duyệt không hỗ trợ thẻ video.
-            </video>
+            <!-- Output Canvas Wrapper (Khớp chuẩn 100% tỉ lệ khung hình với Monitor 1) -->
+            <div id="outputCanvasWrapper" class="relative overflow-hidden flex items-center justify-center shadow-2xl transition-all" style="position: relative; aspect-ratio: 16/9; max-width: 100%; max-height: 100%; width: 100%; height: auto;">
+              <!-- Output Video Player -->
+              <video id="outputVideoPlayer" class="w-full h-full object-contain pointer-events-auto" controls playsinline loop preload="auto">
+                Trình duyệt không hỗ trợ thẻ video.
+              </video>
+            </div>
 
             <!-- Output Empty Placeholder (Khi chưa có video render) -->
             <div id="outputEmptyPlaceholder" class="hidden absolute inset-0 bg-[#070c14] flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
@@ -794,80 +797,134 @@ AIzaSyD_demoKey03_ghi789</textarea>
     let userLockedDuration = false;
 
     function fitVideoCanvas() {
-      const monitor = document.getElementById('videoMonitor');
-      const canvas = document.getElementById('videoCanvasWrapper');
-      if (!monitor || !canvas) return;
-      const mRect = monitor.getBoundingClientRect();
-      if (mRect.width === 0 || mRect.height === 0) return;
+      const monitorSrc = document.getElementById('videoMonitor');
+      const canvasSrc = document.getElementById('videoCanvasWrapper');
+      const monitorOut = document.getElementById('outputMonitor');
+      const canvasOut = document.getElementById('outputCanvasWrapper');
 
       const [rw, rh] = currentRatio === '9:16' ? [9, 16] : (currentRatio === '1:1' ? [1, 1] : [16, 9]);
       const targetAspect = rw / rh;
-      const containerAspect = mRect.width / mRect.height;
 
-      let fitW, fitH;
-      if (containerAspect > targetAspect) {
-        fitH = mRect.height;
-        fitW = fitH * targetAspect;
-      } else {
-        fitW = mRect.width;
-        fitH = fitW / targetAspect;
+      // 1. Căn chỉnh khớp 100% tỷ lệ khung hình cho Monitor 1 (Bản dựng)
+      if (monitorSrc && canvasSrc) {
+        const mRect = monitorSrc.getBoundingClientRect();
+        if (mRect.width > 0 && mRect.height > 0) {
+          const maxW = mRect.width;
+          const maxH = mRect.height;
+          const containerAspect = maxW / maxH;
+          let fitW, fitH;
+          if (containerAspect > targetAspect) {
+            fitH = maxH;
+            fitW = fitH * targetAspect;
+          } else {
+            fitW = maxW;
+            fitH = fitW / targetAspect;
+          }
+          canvasSrc.style.width = Math.round(fitW) + 'px';
+          canvasSrc.style.height = Math.round(fitH) + 'px';
+          canvasSrc.style.aspectRatio = `${rw}/${rh}`;
+        }
       }
-      canvas.style.width = Math.round(fitW) + 'px';
-      canvas.style.height = Math.round(fitH) + 'px';
-      canvas.style.aspectRatio = `${rw}/${rh}`;
+
+      // 2. Căn chỉnh khớp 100% tỷ lệ khung hình cho Monitor 2 (Thành phẩm)
+      if (monitorOut && canvasOut) {
+        const oRect = monitorOut.getBoundingClientRect();
+        if (oRect.width > 0 && oRect.height > 0) {
+          const maxW = oRect.width;
+          const maxH = oRect.height;
+          const containerAspect = maxW / maxH;
+          let fitW, fitH;
+          if (containerAspect > targetAspect) {
+            fitH = maxH;
+            fitW = fitH * targetAspect;
+          } else {
+            fitW = maxW;
+            fitH = fitW / targetAspect;
+          }
+          canvasOut.style.width = Math.round(fitW) + 'px';
+          canvasOut.style.height = Math.round(fitH) + 'px';
+          canvasOut.style.aspectRatio = `${rw}/${rh}`;
+        }
+      }
     }
 
+    // Tự động căn chỉnh lại khung hình khi thay đổi kích thước cửa sổ hoặc kéo co giãn màn hình
     window.addEventListener('resize', fitVideoCanvas);
 
-    function setRatio(r) {
+    // Kích hoạt ResizeObserver để bắt ngay cả khi thu nhỏ / phóng to cửa sổ
+    try {
+      const resizeObs = new ResizeObserver(() => {
+        fitVideoCanvas();
+      });
+      const pContainer = document.getElementById('previewDualContainer');
+      if (pContainer) resizeObs.observe(pContainer);
+      const mSrc = document.getElementById('videoMonitor');
+      if (mSrc) resizeObs.observe(mSrc);
+      const mOut = document.getElementById('outputMonitor');
+      if (mOut) resizeObs.observe(mOut);
+    } catch(e) {}
+
+    let userLockedRatio = false;
+
+    function setRatio(r, userInitiated = false) {
+      if (userInitiated) userLockedRatio = true;
       currentRatio = r;
-      const monitor = document.getElementById('videoMonitor');
       const b169 = document.getElementById('btn169');
       const b916 = document.getElementById('btn916');
       const b11 = document.getElementById('btn11');
       const blurBg = document.getElementById('blurBgLayer');
 
       [b169, b916, b11].forEach(b => {
-        if (b) b.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px]";
+        if (b) b.className = "px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition";
       });
 
       if (r === '16:9') {
-        monitor.style.width = '800px';
-        monitor.style.aspectRatio = '16/9';
-        if (b169) b169.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px]";
-        blurBg.classList.add('hidden');
+        if (b169) b169.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px] transition";
+        if (blurBg) blurBg.classList.add('hidden');
       } else if (r === '9:16') {
-        monitor.style.width = '350px';
-        monitor.style.aspectRatio = '9/16';
-        if (b916) b916.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px]";
+        if (b916) b916.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px] transition";
         applyBg916();
       } else {
-        monitor.style.width = '500px';
-        monitor.style.aspectRatio = '1/1';
-        if (b11) b11.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px]";
-        blurBg.classList.add('hidden');
+        if (b11) b11.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white shadow-xs text-[11px] transition";
+        applyBg916();
       }
       fitVideoCanvas();
     }
 
     function changeBgMode916(mode) {
-      if (currentRatio === '9:16') {
-        applyBg916();
-      }
+      applyBg916();
     }
 
     function applyBg916() {
-      const mode = document.getElementById('selBg916').value;
+      const mode = document.getElementById('selBg916')?.value || 'blur';
       const blurBg = document.getElementById('blurBgLayer');
       const player = document.getElementById('mainVideoPlayer');
-      if (mode === 'blur') {
-        blurBg.classList.remove('hidden');
-        player.style.objectFit = 'contain';
-      } else if (mode === 'crop') {
-        blurBg.classList.add('hidden');
-        player.style.objectFit = 'cover';
+      if (!player) return;
+
+      if (currentRatio === '9:16') {
+        if (mode === 'blur') {
+          if (blurBg) blurBg.classList.remove('hidden');
+          player.style.objectFit = 'contain';
+        } else if (mode === 'crop') {
+          if (blurBg) blurBg.classList.add('hidden');
+          player.style.objectFit = 'cover';
+        } else {
+          if (blurBg) blurBg.classList.add('hidden');
+          player.style.objectFit = 'contain';
+        }
+      } else if (currentRatio === '1:1') {
+        if (mode === 'crop') {
+          if (blurBg) blurBg.classList.add('hidden');
+          player.style.objectFit = 'cover';
+        } else if (mode === 'blur') {
+          if (blurBg) blurBg.classList.remove('hidden');
+          player.style.objectFit = 'contain';
+        } else {
+          if (blurBg) blurBg.classList.add('hidden');
+          player.style.objectFit = 'contain';
+        }
       } else {
-        blurBg.classList.add('hidden');
+        if (blurBg) blurBg.classList.add('hidden');
         player.style.objectFit = 'contain';
       }
     }
@@ -1486,8 +1543,8 @@ AIzaSyD_demoKey03_ghi789</textarea>
       }
 
       // 5. Cấu hình Mục 5 (Khung hình 16:9 hoặc 9:16)
-      if (cfg.aspect_ratio) {
-        setRatio(cfg.aspect_ratio);
+      if (cfg.aspect_ratio && !userLockedRatio) {
+        setRatio(cfg.aspect_ratio, false);
       }
 
       // 7. Cấu hình Mục 7 (Watermark)
@@ -2055,7 +2112,7 @@ AIzaSyD_demoKey03_ghi789</textarea>
       } else if (mode === 'source') {
         container.className = "flex-1 overflow-hidden p-3 flex items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]";
         boxSrc.classList.remove('hidden');
-        boxSrc.style.maxWidth = "860px";
+        boxSrc.style.maxWidth = "100%";
         boxOut.classList.add('hidden');
 
         if (bSrc) bSrc.className = "px-2 py-0.5 rounded font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1";
@@ -2065,12 +2122,13 @@ AIzaSyD_demoKey03_ghi789</textarea>
         container.className = "flex-1 overflow-hidden p-3 flex items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]";
         boxSrc.classList.add('hidden');
         boxOut.classList.remove('hidden');
-        boxOut.style.maxWidth = "860px";
+        boxOut.style.maxWidth = "100%";
 
         if (bOut) bOut.className = "px-2 py-0.5 rounded font-bold bg-emerald-600 text-white text-[11px] flex items-center gap-1";
         if (bDual) bDual.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
         if (bSrc) bSrc.className = "px-2 py-0.5 rounded text-slate-400 hover:text-white text-[11px] flex items-center gap-1";
       }
+      fitVideoCanvas();
     }
 
     function togglePlaySource() {
@@ -2254,6 +2312,7 @@ AIzaSyD_demoKey03_ghi789</textarea>
           genre: genre,
           target_minutes: targetMins,
           aspect_ratio: currentRatio,
+          vertical_style: document.getElementById('selBg916')?.value === 'crop' ? 'crop' : (document.getElementById('selBg916')?.value === 'black' ? 'black' : 'blurred_background'),
           voice_name: voice,
           voice_speed: speed,
           character_aliases: aliases,
@@ -2382,6 +2441,11 @@ AIzaSyD_demoKey03_ghi789</textarea>
       startKaraokeAnimation();
       loadExports(false); // Update badge count without overriding source player
       applyVideoFilters();
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const rParam = urlParams.get('ratio');
+        if (rParam) setRatio(rParam, true);
+      } catch(e) {}
       fitVideoCanvas();
       await loadAvailableVideos(); // Auto-picks first video, sets player & runs auto-scan
       loadCurrentScript();
