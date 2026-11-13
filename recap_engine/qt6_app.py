@@ -155,6 +155,7 @@ def run_webview2_desktop(server_proc=None):
         height=920,
         resizable=True,
         min_size=(1100, 720),
+        maximized=True,
         background_color="#070a12"
     )
 
@@ -204,7 +205,7 @@ def run_qt6_fallback(server_proc=None):
     settings.setAttribute(QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False)
 
     browser.load(QUrl(URL))
-    win.show()
+    win.showMaximized()
 
     try:
         sys.exit(app.exec())
@@ -231,8 +232,7 @@ def run_edge_app_mode(server_proc=None):
         browser_exe,
         f"--app={URL}",
         f"--user-data-dir={profile_dir}",
-        "--window-size=1480,920",
-        "--window-position=50,30",
+        "--start-maximized",
         "--no-first-run",
         "--no-default-browser-check",
         "--disable-features=msHub,msEdgeAppModeAddressBar",

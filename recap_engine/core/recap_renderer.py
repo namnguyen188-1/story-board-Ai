@@ -16,10 +16,10 @@ WIN_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 try:
     from .ffmpeg_utils import get_ffmpeg_path, check_nvenc_available
-    from .fair_use_fx import build_fair_use_video_filter, get_target_dimensions
+    from .fair_use_fx import build_fair_use_video_filter, get_target_dimensions, build_watermark_drawtext, build_cta_drawtext
 except (ImportError, ValueError):
     from core.ffmpeg_utils import get_ffmpeg_path, check_nvenc_available
-    from core.fair_use_fx import build_fair_use_video_filter, get_target_dimensions
+    from core.fair_use_fx import build_fair_use_video_filter, get_target_dimensions, build_watermark_drawtext, build_cta_drawtext
 
 
 class RecapRenderer:
@@ -44,6 +44,11 @@ class RecapRenderer:
         film_grain: bool = True,
         hflip: bool = False,
         watermark_text: Optional[str] = None,
+        watermark_size: int = 38,
+        watermark_color: str = "gold",
+        watermark_motion: str = "floating",
+        cta_overlay: bool = True,
+        cta_text: Optional[str] = None,
         progress_callback: Optional[Callable[[str, float], None]] = None
     ) -> str:
         """
@@ -202,10 +207,24 @@ class RecapRenderer:
                 v_filters_final.append(f"ass='{escaped_sub}'")
 
             if watermark_text:
-                v_filters_final.append(
-                    f"drawtext=text='{watermark_text}':fontcolor=white@0.6:fontsize=24:"
-                    f"x=w-tw-30:y=30:box=1:boxcolor=black@0.4:boxborderw=5"
+                wm_f = build_watermark_drawtext(
+                    text=watermark_text,
+                    font_size=watermark_size,
+                    color_scheme=watermark_color,
+                    motion_type=watermark_motion,
+                    aspect_ratio=aspect_ratio
                 )
+                if wm_f:
+                    v_filters_final.append(wm_f)
+
+            if cta_overlay:
+                cta_f = build_cta_drawtext(
+                    text=cta_text or "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ",
+                    font_size=32 if aspect_ratio != "9:16" else 28,
+                    aspect_ratio=aspect_ratio
+                )
+                if cta_f:
+                    v_filters_final.append(cta_f)
 
             # Assemble video final filter
             v_arg = []

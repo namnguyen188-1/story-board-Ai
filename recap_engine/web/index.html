@@ -16,6 +16,13 @@
       cursor: grabbing !important;
       user-select: none;
     }
+    @keyframes floatWatermark {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(-1.5deg); }
+    }
+    .animate-floating {
+      animation: floatWatermark 4s ease-in-out infinite;
+    }
   </style>
 </head>
 <body class="bg-[#070a12] text-[#cbd5e1] font-sans antialiased h-screen overflow-hidden flex flex-col text-xs">
@@ -47,8 +54,8 @@
       <button onclick="openScriptModal()" class="h-7 px-3 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-slate-200 border border-[#223048] text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
         <span>📜</span> Kịch Bản
       </button>
-      <button onclick="openExportsModal()" class="h-7 px-3 rounded-lg bg-[#102319] hover:bg-[#163023] text-emerald-300 border border-emerald-500/30 text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
-        <span>🎬</span> Video Đã Xuất (<span id="txtExportsCount" class="text-amber-400 font-bold">0</span>)
+      <button onclick="openExportsModal()" class="h-7 px-3 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/50 text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm">
+        <span>🎬</span> Thư Viện Video (<span id="txtExportsCount" class="text-amber-400 font-bold">0</span>)
       </button>
       <button onclick="openSettingsModal()" class="h-7 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-amber-300 border border-amber-500/25 text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
         <span>⚙️</span> API Keys
@@ -222,12 +229,12 @@
           </details>
         </div>
 
-        <!-- 4. GIỌNG ĐỌC & ÂM THANH (CARD BO GÓC) -->
+        <!-- 4. LỒNG TIẾNG & NGÔN NGỮ (CARD BO GÓC) -->
         <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-sky-500/40 transition-all space-y-2">
           <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
             <span class="text-sky-400 font-bold flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-              4. Lồng Tiếng & Âm Thanh
+              4. Lồng Tiếng & Ngôn Ngữ
             </span>
             <div class="flex items-center gap-1.5 bg-[#070a12] px-2 py-0.5 rounded-lg border border-[#1c2538]">
               <span class="text-[10px] text-slate-400">Tốc độ:</span>
@@ -236,31 +243,42 @@
             </div>
           </div>
 
+          <!-- Ngôn ngữ review & Giọng lồng tiếng động -->
           <div class="grid grid-cols-2 gap-1.5">
-            <select id="selVoice" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
-              <option value="Fenrir" selected>🎙️ Gemini TTS - Fenrir</option>
-              <option value="Aoede">🎙️ Gemini TTS - Aoede</option>
-              <option value="Puck">🎙️ Gemini TTS - Puck (Hài hước)</option>
-              <option value="Kore">🎙️ Gemini TTS - Kore</option>
-              <option value="vi-VN-NamMinhNeural">🎙️ Edge NamMinh (Miễn phí)</option>
-              <option value="vi-VN-HoaiMyNeural">🎙️ Edge HoaiMy (Miễn phí)</option>
-            </select>
+            <div>
+              <span class="text-[10px] text-slate-400 block mb-0.5 font-medium">Ngôn ngữ review:</span>
+              <select id="selLanguage" onchange="changeLanguage(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-amber-300 font-bold focus:outline-none">
+                <option value="vi" selected>🇻🇳 Tiếng Việt</option>
+                <option value="en">🇺🇸 English (US/Global)</option>
+                <option value="ko">🇰🇷 한국어 (Korean)</option>
+                <option value="ja">🇯🇵 日本語 (Japanese)</option>
+                <option value="zh">🇨🇳 中文 (Chinese)</option>
+                <option value="es">🇪🇸 Español (Spanish)</option>
+              </select>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block mb-0.5 font-medium">Giọng lồng tiếng:</span>
+              <select id="selVoice" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
+                <option value="Fenrir" selected>🎙️ Gemini TTS - Fenrir</option>
+                <option value="Aoede">🎙️ Gemini TTS - Aoede (Nữ)</option>
+                <option value="Puck">🎙️ Gemini TTS - Puck (Hài)</option>
+                <option value="Kore">🎙️ Gemini TTS - Kore (Trầm)</option>
+                <option value="vi-VN-NamMinhNeural">🎙️ Edge NamMinh (Việt)</option>
+                <option value="vi-VN-HoaiMyNeural">🎙️ Edge HoaiMy (Việt)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
             <select id="selBgm" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
               <option selected>BGM Suspense Thriller</option>
               <option>BGM Epic Cinematic</option>
               <option>BGM Mystery Drama</option>
             </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-1.5">
             <div class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] text-[11px]">
               <span class="text-slate-400">Auto-Duck BGM:</span>
               <span class="text-emerald-400 font-mono font-bold">-18dB</span>
             </div>
-            <label class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] cursor-pointer text-[11px]">
-              <span class="text-slate-300">SFX Whoosh/Ting</span>
-              <input type="checkbox" checked class="accent-sky-500 w-3 h-3">
-            </label>
           </div>
         </div>
 
@@ -379,23 +397,69 @@
           </div>
         </div>
 
-        <!-- 7. WATERMARK (CARD BO GÓC) -->
+        <!-- 7. WATERMARK KÊNH & NÚT SUB, LIKE, CHUÔNG (CARD BO GÓC) -->
         <div class="bg-[#0f1422] rounded-xl p-3 border border-[#1d273c] shadow-md hover:border-indigo-500/40 transition-all space-y-2">
           <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
             <span class="text-indigo-400 font-bold flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-              7. Watermark Kênh
+              7. Watermark & Nút Sub/Like/Chuông
             </span>
+            <span class="text-[9px] bg-indigo-950/80 text-indigo-300 px-1.5 py-0.2 rounded-md border border-indigo-500/30">Chuyển Động</span>
           </div>
+
+          <!-- Tên Kênh Watermark -->
           <div>
-            <input id="inputWatermarkText" type="text" value="@ReviewPhim" oninput="updateWatermarkText(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1 text-[11px] text-amber-300 font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Watermark...">
+            <div class="flex justify-between items-center mb-0.5">
+              <label class="text-[10px] text-slate-400">Tên Kênh (Watermark):</label>
+              <span class="text-[9px] text-amber-400 font-mono">Bảo vệ bản quyền</span>
+            </div>
+            <input id="inputWatermarkText" type="text" value="@ReviewPhimHay" oninput="updateWatermarkStyle()" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1.5 text-[11px] text-amber-300 font-bold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="@KenhReviewCuaBan">
           </div>
-          <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+
+          <!-- Cỡ chữ, Màu sắc & Hiệu ứng Chuyển Động -->
+          <div class="grid grid-cols-3 gap-1.5 text-[10px]">
+            <div>
+              <span class="text-slate-400 block mb-0.5">Kích thước:</span>
+              <select id="selWatermarkSize" onchange="updateWatermarkStyle()" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-1.5 py-1 text-slate-200 focus:outline-none">
+                <option value="32">Vừa (32px)</option>
+                <option value="40" selected>Lớn (40px) ⭐</option>
+                <option value="50">Cực Lớn (50px)</option>
+              </select>
+            </div>
+            <div>
+              <span class="text-slate-400 block mb-0.5">Màu sắc:</span>
+              <select id="selWatermarkColor" onchange="updateWatermarkStyle()" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-1.5 py-1 text-amber-300 font-bold focus:outline-none">
+                <option value="gold" selected>🌟 Vàng Gold</option>
+                <option value="cyan">💎 Xanh Cyan</option>
+                <option value="rose">❤️ Đỏ Rose</option>
+                <option value="white">⚪ Trắng Bạc</option>
+              </select>
+            </div>
+            <div>
+              <span class="text-slate-400 block mb-0.5">Chuyển động:</span>
+              <select id="selWatermarkMotion" onchange="updateWatermarkStyle()" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-1.5 py-1 text-emerald-400 font-bold focus:outline-none">
+                <option value="floating" selected>🌊 Lơ lửng</option>
+                <option value="wave">〰️ Lượn sóng</option>
+                <option value="static">📌 Cố định</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Nút Kêu Gọi Đăng Ký, Like & Chuông 🔔 -->
+          <div class="pt-1.5 border-t border-[#1c2538]/60 space-y-1.5">
+            <label class="flex items-center justify-between cursor-pointer">
+              <span class="text-[11px] text-rose-400 font-bold flex items-center gap-1.5">
+                <span>🔔</span> Nút Kêu Gọi Sub, Like & Chuông
+              </span>
+              <input id="chkCtaOverlay" type="checkbox" checked onchange="toggleCtaPreview()" class="accent-rose-500 w-3.5 h-3.5">
+            </label>
+            <input id="inputCtaText" type="text" value="🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ" oninput="updateCtaPreview(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1 text-[10px] text-rose-300 font-semibold focus:outline-none focus:border-rose-500 transition-colors" placeholder="Chữ kêu gọi Sub, Like, Chuông...">
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5 pt-0.5 text-[11px]">
             <select id="selWatermarkPos" onchange="changeWatermarkPos(this.value)" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-slate-200 focus:outline-none">
               <option value="top-right" selected>Góc trên phải</option>
               <option value="top-left">Góc trên trái</option>
-              <option value="bottom-right">Góc dưới phải</option>
-              <option value="bottom-left">Góc dưới trái</option>
             </select>
             <select id="selBg916" onchange="changeBgMode916(this.value)" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-slate-200 focus:outline-none">
               <option value="blur" selected>Nền mờ (Blur BG)</option>
@@ -478,15 +542,15 @@
         <div id="monitorSourceBox" class="w-full h-full flex flex-col bg-[#0c101a] rounded-xl border border-[#232f48] overflow-hidden shadow-2xl transition-all">
           
           <!-- Monitor 1 Header -->
-          <div class="h-8 bg-[#0f172a] px-3 flex items-center justify-between border-b border-[#1e293b] shrink-0 text-xs">
-            <div class="flex items-center gap-1.5 font-bold text-rose-400">
-              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-              <span>1. BÀN DỰNG (VIDEO GỐC & CĂN CHỈNH)</span>
+          <div class="h-8 bg-[#0f172a] px-3 flex items-center justify-between border-b border-[#1e293b] shrink-0 text-xs overflow-hidden gap-2">
+            <div class="flex items-center gap-1.5 font-bold text-rose-400 min-w-0 truncate">
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
+              <span class="truncate">1. BÀN DỰNG (VIDEO GỐC & CĂN CHỈNH)</span>
             </div>
-            <div class="flex items-center gap-2">
-              <span id="lblCoordsMonitor" class="text-pink-400 font-mono text-[10px]">X: 50%, Y: 90%</span>
-              <span class="text-slate-500">•</span>
-              <span class="text-amber-400 font-mono text-[10px]">Khớp 1:1 Khung Hình Video</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span id="lblCoordsMonitor" class="text-pink-400 font-mono text-[10px] whitespace-nowrap">X: 50%, Y: 90%</span>
+              <span class="text-slate-500 hidden xl:inline">•</span>
+              <span class="text-amber-400 font-mono text-[10px] hidden xl:inline whitespace-nowrap">Khớp 1:1 Khung Hình</span>
             </div>
           </div>
 
@@ -523,10 +587,16 @@
                 <span class="text-[9px] text-emerald-400 font-mono text-right">TIKTOK / YOUTUBE SAFE</span>
               </div>
 
-              <!-- Watermark Overlay -->
-              <div id="channelWatermark" class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white/90 border border-white/10 z-20 flex items-center gap-1 shadow">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <span id="txtWatermarkDisplay">@ReviewPhim</span>
+              <!-- Watermark Overlay (To, Nổi Bật, Có Màu Sắc & Chuyển Động) -->
+              <div id="channelWatermark" class="absolute top-3 right-3 bg-black/75 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-black text-yellow-400 border border-yellow-400/40 z-20 flex items-center gap-1.5 shadow-lg shadow-black/80 animate-floating transition-all duration-300">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                <span id="txtWatermarkDisplay">@ReviewPhimHay</span>
+              </div>
+
+              <!-- Nút Kêu Gọi Sub, Like & Chuông 🔔 (Call To Action Overlay Preview) -->
+              <div id="ctaOverlayPreview" class="absolute bottom-[24%] left-1/2 -translate-x-1/2 z-25 px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 text-white font-extrabold text-[11px] shadow-2xl border-2 border-white/40 flex items-center gap-2 select-none pointer-events-none animate-pulse transition-all">
+                <span class="text-sm">🔔</span>
+                <span id="txtCtaDisplay">ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ</span>
               </div>
 
               <!-- ============================================== -->
@@ -571,12 +641,12 @@
         <div id="monitorOutputBox" class="w-full h-full flex flex-col bg-[#0c101a] rounded-xl border border-emerald-500/30 overflow-hidden shadow-2xl transition-all">
 
           <!-- Monitor 2 Header -->
-          <div class="h-8 bg-[#0b1b14] px-3 flex items-center justify-between border-b border-emerald-500/20 shrink-0 text-xs">
-            <div class="flex items-center gap-1.5 font-bold text-emerald-400">
-              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>2. THÀNH PHẨM (KẾT QUẢ RECAP ĐÃ DỰNG)</span>
+          <div class="h-8 bg-[#0b1b14] px-3 flex items-center justify-between border-b border-emerald-500/20 shrink-0 text-xs overflow-hidden gap-2">
+            <div class="flex items-center gap-1.5 font-bold text-emerald-400 min-w-0 truncate">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+              <span class="truncate">2. THÀNH PHẨM (RECAP ĐÃ DỰNG)</span>
             </div>
-            <span id="txtOutputBadge" class="text-emerald-400 font-mono text-[10px] font-semibold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+            <span id="txtOutputBadge" class="text-emerald-400 font-mono text-[10px] font-semibold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0 whitespace-nowrap">
               Sẵn Sàng Phát
             </span>
           </div>
@@ -662,130 +732,111 @@
       <div class="p-3.5 bg-[#131b2e] border-b border-[#2d3a52] flex justify-between items-center">
         <div class="flex items-center gap-2">
           <span class="text-base text-amber-400">⚙️</span>
-          <span class="font-bold text-white text-xs tracking-wide">CÀI ĐẶT API & KHÓA DỊCH VỤ (RECAP ENGINE)</span>
+          <span class="font-bold text-white text-xs tracking-wide">CÀI ĐẶT API KEYS & DỊCH VỤ GOOGLE GEMINI</span>
         </div>
         <button onclick="closeSettingsModal()" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">✕</button>
       </div>
 
       <!-- Modal Body -->
-      <div class="p-4 space-y-3 text-xs overflow-y-auto max-h-[75vh]">
+      <div class="p-4 space-y-3.5 text-xs overflow-y-auto max-h-[75vh]">
         <!-- 1. Google Gemini API Keys -->
-        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2">
+        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="font-bold text-amber-400 flex items-center gap-1.5">
-              <span>🤖</span> Google Gemini API Keys (Biên Kịch & Giọng Đọc)
+              <span>🤖</span> Danh Sách Google Gemini API Keys
             </span>
-            <button onclick="testGeminiKeys()" class="px-2 py-0.5 rounded bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/50 text-[10px] font-semibold transition">
-              🔍 Kiểm Tra Key (Ping)
+            <button type="button" onclick="testGeminiKeys()" class="px-2.5 py-1 rounded-md bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/50 text-[11px] font-bold transition flex items-center gap-1 shadow-xs">
+              <span id="spinTestKeys" class="hidden animate-spin">⚙️</span>
+              <span>🔍 Kiểm Tra Key (Ping Live)</span>
             </button>
           </div>
-          <p class="text-[10px] text-slate-400">
-            Dùng chung cho viết kịch bản 3 hồi và sinh giọng đọc Gemini TTS. Hỗ trợ nhiều key (mỗi dòng 1 key để quay vòng tự động):
+          <p class="text-[10px] text-slate-400 leading-relaxed">
+            Dùng chung cho viết kịch bản 3 hồi, phân tích thị giác AI Vision và sinh giọng đọc Gemini TTS. Hỗ trợ dán nhiều key (mỗi dòng 1 key). Hệ thống tự động chuyển key tiếp theo khi chạm ngưỡng giới hạn (429 Rate Limit):
           </p>
-          <textarea id="txtGeminiKeys" rows="3" class="w-full bg-[#0d131f] border border-[#2d3a52] rounded p-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500 resize-none">AIzaSyB_demoKey01_abc123
-AIzaSyC_demoKey02_def456
-AIzaSyD_demoKey03_ghi789</textarea>
-          <div class="flex items-center justify-between text-[10px] text-slate-400">
-            <span>Model biên kịch:</span>
-            <select class="bg-[#0d131f] border border-[#2d3a52] rounded px-1.5 py-0.5 text-slate-200">
-              <option selected>gemini-3.5-flash (Khuyên dùng)</option>
-              <option>gemini-flash-lite-latest (Nhanh nhất)</option>
-              <option>gemini-3.8-flash</option>
+          <textarea id="txtGeminiKeys" rows="4" class="w-full bg-[#0d131f] border border-[#2d3a52] rounded-lg p-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500 resize-none leading-relaxed" placeholder="Dán danh sách API Keys vào đây, mỗi dòng 1 key..."></textarea>
+
+          <!-- Key Test Results Container -->
+          <div id="keyTestResultsBox" class="hidden space-y-1.5 p-2 bg-[#060a12] rounded-lg border border-[#1c2538] max-h-40 overflow-y-auto">
+            <!-- Dynamic results -->
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-[#1a2336]">
+            <span>Model AI ưu tiên:</span>
+            <select id="selAiModel" class="bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 text-slate-200 font-mono text-xs focus:outline-none">
+              <option value="gemini-3.5-flash" selected>gemini-3.5-flash (Khuyên dùng - Nhanh & Chuẩn)</option>
+              <option value="gemini-flash-lite-latest">gemini-flash-lite-latest (Tốc độ cao nhất)</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash (Ổn định)</option>
+              <option value="gemini-3.8-flash">gemini-3.8-flash (Chuyên sâu)</option>
             </select>
           </div>
         </div>
 
-        <!-- 2. Giọng Đọc Gemini TTS Engine -->
+        <!-- 2. Thư Mục Lưu Video Thành Phẩm -->
         <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2">
-          <span class="font-bold text-sky-400 flex items-center gap-1.5">
-            <span>🎙️</span> Cấu Hình Giọng Đọc Gemini TTS
-          </span>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[10px] text-slate-400 block mb-1">Giọng mặc định:</label>
-              <select class="w-full bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 text-slate-200">
-                <option selected>Fenrir (Nam kịch tính - Phù hợp phim hành động)</option>
-                <option>Aoede (Nữ ấm áp - Phù hợp phim tình cảm)</option>
-                <option>Puck (Nam hài hước - Phù hợp review bắt trend)</option>
-                <option>Kore (Nữ trầm - Phù hợp phim giật gân)</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-[10px] text-slate-400 block mb-1">Dự phòng khi hết Quota:</label>
-              <select class="w-full bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 text-slate-200">
-                <option selected>Edge-TTS NamMinh (Miễn phí 100%)</option>
-                <option>Edge-TTS HoaiMy (Miễn phí 100%)</option>
-                <option>Chuyển sang Key Gemini tiếp theo</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. Whisper Speech-to-Text -->
-        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-2">
-          <span class="font-bold text-emerald-400 flex items-center gap-1.5">
-            <span>⚡</span> Whisper Trích Xuất Lời Thoại Phim Gốc
-          </span>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="flex items-center gap-2 p-1.5 bg-[#0d131f] rounded border border-[#2d3a52] cursor-pointer">
-              <input type="radio" name="whisperEngine" checked class="accent-emerald-500">
-              <span>Local GPU (WhisperX)</span>
-            </label>
-            <label class="flex items-center gap-2 p-1.5 bg-[#0d131f] rounded border border-[#2d3a52] cursor-pointer">
-              <input type="radio" name="whisperEngine" class="accent-emerald-500">
-              <span>OpenAI Whisper API</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 4. Thư Mục Xuất Video -->
-        <div class="bg-[#090d18] border border-[#1e293b] rounded-lg p-3 space-y-1.5">
-          <span class="font-bold text-indigo-400 flex items-center gap-1.5">
-            <span>💾</span> Thư Mục Xuất Video (Độc lập với Storyboard)
-          </span>
-          <div class="flex gap-1.5">
-            <input type="text" value="D:/MOVIE_RECAP_EXPORTS/" class="w-full bg-[#0d131f] border border-[#2d3a52] rounded px-2 py-1 font-mono text-slate-200 focus:outline-none">
-            <button onclick="alert('Đã chọn thư mục: D:/MOVIE_RECAP_EXPORTS/')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium shrink-0">
-              📁 Duyệt
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+              <span>💾</span> Thư Mục Xuất Video Review
+            </span>
+            <button type="button" onclick="openExportsFolder()" class="text-[10px] text-amber-400 hover:underline">
+              📂 Mở thư mục này
             </button>
+          </div>
+          <div class="flex gap-1.5">
+            <input id="txtExportDir" type="text" value="D:\STORYBOARD_AI\recap_exports" class="w-full bg-[#0d131f] border border-[#2d3a52] rounded-lg px-2.5 py-1.5 font-mono text-slate-200 text-xs focus:outline-none focus:border-indigo-500">
           </div>
         </div>
       </div>
 
       <!-- Modal Footer -->
       <div class="p-3 bg-[#131b2e] border-t border-[#2d3a52] flex justify-between items-center">
-        <span id="txtSaveStatus" class="text-[10px] text-emerald-400">Đã kết nối 3 API Keys</span>
+        <span id="txtSaveStatus" class="text-[11px] text-emerald-400 font-medium">Sẵn sàng kết nối</span>
         <div class="flex gap-2">
-          <button onclick="closeSettingsModal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">Hủy</button>
-          <button onclick="saveApiSettings()" class="px-4 py-1 rounded bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold shadow-md">💾 Lưu Cài Đặt</button>
+          <button type="button" onclick="closeSettingsModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs">Hủy</button>
+          <button type="button" onclick="saveApiSettings()" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs shadow-md">💾 Lưu Cài Đặt</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- EXPORTS MODAL (DANH SÁCH VIDEO ĐÃ XUẤT) -->
-  <div id="exportsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-[#0f172a] border border-[#2d3a52] rounded-xl w-full max-w-2xl flex flex-col shadow-2xl overflow-hidden max-h-[85vh]">
-      <div class="p-3.5 bg-[#131b2e] border-b border-[#2d3a52] flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <span class="text-base text-emerald-400">🎬</span>
-          <span class="font-bold text-white text-xs tracking-wide">DANH SÁCH VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM</span>
+  <!-- EXPORTS MODAL (THƯ VIỆN VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM) -->
+  <div id="exportsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-[#0b101c] border border-[#2d3a52] rounded-2xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden max-h-[88vh]">
+      <!-- Modal Header -->
+      <div class="p-4 bg-[#11192b] border-b border-[#2d3a52] flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl text-emerald-400">🎬</span>
+          <div>
+            <h3 class="font-extrabold text-white text-sm tracking-wide">THƯ VIỆN VIDEO REVIEW ĐÃ XUẤT THÀNH PHẨM</h3>
+            <p class="text-[10px] text-slate-400 font-mono">Quản lý, xem thử trực tiếp trên studio, tải về hoặc xóa video</p>
+          </div>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="openExportsFolder()" class="h-6 px-2.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-medium flex items-center gap-1 transition">
+          <button onclick="openExportsFolder()" class="h-7 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
             <span>📂</span> Mở Thư Mục Chứa Video
           </button>
-          <button onclick="closeExportsModal()" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">✕</button>
+          <button onclick="closeExportsModal()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">✕</button>
         </div>
       </div>
 
-      <div id="exportsListContainer" class="p-3.5 space-y-2.5 text-xs overflow-y-auto max-h-[65vh]">
-        <!-- Dynamic content -->
+      <!-- Search & Stats Bar -->
+      <div class="px-4 py-2.5 bg-[#0e1524] border-b border-[#1c2538] flex items-center justify-between text-xs gap-3">
+        <input id="inputSearchExports" type="text" oninput="filterExportsList(this.value)" placeholder="🔍 Tìm kiếm video trong thư viện..." class="flex-1 bg-[#070a12] border border-[#1c2538] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+        <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono shrink-0">
+          <span>Tổng số: <strong id="lblExportsTotal" class="text-emerald-400">0</strong> video</span>
+          <span>•</span>
+          <span>Dung lượng: <strong id="lblExportsSize" class="text-amber-400">0</strong> MB</span>
+        </div>
       </div>
 
-      <div class="p-3 bg-[#131b2e] border-t border-[#2d3a52] flex justify-between items-center text-[11px] text-slate-400">
-        <span>Thư mục xuất: <strong class="text-slate-200 font-mono">D:\STORYBOARD_AI\recap_exports</strong></span>
-        <button onclick="closeExportsModal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Đóng</button>
+      <!-- Video Grid Container -->
+      <div id="exportsListContainer" class="p-4 space-y-2.5 text-xs overflow-y-auto max-h-[60vh]">
+        <!-- Dynamic video cards -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 bg-[#11192b] border-t border-[#2d3a52] flex justify-between items-center text-[11px] text-slate-400">
+        <span>Đường dẫn thư viện: <strong class="text-slate-200 font-mono">D:\STORYBOARD_AI\recap_exports</strong></span>
+        <button onclick="closeExportsModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium">Đóng</button>
       </div>
     </div>
   </div>
@@ -1233,18 +1284,15 @@ AIzaSyD_demoKey03_ghi789</textarea>
 
     // 5. Watermark & Progress Bar Toggles
     function updateWatermarkText(text) {
-      document.getElementById('txtWatermarkDisplay').innerText = text.trim() || "@ReviewPhimHay";
+      updateWatermarkStyle();
     }
 
     function changeWatermarkPos(pos) {
       const el = document.getElementById('channelWatermark');
-      el.className = "absolute bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold text-white/90 border border-white/10 z-20 flex items-center gap-1.5 shadow transition-all duration-150";
+      if (!el) return;
+      el.classList.remove('top-3', 'left-3', 'right-3', 'bottom-8');
       if (pos === 'top-left') {
         el.classList.add('top-3', 'left-3');
-      } else if (pos === 'bottom-right') {
-        el.classList.add('bottom-8', 'right-3');
-      } else if (pos === 'bottom-left') {
-        el.classList.add('bottom-8', 'left-3');
       } else {
         el.classList.add('top-3', 'right-3');
       }
@@ -1893,7 +1941,8 @@ AIzaSyD_demoKey03_ghi789</textarea>
             target_minutes: targetMins,
             character_aliases: aliases,
             story_idea: storyIdea,
-            source_video: selectedVideoPath
+            source_video: selectedVideoPath,
+            language: document.getElementById('selLanguage')?.value || 'vi'
           })
         });
 
@@ -2113,35 +2162,82 @@ AIzaSyD_demoKey03_ghi789</textarea>
       if (curStatus) curStatus.innerText = item.name;
     }
 
-    function renderExportsList() {
+    function renderExportsList(filtered = null) {
       const container = document.getElementById('exportsListContainer');
       if (!container) return;
-      if (!currentExports.length) {
-        container.innerHTML = `<div class="p-6 text-center text-slate-400">Chưa có video thành phẩm nào trong thư mục recap_exports.</div>`;
+      const list = filtered !== null ? filtered : currentExports;
+
+      const lblTotal = document.getElementById('lblExportsTotal');
+      const lblSize = document.getElementById('lblExportsSize');
+      if (lblTotal) lblTotal.innerText = list.length;
+      if (lblSize) {
+        const totalMb = list.reduce((acc, x) => acc + (x.size_mb || 0), 0);
+        lblSize.innerText = totalMb.toFixed(1);
+      }
+
+      if (!list.length) {
+        container.innerHTML = `<div class="p-8 text-center text-slate-400">Không tìm thấy video review nào trong thư mục recap_exports.</div>`;
         return;
       }
-      container.innerHTML = currentExports.map((exp, idx) => `
-        <div class="p-3 rounded-lg bg-[#090d18] border border-[#1e293b] hover:border-emerald-500/50 flex items-center justify-between transition">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold text-white">${idx === 0 ? '🌟 MỚI NHẤT: ' : ''}${exp.name}</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">${exp.size_mb} MB</span>
+      container.innerHTML = list.map((exp, idx) => `
+        <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1d273c] hover:border-emerald-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all shadow-sm">
+          <div class="space-y-1 max-w-xl">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span class="text-emerald-400">🎬</span>
+                <span>${idx === 0 ? '🌟 MỚI NHẤT: ' : ''}${exp.name}</span>
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono font-bold">${exp.size_mb} MB</span>
             </div>
-            <p class="text-[10px] text-slate-400 font-mono">Đã xuất: ${exp.time_str}</p>
+            <p class="text-[10px] text-slate-400 font-mono">📅 Ngày xuất: ${exp.time_str} • Đường dẫn: ${exp.rel_path}</p>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button onclick="selectVideoForPlayback(currentExports[${idx}], true); closeExportsModal();" class="h-7 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow">
-              <span>▶</span> Phát Trên Tool
+          <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+            <button onclick="selectVideoForPlayback(currentExports.find(x => x.name === '${exp.name}') || currentExports[0], true); closeExportsModal();" class="h-7 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition">
+              <span>▶</span> Phát Trên Studio
             </button>
-            <a href="${exp.url}" download class="h-7 px-2.5 rounded bg-[#1e293b] hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs flex items-center gap-1">
-              <span>⬇</span> Tải Về
+            <a href="${exp.url}" download class="h-7 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1 font-medium transition">
+              <span>⬇</span> Tải MP4
             </a>
-            <button onclick="openExportsFolder('${exp.full_path.replace(/\\/g, '/')}')" class="h-7 px-2.5 rounded bg-[#1e293b] hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1">
+            <button onclick="openExportsFolder('${exp.full_path.replace(/\\/g, '/')}')" title="Mở thư mục trên máy tính" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 transition">
               <span>📂</span>
+            </button>
+            <button onclick="deleteExport('${exp.name}')" title="Xóa video khỏi thư viện" class="h-7 px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 text-xs flex items-center gap-1 transition">
+              <span>🗑️</span>
             </button>
           </div>
         </div>
       `).join('');
+    }
+
+    function filterExportsList(query) {
+      const q = (query || "").toLowerCase().trim();
+      if (!q) {
+        renderExportsList();
+        return;
+      }
+      const filtered = currentExports.filter(exp => (exp.name || "").toLowerCase().includes(q) || (exp.time_str || "").includes(q));
+      renderExportsList(filtered);
+    }
+
+    async function deleteExport(filename) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn video "${filename}" khỏi thư viện xuất bản không?`)) return;
+      try {
+        const res = await fetch('/api/exports/delete', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ filename })
+        });
+        const d = await res.json();
+        if (d.status === 'ok') {
+          await loadExports();
+          const badge = document.getElementById('txtOutputBadge');
+          if (badge) badge.innerText = "ĐÃ CẬP NHẬT THƯ VIỆN";
+        } else {
+          alert("Lỗi khi xóa video: " + d.message);
+        }
+      } catch (err) {
+        alert("Lỗi kết nối khi xóa: " + err.message);
+      }
     }
 
     async function openExportsFolder(path = "") {
@@ -2162,8 +2258,256 @@ AIzaSyD_demoKey03_ghi789</textarea>
     }
     function closeExportsModal() { document.getElementById('exportsModal').classList.add('hidden'); }
 
-    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
-    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+    // 12.1 Quản Lý Cài Đặt & API Keys Modal (Đầy Đủ Chức Năng 100%)
+    async function openSettingsModal() {
+      const modal = document.getElementById('settingsModal');
+      if (modal) modal.classList.remove('hidden');
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const cfg = await res.json();
+          const keys = cfg.gemini_keys || [];
+          const txt = document.getElementById('txtGeminiKeys');
+          if (txt) {
+            txt.value = Array.isArray(keys) ? keys.join('\n') : (keys || "");
+          }
+          const st = document.getElementById('txtSaveStatus');
+          if (st) st.innerText = `Đang kết nối ${Array.isArray(keys) ? keys.length : 1} API Keys thực tế`;
+          const expInp = document.getElementById('txtExportDir');
+          if (expInp && cfg.export_dir) expInp.value = cfg.export_dir;
+          const selM = document.getElementById('selAiModel');
+          if (selM && cfg.model_name) selM.value = cfg.model_name;
+        }
+      } catch (err) {
+        console.error("openSettingsModal error:", err);
+      }
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal')?.classList.add('hidden');
+    }
+
+    async function testGeminiKeys() {
+      const txt = document.getElementById('txtGeminiKeys')?.value || "";
+      const keys = txt.split('\n').map(k => k.trim()).filter(k => k.length > 5);
+      const statusEl = document.getElementById('txtSaveStatus');
+      const resultsBox = document.getElementById('keyTestResultsBox');
+      const spin = document.getElementById('spinTestKeys');
+
+      if (!keys.length) {
+        alert("Vui lòng dán ít nhất 1 Google Gemini API Key vào khung để kiểm tra!");
+        return;
+      }
+
+      if (spin) spin.classList.remove('hidden');
+      if (statusEl) statusEl.innerText = `⏳ Đang kiểm tra ${keys.length} keys song song qua Gemini API...`;
+      if (resultsBox) {
+        resultsBox.classList.remove('hidden');
+        resultsBox.innerHTML = `<div class="p-2.5 text-center text-amber-400 font-medium animate-pulse flex items-center justify-center gap-2"><span>🔄</span> Đang gửi tín hiệu Ping tới Google Gemini...</div>`;
+      }
+
+      try {
+        const res = await fetch('/api/test-keys', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ keys })
+        });
+        const d = await res.json();
+        if (d.status === 'ok') {
+          if (statusEl) statusEl.innerText = `✅ Hoạt động: ${d.live_count}/${d.total} keys khả dụng`;
+          if (resultsBox) {
+            resultsBox.innerHTML = d.results.map((r, i) => {
+              let badge = `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/40">✅ LIVE</span>`;
+              if (r.status === 'quota_exceeded') {
+                badge = `<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400 font-bold border border-amber-500/40">⚠️ QUOTA 429</span>`;
+              } else if (r.status === 'invalid' || r.status === 'error') {
+                badge = `<span class="px-1.5 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 font-bold border border-rose-500/40">❌ LỖI</span>`;
+              }
+              return `
+                <div class="p-2 bg-[#080d19] rounded-lg border border-[#1a2336] flex items-center justify-between text-[11px]">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-300 font-semibold">Key #${i+1}: ${r.key}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-slate-400">${r.message}</span>
+                    ${badge}
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        } else {
+          if (statusEl) statusEl.innerText = "❌ Lỗi: " + d.message;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.innerText = "❌ Lỗi kết nối: " + err.message;
+      } finally {
+        if (spin) spin.classList.add('hidden');
+      }
+    }
+
+    async function saveApiSettings() {
+      const txt = document.getElementById('txtGeminiKeys')?.value || "";
+      const keys = txt.split('\n').map(k => k.trim()).filter(k => k.length > 5);
+      const exportDir = (document.getElementById('txtExportDir')?.value || "").trim();
+      const modelName = document.getElementById('selAiModel')?.value || "gemini-3.5-flash";
+      const statusEl = document.getElementById('txtSaveStatus');
+
+      if (!keys.length) {
+        alert("Vui lòng nhập ít nhất 1 API Key hợp lệ!");
+        return;
+      }
+
+      if (statusEl) statusEl.innerText = "⏳ Đang lưu cấu hình vào recap_config.json...";
+
+      try {
+        const payload = {
+          gemini_keys: keys,
+          model_name: modelName
+        };
+        if (exportDir) payload.export_dir = exportDir;
+
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (d.status === 'ok') {
+          if (statusEl) statusEl.innerText = `✅ Đã lưu thành công ${keys.length} API Keys!`;
+          setTimeout(() => {
+            closeSettingsModal();
+          }, 1200);
+        } else {
+          alert("Lỗi lưu cài đặt: " + d.message);
+        }
+      } catch (err) {
+        alert("Lỗi kết nối lưu: " + err.message);
+      }
+    }
+
+    // 12.2 Danh Mục Đa Ngôn Ngữ & Giọng Đọc Quốc Tế
+    const VOICE_CATALOG = {
+      vi: [
+        { id: 'Fenrir', label: '🎙️ Gemini TTS - Fenrir (Nam kịch tính)' },
+        { id: 'Aoede', label: '🎙️ Gemini TTS - Aoede (Nữ truyền cảm)' },
+        { id: 'Puck', label: '🎙️ Gemini TTS - Puck (Nam hóm hỉnh)' },
+        { id: 'Kore', label: '🎙️ Gemini TTS - Kore (Nữ trầm bí ẩn)' },
+        { id: 'vi-VN-NamMinhNeural', label: '🎙️ Edge NamMinh (Nam Việt)' },
+        { id: 'vi-VN-HoaiMyNeural', label: '🎙️ Edge HoaiMy (Nữ Việt)' }
+      ],
+      en: [
+        { id: 'Fenrir', label: '🎙️ Gemini TTS - Fenrir (US Trailer Voice)' },
+        { id: 'Aoede', label: '🎙️ Gemini TTS - Aoede (US Warm Female)' },
+        { id: 'Puck', label: '🎙️ Gemini TTS - Puck (US Energetic)' },
+        { id: 'Kore', label: '🎙️ Gemini TTS - Kore (US Deep Thriller)' },
+        { id: 'en-US-GuyNeural', label: '🎙️ Edge Guy (US Male)' },
+        { id: 'en-US-JennyNeural', label: '🎙️ Edge Jenny (US Female)' },
+        { id: 'en-US-ChristopherNeural', label: '🎙️ Edge Christopher (US Classic)' }
+      ],
+      ko: [
+        { id: 'Fenrir', label: '🎙️ Gemini TTS - Fenrir (한국어 Cinematic)' },
+        { id: 'ko-KR-InJoonNeural', label: '🎙️ Edge InJoon (한국어 Nam)' },
+        { id: 'ko-KR-SunHiNeural', label: '🎙️ Edge SunHi (한국어 Nữ)' }
+      ],
+      ja: [
+        { id: 'Fenrir', label: '🎙️ Gemini TTS - Fenrir (日本語 Cinematic)' },
+        { id: 'ja-JP-KeitaNeural', label: '🎙️ Edge Keita (日本語 Nam)' },
+        { id: 'ja-JP-NanamiNeural', label: '🎙️ Edge Nanami (日本語 Nữ)' }
+      ],
+      zh: [
+        { id: 'Fenrir', label: '🎙️ Gemini TTS - Fenrir (中文 电影解说)' },
+        { id: 'zh-CN-YunxiNeural', label: '🎙️ Edge Yunxi (中文 男声)' },
+        { id: 'zh-CN-XiaoxiaoNeural', label: '🎙️ Edge Xiaoxiao (中文 女声)' }
+      ],
+      es: [
+        { id: 'Fenrir', label: '🎙️ Gemini TTS - Fenrir (Español Cinemático)' },
+        { id: 'es-ES-AlvaroNeural', label: '🎙️ Edge Alvaro (Español Hombre)' },
+        { id: 'es-ES-ElviraNeural', label: '🎙️ Edge Elvira (Español Mujer)' }
+      ]
+    };
+
+    function changeLanguage(lang) {
+      const selVoice = document.getElementById('selVoice');
+      const ctaInput = document.getElementById('inputCtaText');
+      const ctaPreview = document.getElementById('txtCtaDisplay');
+      const voices = VOICE_CATALOG[lang] || VOICE_CATALOG['vi'];
+      if (selVoice) {
+        selVoice.innerHTML = voices.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
+      }
+      if (ctaInput) {
+        if (lang === 'en') ctaInput.value = "🔔 SUBSCRIBE & LIKE FOR MORE!";
+        else if (lang === 'ko') ctaInput.value = "🔔 구독 & 좋아요 부탁드립니다!";
+        else if (lang === 'ja') ctaInput.value = "🔔 チャンネル登録＆高評価お願いします！";
+        else if (lang === 'zh') ctaInput.value = "🔔 点击订阅与点赞，精彩不迷路！";
+        else if (lang === 'es') ctaInput.value = "🔔 ¡SUSCRÍBETE Y DALE LIKE AL VIDEO!";
+        else ctaInput.value = "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ";
+        if (ctaPreview) ctaPreview.innerText = ctaInput.value;
+      }
+    }
+
+    // 12.3 Watermark Kênh & Nút Kêu Gọi Sub/Like/Chuông Style Controller
+    function updateWatermarkStyle() {
+      const text = (document.getElementById('inputWatermarkText')?.value || "").trim() || "@ReviewPhimHay";
+      const size = document.getElementById('selWatermarkSize')?.value || "40";
+      const color = document.getElementById('selWatermarkColor')?.value || "gold";
+      const motion = document.getElementById('selWatermarkMotion')?.value || "floating";
+
+      const el = document.getElementById('channelWatermark');
+      const txtEl = document.getElementById('txtWatermarkDisplay');
+      if (!el || !txtEl) return;
+
+      txtEl.innerText = text;
+
+      if (size === "50") {
+        el.style.fontSize = "15px";
+        el.style.padding = "6px 14px";
+      } else if (size === "40") {
+        el.style.fontSize = "13px";
+        el.style.padding = "4px 10px";
+      } else {
+        el.style.fontSize = "11px";
+        el.style.padding = "3px 8px";
+      }
+
+      if (color === "gold") {
+        el.style.color = "#FACC15";
+        el.style.borderColor = "rgba(250, 204, 21, 0.5)";
+        el.style.boxShadow = "0 4px 15px rgba(250, 204, 21, 0.25)";
+      } else if (color === "cyan") {
+        el.style.color = "#38BDF8";
+        el.style.borderColor = "rgba(56, 189, 248, 0.5)";
+        el.style.boxShadow = "0 4px 15px rgba(56, 189, 248, 0.25)";
+      } else if (color === "rose") {
+        el.style.color = "#F43F5E";
+        el.style.borderColor = "rgba(244, 63, 94, 0.5)";
+        el.style.boxShadow = "0 4px 15px rgba(244, 63, 94, 0.25)";
+      } else {
+        el.style.color = "#FFFFFF";
+        el.style.borderColor = "rgba(255, 255, 255, 0.35)";
+        el.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.6)";
+      }
+
+      if (motion === "floating") {
+        el.classList.add("animate-floating");
+      } else {
+        el.classList.remove("animate-floating");
+      }
+    }
+
+    function toggleCtaPreview() {
+      const chk = document.getElementById('chkCtaOverlay');
+      const preview = document.getElementById('ctaOverlayPreview');
+      if (preview) {
+        if (chk && chk.checked) preview.classList.remove('hidden');
+        else preview.classList.add('hidden');
+      }
+    }
+
+    function updateCtaPreview(text) {
+      const preview = document.getElementById('txtCtaDisplay');
+      if (preview) preview.innerText = text.trim() || "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ";
+    }
 
     // 13. Dual View Mode & Playback Controls
     function setDualViewMode(mode) {
@@ -2398,6 +2742,12 @@ AIzaSyD_demoKey03_ghi789</textarea>
           character_aliases: aliases,
           story_idea: storyIdea,
           watermark_text: watermark,
+          watermark_size: parseInt(document.getElementById('selWatermarkSize')?.value || "38"),
+          watermark_color: document.getElementById('selWatermarkColor')?.value || "gold",
+          watermark_motion: document.getElementById('selWatermarkMotion')?.value || "floating",
+          cta_overlay: document.getElementById('chkCtaOverlay') ? document.getElementById('chkCtaOverlay').checked : true,
+          cta_text: (document.getElementById('inputCtaText')?.value || "").trim(),
+          language: document.getElementById('selLanguage')?.value || "vi",
           subtitle_config: {
             pos_x_pct: posX,
             pos_y_pct: posY,

@@ -155,8 +155,8 @@ def ensure_maximized_background():
     try:
         import ctypes
         SW_MAXIMIZE = 3
-        for _ in range(20):
-            time.sleep(0.25)
+        for _ in range(40):
+            time.sleep(0.2)
             def enum_cb(hwnd, extra):
                 if ctypes.windll.user32.IsWindowVisible(hwnd):
                     length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
@@ -164,7 +164,7 @@ def ensure_maximized_background():
                         buff = ctypes.create_unicode_buffer(length + 1)
                         ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
                         title = buff.value
-                        if "Movie Recap Studio Pro" in title or "Phim Review Bất Bại" in title:
+                        if any(k.lower() in title.lower() for k in ("Movie Recap", "Phim Review", "127.0.0.1:8095", "localhost:8095")):
                             ctypes.windll.user32.ShowWindow(hwnd, SW_MAXIMIZE)
                             ctypes.windll.user32.SetForegroundWindow(hwnd)
                             return False
@@ -211,7 +211,8 @@ def open_desktop_window():
             width=1480,
             height=920,
             resizable=True,
-            min_size=(1100, 720)
+            min_size=(1100, 720),
+            maximized=True
         )
         webview.start()
         return None

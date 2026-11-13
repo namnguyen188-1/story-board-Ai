@@ -53,6 +53,12 @@ class MovieRecapPipeline:
         custom_script: Optional[str] = None,
         bgm_file: Optional[str] = None,
         watermark_text: Optional[str] = None,
+        watermark_size: int = 38,
+        watermark_color: str = "gold",
+        watermark_motion: str = "floating",
+        cta_overlay: bool = True,
+        cta_text: Optional[str] = None,
+        language: str = "vi",
         output_filename: Optional[str] = None,
         progress_callback: Optional[Callable[[str, float], None]] = None
     ) -> Dict[str, Any]:
@@ -154,7 +160,8 @@ class MovieRecapPipeline:
                     genre=genre,
                     target_minutes=target_minutes,
                     plot_context=full_plot_context,
-                    user_aliases=user_aliases
+                    user_aliases=user_aliases,
+                    language=language
                 )
         else:
             report(f"Đang biên kịch tóm tắt 3 hồi cho phim '{movie_title}'...", 15.0)
@@ -163,7 +170,8 @@ class MovieRecapPipeline:
                 genre=genre,
                 target_minutes=target_minutes,
                 plot_context=plot_context,
-                user_aliases=user_aliases
+                user_aliases=user_aliases,
+                language=language
             )
 
         script_file = session_dir / "recap_script.json"
@@ -240,6 +248,11 @@ class MovieRecapPipeline:
             film_grain=bool(anti_cfg.get("film_grain", True)),
             hflip=bool(anti_cfg.get("selective_flip", False)),
             watermark_text=watermark_text,
+            watermark_size=watermark_size,
+            watermark_color=watermark_color,
+            watermark_motion=watermark_motion,
+            cta_overlay=cta_overlay,
+            cta_text=cta_text,
             progress_callback=render_progress
         )
 

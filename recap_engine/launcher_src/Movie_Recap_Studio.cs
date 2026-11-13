@@ -137,7 +137,7 @@ namespace MovieRecapStudio
                     var appPsi = new ProcessStartInfo
                     {
                         FileName = chosenBrowser,
-                        Arguments = "--app=http://127.0.0.1:8095 --start-maximized",
+                        Arguments = "--app=http://127.0.0.1:8095 --start-maximized --no-first-run --no-default-browser-check",
                         UseShellExecute = true
                     };
                     Process.Start(appPsi);
@@ -145,7 +145,7 @@ namespace MovieRecapStudio
                     // Ensure window is fully maximized on desktop
                     new Thread(delegate ()
                     {
-                        for (int i = 0; i < 20; i++)
+                        for (int i = 0; i < 40; i++)
                         {
                             Thread.Sleep(250);
                             if (MaximizeStudioWindow()) break;
@@ -175,8 +175,10 @@ namespace MovieRecapStudio
                 var sb = new System.Text.StringBuilder(256);
                 GetWindowText(hwnd, sb, sb.Capacity);
                 string title = sb.ToString();
-                if (title.IndexOf("Movie Recap Studio Pro", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    title.IndexOf("Phim Review Bất Bại", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (title.IndexOf("Movie Recap Studio", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("Phim Review", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("127.0.0.1:8095", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("localhost:8095", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     ShowWindow(hwnd, 3); // SW_MAXIMIZE
                     SetForegroundWindow(hwnd);
@@ -197,8 +199,10 @@ namespace MovieRecapStudio
                 var sb = new System.Text.StringBuilder(256);
                 GetWindowText(hwnd, sb, sb.Capacity);
                 string title = sb.ToString();
-                if (title.IndexOf("Movie Recap Studio Pro", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    title.IndexOf("Phim Review Bất Bại", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (title.IndexOf("Movie Recap Studio", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("Phim Review", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("127.0.0.1:8095", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("localhost:8095", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     ShowWindow(hwnd, 3); // SW_MAXIMIZE
                     SetForegroundWindow(hwnd);

@@ -89,7 +89,7 @@ async def handle_test_key(request):
         from google.genai import types
         client = genai.Client(api_key=key, http_options=types.HttpOptions(timeout=10000))
         resp = client.models.generate_content(
-            model="gemini-3.5-flash",
+            model="gemini-2.5-flash",
             contents="Hello! 1 word reply 'OK'."
         )
         return web.json_response({
@@ -98,6 +98,82 @@ async def handle_test_key(request):
         }, headers=cors_headers())
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=400, headers=cors_headers())
+
+
+async def handle_test_keys(request):
+    """Batch test multiple Gemini API keys concurrently with fast ping."""
+    try:
+        data = await request.json()
+        raw_keys = data.get("keys", [])
+        if isinstance(raw_keys, str):
+            raw_keys = [k.strip() for k in raw_keys.splitlines() if k.strip()]
+
+        if not raw_keys:
+            return web.json_response({"status": "error", "message": "Danh sách key trống!"}, status=400, headers=cors_headers())
+
+        from google import genai
+        from google.genai import types
+        import concurrent.futures
+
+        def check_one(k):
+            clean_k = re.sub(r"[^\x20-\x7E]", "", k).strip()
+            if not clean_k or len(clean_k) < 20:
+                return {"key": clean_k[:10] + "...", "status": "invalid", "message": "Độ dài key không hợp lệ"}
+
+            models_to_test = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-flash-lite-latest"]
+            last_err = ""
+            for m_name in models_to_test:
+                try:
+                    c = genai.Client(api_key=clean_k, http_options=types.HttpOptions(timeout=8000))
+                    res = c.models.generate_content(model=m_name, contents="ping")
+                    if res and res.text:
+                        return {"key": clean_k[:12] + "..." + clean_k[-4:], "status": "live", "message": f"Hoạt động tốt ({m_name})"}
+                except Exception as e_m:
+                    err_str = str(e_m)
+                    last_err = err_str
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        return {"key": clean_k[:12] + "..." + clean_k[-4:], "status": "quota_exceeded", "message": "Hết Quota ngày (429) - Hệ thống sẽ tự động dùng sau"}
+                    if "API_KEY_INVALID" in err_str or "400" in err_str:
+                        return {"key": clean_k[:12] + "..." + clean_k[-4:], "status": "invalid", "message": "Key không hợp lệ hoặc đã bị vô hiệu"}
+
+            return {"key": clean_k[:12] + "..." + clean_k[-4:], "status": "error", "message": f"Lỗi: {last_err[:50]}"}
+
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, max(1, len(raw_keys)))) as executor:
+            futures = [executor.submit(check_one, k) for k in raw_keys]
+            for f in futures:
+                results.append(f.result())
+
+        live_count = sum(1 for r in results if r["status"] == "live")
+        return web.json_response({
+            "status": "ok",
+            "total": len(results),
+            "live_count": live_count,
+            "results": results
+        }, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_delete_export(request):
+    """Safely delete an exported video from recap_exports directory."""
+    try:
+        data = await request.json()
+        filename = data.get("filename", "").strip()
+        if not filename:
+            return web.json_response({"status": "error", "message": "Thiếu tên file cần xóa"}, status=400, headers=cors_headers())
+
+        target = (EXPORT_DIR / filename).resolve()
+        # Security: Prevent directory traversal outside EXPORT_DIR
+        if not str(target).startswith(str(EXPORT_DIR.resolve())):
+            return web.json_response({"status": "error", "message": "Đường dẫn không hợp lệ"}, status=403, headers=cors_headers())
+
+        if target.is_file():
+            target.unlink()
+            return web.json_response({"status": "ok", "message": f"Đã xóa thành công file {filename}"}, headers=cors_headers())
+        return web.json_response({"status": "error", "message": f"File không tồn tại: {filename}"}, status=404, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
 
 
 async def handle_analyze_video(request):
@@ -177,7 +253,8 @@ async def handle_generate_script(request):
             target_minutes=int(data.get("target_minutes", 3)),
             plot_context=plot_context,
             user_aliases=data.get("character_aliases"),
-            source_duration=source_dur
+            source_duration=source_dur,
+            language=data.get("language", "vi")
         )
         return web.json_response({"status": "ok", "script": res}, headers=cors_headers())
     except Exception as e:
@@ -307,6 +384,12 @@ async def handle_start_render(request):
                     custom_script=data.get("story_idea") or data.get("custom_script"),
                     bgm_file=data.get("bgm_file"),
                     watermark_text=data.get("watermark_text"),
+                    watermark_size=int(data.get("watermark_size", 38)),
+                    watermark_color=data.get("watermark_color", "gold"),
+                    watermark_motion=data.get("watermark_motion", "floating"),
+                    cta_overlay=bool(data.get("cta_overlay", True)),
+                    cta_text=data.get("cta_text"),
+                    language=data.get("language", "vi"),
                     progress_callback=update_progress
                 )
 
@@ -509,6 +592,7 @@ def create_app():
     app.router.add_get("/api/config", handle_get_config)
     app.router.add_post("/api/config", handle_save_config)
     app.router.add_post("/api/test-key", handle_test_key)
+    app.router.add_post("/api/test-keys", handle_test_keys)
     app.router.add_post("/api/fetch-url", handle_fetch_url)
     app.router.add_post("/api/analyze", handle_analyze_video)
     app.router.add_get("/api/scan-auto", handle_auto_scan)
@@ -521,6 +605,7 @@ def create_app():
     app.router.add_get("/api/progress/{job_id}", handle_get_progress)
     app.router.add_get("/api/videos/list", handle_list_videos)
     app.router.add_get("/api/exports", handle_get_exports)
+    app.router.add_post("/api/exports/delete", handle_delete_export)
     app.router.add_post("/api/open-folder", handle_open_folder)
 
     # Static file serving for exports and source videos

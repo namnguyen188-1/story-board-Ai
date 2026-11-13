@@ -122,3 +122,76 @@ def build_9_16_blurred_filter_complex(
         f"[bg_blur][fg_sharp]overlay=(W-w)/2:(H-h)/2[v_out]"
     )
     return filter_str, "v_out"
+
+
+def build_watermark_drawtext(
+    text: str,
+    font_size: int = 38,
+    color_scheme: str = "gold",
+    motion_type: str = "floating",
+    aspect_ratio: str = "16:9"
+) -> str:
+    """
+    Constructs a high-visibility, professional watermark filter with vibrant color and movement.
+    Prevents video theft and automated crop infringement.
+    """
+    clean_text = text.replace("'", "").replace(":", " -")
+    if not clean_text.strip():
+        return ""
+
+    size = int(font_size)
+    if aspect_ratio == "9:16":
+        size = int(size * 1.1)
+
+    color_map = {
+        "gold": ("0xFACC15", "black", "black@0.55"),
+        "cyan": ("0x38BDF8", "black", "black@0.55"),
+        "rose": ("0xF43F5E", "white", "black@0.65"),
+        "white": ("white", "black", "black@0.55"),
+    }
+    font_col, border_col, box_col = color_map.get(color_scheme, color_map["gold"])
+
+    if motion_type == "floating":
+        x_expr = "'w-tw-40-20*sin(2*PI*t/12)'"
+        y_expr = "'35+15*cos(2*PI*t/8)'"
+    elif motion_type == "wave":
+        x_expr = "'(w-tw)/2+(w-tw)/3*sin(2*PI*t/14)'"
+        y_expr = "'40+15*abs(sin(2*PI*t/7))'"
+    else:
+        x_expr = "w-tw-35"
+        y_expr = "35"
+
+    return (
+        f"drawtext=text='{clean_text}':fontcolor={font_col}:fontsize={size}:"
+        f"borderw=3:bordercolor={border_col}:box=1:boxcolor={box_col}:boxborderw=8:"
+        f"x={x_expr}:y={y_expr}"
+    )
+
+
+def build_cta_drawtext(
+    text: str = "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ",
+    font_size: int = 30,
+    aspect_ratio: str = "16:9"
+) -> str:
+    """
+    Constructs an animated Call-To-Action (Subscribe, Like, Bell) overlay.
+    Appears at seconds 5-16 and during the last 15 seconds with pulsing motion.
+    """
+    clean_text = text.replace("'", "").replace(":", " -").strip()
+    if not clean_text:
+        clean_text = "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ"
+
+    size = int(font_size)
+    if aspect_ratio == "9:16":
+        size = int(size * 0.95)
+
+    y_pos = "h*0.80-6*abs(sin(2*PI*t/1.5))"
+    x_pos = "(w-tw)/2"
+
+    return (
+        f"drawtext=text='{clean_text}':fontcolor=white:fontsize={size}:"
+        f"borderw=2:bordercolor=black:box=1:boxcolor=0xE11D48@0.92:boxborderw=10:"
+        f"x='{x_pos}':y='{y_pos}':"
+        f"enable='between(t,5,16)+gte(t,180)'"
+    )
+

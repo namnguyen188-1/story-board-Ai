@@ -111,8 +111,10 @@ def load_config() -> dict:
 
 
 def save_config(config: dict) -> None:
-    """Save config to recap_config.json."""
+    """Save config to recap_config.json and immediately synchronize in-memory key rotator."""
     CONFIG_FILE.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+    if "gemini_keys" in config:
+        update_shared_rotator(config["gemini_keys"])
 
 
 class KeyRotator:
@@ -154,6 +156,12 @@ class KeyRotator:
 
 
 _SHARED_ROTATOR: Optional[KeyRotator] = None
+
+def update_shared_rotator(keys: List[str]) -> KeyRotator:
+    """Updates the shared singleton KeyRotator in memory immediately."""
+    global _SHARED_ROTATOR
+    _SHARED_ROTATOR = KeyRotator(keys)
+    return _SHARED_ROTATOR
 
 def get_shared_rotator() -> KeyRotator:
     global _SHARED_ROTATOR

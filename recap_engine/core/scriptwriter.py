@@ -85,12 +85,24 @@ class RecapScriptwriter:
         plot_context: str = "",
         user_aliases: Optional[Dict[str, str]] = None,
         style: str = "Kịch tính, gay cấn",
-        source_duration: float = 0.0
+        source_duration: float = 0.0,
+        language: str = "vi"
     ) -> Dict[str, Any]:
         """
         Generates a complete 3-act movie recap script structured as timed segments.
         Calculates ~12-15 segments per minute of video.
+        Supports multi-language scriptwriting (vi, en, ko, ja, zh, es).
         """
+        lang_map = {
+            "vi": "Tiếng Việt (văn phong kịch tính, cuốn hút như các kênh review phim triệu view)",
+            "en": "English (Hollywood-style cinematic, captivating storytelling)",
+            "ko": "Korean (한국어 - 긴장감 넘치고 흥미진진한 영화 리뷰 톤)",
+            "ja": "Japanese (日本語 - 臨場感あふれる本格的な映画解説スタイル)",
+            "zh": "Chinese (中文 - 悬念迭起、精彩绝伦的电影解说风格)",
+            "es": "Spanish (Español - Estilo narrativo dramático y cinematográfico)"
+        }
+        lang_desc = lang_map.get(language, lang_map["vi"])
+
         # Smart scaling of segment counts from Short (1-10p) to Feature Length (30p, 1h, 2h)
         if target_minutes <= 15:
             total_segments = max(15, int(target_minutes * 12))
@@ -113,6 +125,7 @@ class RecapScriptwriter:
 - TÊN PHIM: {movie_title}
 - THỂ LOẠI: {genre}
 - PHONG CÁCH: {style}
+- NGÔN NGỮ BẮT BUỘC: Viết 100% bằng {lang_desc}. Toàn bộ các câu trong 'text' và 'hook' PHẢI viết bằng {lang_desc}.
 - THỜI LƯỢNG MONG MUỐN: {pacing_note}
 {alias_instruction}
 - DỮ LIỆU CẢNH QUAY THỰC TẾ & CỐT TRUYỆN:

@@ -114,6 +114,20 @@ class RecapVoiceEngine:
                 time.sleep(0.5)
 
         if not raw_bytes:
+            # Fallback to high-quality Microsoft Edge Neural TTS when Gemini quota is exhausted
+            try:
+                import edge_tts
+                import asyncio
+                edge_voice = self._resolve_edge_voice(voice, clean_text)
+                asyncio.run(edge_tts.Communicate(clean_text, edge_voice).save(str(out_path)))
+                if out_path.is_file() and out_path.stat().st_size > 0:
+                    if abs(target_speed - 1.0) > 0.02:
+                        self._apply_audio_speed(str(out_path), target_speed)
+                    return self.get_audio_duration(str(out_path))
+            except Exception as e_fallback:
+                raise RuntimeError(f"Không thể tạo giọng đọc qua Gemini TTS ({attempt} lần thử) và Edge TTS fallback: {e_fallback}")
+
+        if not raw_bytes:
             raise RuntimeError(f"Không thể tạo giọng đọc qua Gemini TTS sau {attempt} lần thử.")
 
         # Save raw PCM
@@ -147,6 +161,38 @@ class RecapVoiceEngine:
             raise RuntimeError(f"Lỗi chuyển đổi audio: {conv_res.stderr.decode('utf-8', errors='replace')}")
 
         return self.get_audio_duration(str(out_path))
+
+    @staticmethod
+    def _resolve_edge_voice(voice_name: str, sample_text: str = "") -> str:
+        v_low = (voice_name or "").lower()
+        if any(k in v_low for k in ("hoài my", "aoede", "kore", "female")):
+            return "vi-VN-HoaiMyNeural"
+        elif any(k in v_low for k in ("en", "guy", "christopher", "english")):
+            return "en-US-GuyNeural"
+        elif any(k in v_low for k in ("ko", "korean", "injoon")):
+            return "ko-KR-InJoonNeural"
+        elif any(k in v_low for k in ("ja", "japanese", "keita")):
+            return "ja-JP-KeitaNeural"
+        elif any(k in v_low for k in ("zh", "chinese", "yunxi")):
+            return "zh-CN-YunxiNeural"
+        elif any(k in v_low for k in ("es", "spanish", "alvaro")):
+            return "es-ES-AlvaroNeural"
+        return "vi-VN-NamMinhNeural"
+
+    def _apply_audio_speed(self, audio_file: str, speed: float) -> None:
+        """Adjusts audio speed in place using FFmpeg atempo filter."""
+        p = Path(audio_file)
+        tmp_p = p.with_suffix(".tmp_speed.mp3")
+        cmd = [
+            self.ffmpeg, "-y",
+            "-i", str(p),
+            "-filter:a", f"atempo={speed}",
+            "-b:a", "192k",
+            str(tmp_p)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=WIN_NO_WINDOW)
+        if res.returncode == 0 and tmp_p.is_file():
+            tmp_p.replace(p)
 
     @staticmethod
     def get_audio_duration(audio_file: str) -> float:
@@ -203,7 +249,7 @@ class RecapVoiceEngine:
                     progress_callback(completed_count, total, seg)
             return (idx, seg)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             indexed_items = list(enumerate(segments))
             results = list(executor.map(process_segment, indexed_items))
 
