@@ -1,16 +1,11 @@
 @echo off
-chcp 65001 >nul
-title Khởi Động Movie Recap Studio Pro
-cd /d "%~dp0"
-
+if exist "D:\MOVIE_RECAP_STUDIO\KHOI_DONG.bat" (
+    cd /d "D:\MOVIE_RECAP_STUDIO"
+    start "" "KHOI_DONG.bat"
+    exit /b
+)
 if exist "Movie_Recap_Studio.exe" (
     start "" "Movie_Recap_Studio.exe"
     exit /b
-)
-
-if exist "studio\runtime\python\python.exe" (
-    start "" "studio\runtime\python\python.exe" -u "recap_engine\qt6_app.py"
-) else (
-    start "" python -u "recap_engine\qt6_app.py"
 )
 exit /b

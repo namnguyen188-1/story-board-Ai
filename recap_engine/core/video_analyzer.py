@@ -7,7 +7,9 @@ from pathlib import Path
 import sys
 import subprocess
 import re
-from typing import Dict, Any, List, Optional
+import json
+import tempfile
+from typing import Dict, Any, List, Optional, Tuple
 
 WIN_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 try:
@@ -267,7 +269,163 @@ class VideoAnalyzer:
 
         return shots
 
-    def auto_scan_and_configure(self, srt_path: Optional[str] = None) -> Dict[str, Any]:
+    def extract_visual_keyframes(self, num_frames: int = 5, output_dir: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Extracts keyframes at evenly distributed progression points across the movie.
+        Scales them to low-res (640px) for ultra-fast Gemini Vision analysis.
+        """
+        meta = self.probe()
+        dur = meta.get("duration", 0.0)
+        if dur <= 0:
+            dur = 600.0
+
+        if output_dir:
+            out_dir = Path(output_dir)
+        else:
+            out_dir = Path(tempfile.gettempdir()) / "recap_keyframes" / self.video_path.stem[:30]
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        ffmpeg = get_ffmpeg_path()
+        if num_frames == 5:
+            pcts = [0.02, 0.20, 0.45, 0.70, 0.92]
+        elif num_frames == 6:
+            pcts = [0.02, 0.12, 0.28, 0.50, 0.72, 0.92]
+        elif num_frames == 8:
+            pcts = [0.02, 0.08, 0.18, 0.32, 0.48, 0.64, 0.80, 0.94]
+        else:
+            pcts = [max(0.02, min(0.96, (i + 0.2) / (num_frames + 0.4))) for i in range(num_frames)]
+
+        frames = []
+        for i, pct in enumerate(pcts):
+            t_sec = max(1.0, min(dur - 2.0, dur * pct))
+            fmt_time = self._format_seconds(t_sec)
+            out_img = out_dir / f"frame_{i+1}_{int(t_sec)}s.jpg"
+
+            cmd = [
+                ffmpeg, "-y",
+                "-ss", str(round(t_sec, 2)),
+                "-i", str(self.video_path),
+                "-vframes", "1",
+                "-vf", "scale=512:-1",
+                "-q:v", "4",
+                str(out_img)
+            ]
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=WIN_NO_WINDOW)
+            if out_img.is_file() and out_img.stat().st_size > 0:
+                frames.append({
+                    "index": i + 1,
+                    "timestamp": round(t_sec, 2),
+                    "formatted_time": fmt_time,
+                    "path": str(out_img)
+                })
+        return frames
+
+    def deep_visual_scan(self, num_frames: int = 6) -> Dict[str, Any]:
+        """
+        Uses Gemini Vision to analyze extracted keyframes, detecting real characters,
+        genre, and visual plot timeline so recap script matches 100% of the actual footage.
+        """
+        try:
+            from PIL import Image
+            try:
+                from ..config import load_config, get_shared_rotator
+            except (ImportError, ValueError):
+                from config import load_config, get_shared_rotator
+
+            keyframes = self.extract_visual_keyframes(num_frames=num_frames)
+            if not keyframes:
+                return {}
+
+            images = [Image.open(k["path"]) for k in keyframes]
+            timecodes = ", ".join([f"Ảnh {k['index']} [{k['formatted_time']}]" for k in keyframes])
+
+            prompt = f"""Bạn là chuyên gia phân tích thị giác và đạo diễn phim hàng đầu.
+Quan sát kỹ {len(keyframes)} khung hình trích từ video gốc theo đúng trình tự thời gian ({timecodes}).
+Nhiệm vụ của bạn là nhận diện CHÍNH XÁC sự kiện thị giác, không gian, nhân vật và diễn biến thực tế diễn ra trong từng khung hình để lời bình sau này KHỚP 100% VỚI HÀNH ĐỘNG TRÊN MÀN HÌNH (chống nói sai, nói điêu).
+BẮT BUỘC TRẢ VỀ ĐỊNH DẠNG JSON DUY NHẤT:
+{{
+  "movie_title": "Tiêu đề review giật gân, cuốn hút khớp 100% nội dung hình ảnh",
+  "genre": "Thể loại phim thực tế xác định qua hình ảnh (ví dụ: Viễn tưởng / Hành động / Sinh tồn)",
+  "characters": [
+    {{"orig": "Nhận diện nhân vật qua ngoại hình/vai vế", "alias": "Biệt danh review dí dỏm, cuốn hút"}}
+  ],
+  "visual_timeline": [
+    {{
+      "time_sec": {keyframes[0]['timestamp']},
+      "formatted_time": "{keyframes[0]['formatted_time']}",
+      "action": "Mô tả chi tiết hành động thực tế diễn ra trong ảnh này (nhân vật đang làm gì, ai đang làm gì, vũ khí/phương tiện gì, nguy hiểm gì)"
+    }}
+  ],
+  "plot_synopsis": "Đoạn tóm tắt cốt truyện thực tế liên kết các mốc thời gian trên thành chuỗi biến cố kịch tính."
+}}
+BẮT BUỘC xuất đủ {len(keyframes)} phần tử trong visual_timeline tương ứng {len(keyframes)} ảnh theo thứ tự thời gian."""
+
+            rotator = get_shared_rotator()
+            cfg = load_config()
+            models_to_try = [
+                cfg.get("model_name", "gemini-3.5-flash"),
+                "gemini-3.8-flash",
+                "gemini-flash-lite-latest",
+                "gemini-flash-latest"
+            ]
+
+            num_keys = len(cfg.get("gemini_keys", [])) or 1
+            max_attempts = min(30, num_keys * len(models_to_try))
+            model_idx = 0
+            attempt = 0
+
+            while attempt < max_attempts:
+                current_model = models_to_try[model_idx % len(models_to_try)]
+                try:
+                    client = rotator.get_client(timeout_sec=40.0)
+                    resp = client.models.generate_content(
+                        model=current_model,
+                        contents=[prompt] + images
+                    )
+                    raw_text = resp.text.strip()
+                    m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw_text)
+                    if m:
+                        raw_text = m.group(1).strip()
+                    idx_s = raw_text.find("{")
+                    idx_e = raw_text.rfind("}")
+                    if idx_s != -1 and idx_e != -1:
+                        data = json.loads(raw_text[idx_s:idx_e+1])
+                        data["visual_scanned"] = True
+                        data["keyframes_count"] = len(keyframes)
+
+                        # Generate visual_timeline_text mapping for LLM Scriptwriter
+                        vt_lines = []
+                        for item in data.get("visual_timeline", []):
+                            t_val = item.get("time_sec")
+                            f_time = item.get("formatted_time", "")
+                            act = item.get("action") or item.get("visual_action") or ""
+                            if act:
+                                vt_lines.append(f"- [{f_time}] ({t_val}s): {act}")
+                        if vt_lines:
+                            data["visual_timeline_text"] = "\n".join(vt_lines)
+                        else:
+                            data["visual_timeline_text"] = data.get("plot_synopsis", "")
+
+                        return data
+                except Exception as ex:
+                    print(f"⚠️ Deep visual scan attempt {attempt+1}/{max_attempts} failed on {current_model} (Key {rotator.index}): {ex}", flush=True)
+                    err_str = str(ex).lower()
+                    if "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str:
+                        rotator.rotate_next()
+                    elif "503" in err_str or "unavailable" in err_str or "high demand" in err_str:
+                        model_idx += 1
+                    else:
+                        model_idx += 1
+                        rotator.rotate_next()
+                    attempt += 1
+                    rotator.rotate_next()
+
+        except Exception as e:
+            print(f"⚠️ deep_visual_scan error: {e}", flush=True)
+
+        return {}
+
+    def auto_scan_and_configure(self, srt_path: Optional[str] = None, enable_visual_scan: bool = True) -> Dict[str, Any]:
         """
         Automatically inspects the video, detects subtitles, extracts dialogue & character hints,
         and computes optimal recap production parameters.
@@ -299,6 +457,14 @@ class VideoAnalyzer:
         if found_srt:
             sub_items = self.parse_srt(str(found_srt))
 
+        # Perform visual AI scan if custom movie and no subtitles
+        visual_data = {}
+        if enable_visual_scan and not sub_items and self.video_path.stem not in ("demo_real_movie", "demo_movie"):
+            print(f"🔍 [AI VISION] Performing deep visual frame scan for '{filename}'...", flush=True)
+            visual_data = self.deep_visual_scan(num_frames=5)
+            if visual_data:
+                print(f"✅ [AI VISION] Visual scan completed: {visual_data.get('movie_title')}", flush=True)
+
         # Clean title & Genre deduction
         clean_title = self.video_path.stem.replace("_", " ").replace("-", " ")
         clean_title = re.sub(r"\s+[a-zA-Z0-9_-]{10,12}$", "", clean_title).strip()
@@ -306,6 +472,16 @@ class VideoAnalyzer:
         if self.video_path.stem in ("demo_real_movie", "demo_movie"):
             suggested_title = "Âm Mưu Ngày Cưới Của Thợ Trang Điểm"
             suggested_genre = "Ly kỳ, hồi hộp, Twist"
+            plot_synopsis = "Cô Dâu Pamela chuẩn bị ngày cưới trọng đại nhưng bị thợ trang điểm Vanessa âm mưu tráo đổi để trả thù. Một loạt biến cố bất ngờ xảy ra khi chú rể và cảnh sát ập vào phòng cưới."
+        elif visual_data.get("movie_title"):
+            suggested_title = visual_data["movie_title"]
+            suggested_genre = visual_data.get("genre", "Hành động, Kịch tính")
+            vt_text = visual_data.get("visual_timeline_text", "")
+            synopsis = visual_data.get("plot_synopsis", "")
+            if vt_text:
+                plot_synopsis = f"DIỄN BIẾN HÀNH ĐỘNG THỰC TẾ TRÊN TỪNG KHUNG HÌNH (BẮT BUỘC KHỚP 100%):\n{vt_text}\n\nTỔNG QUAN CỐT TRUYỆN:\n{synopsis}"
+            else:
+                plot_synopsis = synopsis or f"Tóm tắt cốt truyện: Phim xoay quanh {suggested_title}."
         else:
             suggested_title = clean_title.title() if clean_title else "Phim Mới"
             suggested_genre = "Hành động, Kịch tính"
@@ -313,53 +489,48 @@ class VideoAnalyzer:
                 suggested_genre = "Hài hước, bắt trend dí dỏm"
             elif any(k in clean_title.lower() for k in ["horror", "ghost", "ma", "kinh di"]):
                 suggested_genre = "Kinh dị, giật gân rùng rợn"
+            plot_synopsis = f"Tóm tắt cốt truyện: Phim xoay quanh {suggested_title} với nhịp độ kịch tính, mở đầu hé lộ biến cố then chốt và các xung đột dồn dập."
 
-        # 2. Extract Character Names from Subtitles accurately
+        # 2. Extract Character Names (prefer visual scan, then subtitles, then smart defaults)
         detected_chars = []
-        char_counts = {}
-        if sub_items:
-            full_text = " ".join(s["text"] for s in sub_items)
-            # If demo movie, use verified story characters
-            if self.video_path.stem in ("demo_real_movie", "demo_movie"):
-                known_check = [
-                    ("Pamela", "Pamela (Cô Dâu)", "Cô Dâu Xinh Đẹp"),
-                    ("Vanessa", "Vanessa (Thợ Trang Điểm)", "Chị Thợ Make-up Chuyên Nghiệp"),
-                    ("Sahid", "Sahid (Kẻ Giấu Mặt)", "Kẻ Bí Ẩn Đặt Hàng"),
-                    ("Nasiru", "Nasiru (Kẻ Lừa Đảo)", "Trùm Lừa Đảo Trực Tuyến"),
-                    ("Fabian", "Fabian (Chú Rể)", "Chú Rể Kỹ Sư"),
-                    ("Mimi", "Mimi (Trợ Lý)", "Cô Trợ Lý Make-up")
-                ]
-                for kw, full_orig, default_alias in known_check:
-                    cnt = len(re.findall(r"\b" + kw + r"\b", full_text, re.IGNORECASE))
-                    if cnt > 0:
-                        char_counts[full_orig] = (cnt, default_alias)
-            else:
-                # Discover speaker prefixes like "NAME: text"
-                for item in sub_items:
-                    txt = item["text"]
-                    m = re.match(r"^([A-Z][a-zA-Z\s]{1,20}):", txt)
-                    if m:
-                        spk = m.group(1).strip()
-                        char_counts[spk] = (char_counts.get(spk, (0, f"Nhân Vật {spk}"))[0] + 5, f"Nhân Vật {spk}")
+        if visual_data.get("characters"):
+            for c in visual_data["characters"][:5]:
+                orig = c.get("orig", "Nhân Vật")
+                alias = c.get("alias", f"Nhân Vật {orig}")
+                detected_chars.append({"orig": orig, "alias": alias})
+        else:
+            char_counts = {}
+            if sub_items:
+                full_text = " ".join(s["text"] for s in sub_items)
+                if self.video_path.stem in ("demo_real_movie", "demo_movie"):
+                    known_check = [
+                        ("Pamela", "Pamela (Cô Dâu)", "Cô Dâu Xinh Đẹp"),
+                        ("Vanessa", "Vanessa (Thợ Trang Điểm)", "Chị Thợ Make-up Chuyên Nghiệp"),
+                        ("Sahid", "Sahid (Kẻ Giấu Mặt)", "Kẻ Bí Ẩn Đặt Hàng"),
+                        ("Nasiru", "Nasiru (Kẻ Lừa Đảo)", "Trùm Lừa Đảo Trực Tuyến"),
+                        ("Fabian", "Fabian (Chú Rể)", "Chú Rể Kỹ Sư"),
+                        ("Mimi", "Mimi (Trợ Lý)", "Cô Trợ Lý Make-up")
+                    ]
+                    for kw, full_orig, default_alias in known_check:
+                        cnt = len(re.findall(r"\b" + kw + r"\b", full_text, re.IGNORECASE))
+                        if cnt > 0:
+                            char_counts[full_orig] = (cnt, default_alias)
+                else:
+                    for item in sub_items:
+                        txt = item["text"]
+                        m = re.match(r"^([A-Z][a-zA-Z\s]{1,20}):", txt)
+                        if m:
+                            spk = m.group(1).strip()
+                            char_counts[spk] = (char_counts.get(spk, (0, f"Nhân Vật {spk}"))[0] + 5, f"Nhân Vật {spk}")
 
-                # Discover frequent capitalized names in dialogue
-                if not char_counts:
-                    words = re.findall(r"\b[A-Z][a-z]{2,15}\b", full_text)
-                    stop_words = {"The", "And", "You", "She", "They", "What", "When", "Where", "How", "Yes", "No", "This", "That", "Here", "There", "Many", "Even", "During", "However", "Because", "After", "Before", "Well", "Just", "Come", "Look", "Looked", "Said", "Asked"}
-                    for w in words:
-                        if w not in stop_words:
-                            char_counts[w] = (char_counts.get(w, (0, f"Nhân Vật {w}"))[0] + 1, f"Nhân Vật {w}")
+                    if not char_counts:
+                        words = re.findall(r"\b[A-Z][a-z]{2,15}\b", full_text)
+                        stop_words = {"The", "And", "You", "She", "They", "What", "When", "Where", "How", "Yes", "No", "This", "That", "Here", "There", "Many", "Even", "During", "However", "Because", "After", "Before", "Well", "Just", "Come", "Look", "Looked", "Said", "Asked"}
+                        for w in words:
+                            if w not in stop_words:
+                                char_counts[w] = (char_counts.get(w, (0, f"Nhân Vật {w}"))[0] + 1, f"Nhân Vật {w}")
 
-        if not char_counts:
-            # Generate characters dynamically according to video title/topic
-            if "roblox" in clean_title.lower() or "game" in clean_title.lower():
-                char_counts = {
-                    "Game Thủ Chính": (10, "Cao Thủ Khét Tiếng"),
-                    "Hacker / Modder": (8, "Trùm Phần Mềm Bí Ẩn"),
-                    "Admin Server": (6, "Ban Quản Trị Khó Tính"),
-                    "Tân Binh": (4, "Người Chơi Mới Ngây Thơ")
-                }
-            else:
+            if not char_counts:
                 first_w = suggested_title.split()[0] if suggested_title else "Chính"
                 char_counts = {
                     f"Nhân Vật {first_w}": (10, f"Nhân Vật Chính ({first_w})"),
@@ -368,15 +539,15 @@ class VideoAnalyzer:
                     "Nhân Vật Bí Ẩn": (3, "Kẻ Giấu Mặt")
                 }
 
-        sorted_chars = sorted(
-            char_counts.items(),
-            key=lambda x: x[1][0] if isinstance(x[1], tuple) else x[1],
-            reverse=True
-        )[:5]
+            sorted_chars = sorted(
+                char_counts.items(),
+                key=lambda x: x[1][0] if isinstance(x[1], tuple) else x[1],
+                reverse=True
+            )[:5]
 
-        for orig, val in sorted_chars:
-            alias = val[1] if isinstance(val, tuple) else f"Nhân Vật {orig}"
-            detected_chars.append({"orig": orig, "alias": alias})
+            for orig, val in sorted_chars:
+                alias = val[1] if isinstance(val, tuple) else f"Nhân Vật {orig}"
+                detected_chars.append({"orig": orig, "alias": alias})
 
         # 3. Determine Optimal Target Minutes & Shots
         if duration <= 300:
@@ -413,6 +584,8 @@ class VideoAnalyzer:
                 "has_dialogue": len(sub_items) > 0
             },
             "detected_characters": detected_chars,
+            "visual_scanned": bool(visual_data),
+            "plot_synopsis": plot_synopsis,
             "suggested_config": {
                 "movie_title": suggested_title,
                 "target_minutes": target_mins,
@@ -423,6 +596,7 @@ class VideoAnalyzer:
                 "genre": suggested_genre,
                 "voice_name": "Fenrir",
                 "voice_speed": 1.15,
+                "plot_synopsis": plot_synopsis,
                 "watermark_text": "@ReviewPhimHay"
             }
         }

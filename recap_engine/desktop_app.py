@@ -104,18 +104,25 @@ def start_backend_server():
 
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     server_script = RECAP_DIR / "server.py"
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(RECAP_DIR) + os.pathsep + env.get("PYTHONPATH", "")
+
     proc = subprocess.Popen(
         [PYTHON, "-u", str(server_script)],
         cwd=str(RECAP_DIR),
+        env=env,
         creationflags=flags
     )
 
     # Wait for server to become responsive
-    for _ in range(40):
+    for _ in range(50):
         time.sleep(0.15)
         if is_server_ready():
             print(f"[DESKTOP] Server khởi động thành công tại: {URL}")
             return proc
+        if proc.poll() is not None:
+            break
 
     raise RuntimeError("RECAP_ENGINE_SERVER_FAILED_STARTUP")
 
@@ -141,6 +148,34 @@ def find_app_browser() -> str | None:
     return None
 
 
+def ensure_maximized_background():
+    """Monitors startup and ensures the application window is fully maximized."""
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        SW_MAXIMIZE = 3
+        for _ in range(20):
+            time.sleep(0.25)
+            def enum_cb(hwnd, extra):
+                if ctypes.windll.user32.IsWindowVisible(hwnd):
+                    length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                    if length > 0:
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+                        title = buff.value
+                        if "Movie Recap Studio Pro" in title or "Phim Review Bất Bại" in title:
+                            ctypes.windll.user32.ShowWindow(hwnd, SW_MAXIMIZE)
+                            ctypes.windll.user32.SetForegroundWindow(hwnd)
+                            return False
+                return True
+            ENUM_WINDOWS_PROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+            cb = ENUM_WINDOWS_PROC(enum_cb)
+            ctypes.windll.user32.EnumWindows(cb, 0)
+    except Exception:
+        pass
+
+
 def open_desktop_window():
     """Opens Movie Recap Studio in a dedicated native desktop window."""
     browser = find_app_browser()
@@ -152,16 +187,16 @@ def open_desktop_window():
             browser,
             f"--app={URL}",
             f"--user-data-dir={profile_dir}",
-            "--window-size=1440,900",
-            "--window-position=50,30",
+            "--start-maximized",
             "--no-first-run",
             "--no-default-browser-check",
             "--disable-features=msHub,msEdgeAppModeAddressBar",
             "--app-id=MovieRecapStudioPro",
         ]
         try:
-            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-            proc = subprocess.Popen(cmd, creationflags=flags)
+            # Khởi chạy cửa sổ ứng dụng ở chế độ hiển thị bình thường phóng to toàn màn hình
+            proc = subprocess.Popen(cmd)
+            threading.Thread(target=ensure_maximized_background, daemon=True).start()
             return proc
         except Exception as e:
             print(f"[DESKTOP] Lỗi khởi chạy Chromium App Mode ({e}), chuyển sang pywebview...")
@@ -171,17 +206,26 @@ def open_desktop_window():
         import webview
         print("[DESKTOP] Đang mở cửa sổ qua pywebview...")
         window = webview.create_window(
-            title="🎬 Movie Recap Studio Pro - Phim Review Bất Bại",
+            title="🎬 Movie Recap Studio Pro v0.0.1 - Phim Review Bất Bại",
             url=URL,
-            width=1440,
-            height=900,
+            width=1480,
+            height=920,
             resizable=True,
-            min_size=(1024, 700)
+            min_size=(1100, 720)
         )
         webview.start()
         return None
     except Exception as e:
         print(f"[DESKTOP] pywebview không khả dụng ({e})")
+
+    # Fallback to default browser
+    try:
+        import webbrowser
+        print(f"[DESKTOP] Mở trình duyệt mặc định: {URL}")
+        webbrowser.open(URL)
+        return None
+    except Exception as e:
+        pass
 
     raise RuntimeError("Không tìm thấy môi trường giao diện Desktop (cần Chrome hoặc Edge)!")
 
@@ -198,18 +242,28 @@ def main():
     win_proc = open_desktop_window()
 
     if win_proc:
+        t_start = time.time()
         try:
-            # Wait for desktop window to close
             win_proc.wait()
         except KeyboardInterrupt:
             pass
         finally:
-            print("[DESKTOP] Cửa sổ đã đóng, dừng tiến trình ứng dụng.")
-            if backend_proc:
-                try:
-                    backend_proc.terminate()
-                except Exception:
-                    pass
+            elapsed = time.time() - t_start
+            if elapsed > 3.0:
+                print("[DESKTOP] Cửa sổ đã được người dùng đóng, kết thúc ứng dụng.")
+                if backend_proc:
+                    try:
+                        backend_proc.terminate()
+                    except Exception:
+                        pass
+            else:
+                # Trình duyệt Chromium ủy quyền cho tiến trình nền và thoát ngay, giữ server tiếp tục chạy
+                print("[DESKTOP] Cửa sổ ứng dụng đang chạy ở chế độ Native App Mode.")
+                if backend_proc:
+                    try:
+                        backend_proc.wait()
+                    except KeyboardInterrupt:
+                        backend_proc.terminate()
 
 
 if __name__ == "__main__":

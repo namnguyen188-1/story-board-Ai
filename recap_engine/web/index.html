@@ -178,23 +178,23 @@
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
               3. Kịch Bản & Ý Tưởng
             </span>
-            <span id="badgeScriptSource" class="text-[10px] text-slate-400 font-mono bg-[#070a12] px-2 py-0.5 rounded-md border border-[#1c2538]">Tự động AI</span>
+            <span id="badgeScriptSource" class="text-[10px] text-emerald-400 font-bold bg-[#070a12] px-2 py-0.5 rounded-md border border-emerald-500/30">✨ Tự động 100%</span>
           </div>
 
           <div>
             <textarea id="inputStoryIdea" rows="3" oninput="onStoryIdeaChanged(this.value)"
               class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg p-2.5 text-[11px] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 font-sans leading-relaxed resize-y transition-colors"
-              placeholder="Nhập kịch bản hoặc ý tưởng cốt truyện tại đây... (hoặc để trống để AI tự động viết)"></textarea>
+              placeholder="🤖 AI tự động phân tích phim và viết kịch bản 3 hồi từ A-Z khi nạp video (Không cần gõ trước). Nếu muốn sửa lời thoại hoặc có ý tưởng riêng, bạn có thể gõ vào đây..."></textarea>
           </div>
 
           <div class="flex items-center justify-between text-[10px] pt-0.5">
             <span id="ideaCharCounter" class="text-slate-500 font-mono">0 chữ</span>
             <div class="flex items-center gap-1.5">
-              <button type="button" id="btnGenerateScript" onclick="generateAiScript()" class="px-2.5 py-1 rounded-lg bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 text-[10px] font-medium flex items-center gap-1 transition whitespace-nowrap shadow-xs" title="Bấm để AI viết kịch bản 3 hồi">
-                <span>✨</span> AI Viết Kịch Bản
+              <button type="button" id="btnGenerateScript" onclick="generateAiScript()" class="px-2.5 py-1 rounded-lg bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 text-[10px] font-medium flex items-center gap-1 transition whitespace-nowrap shadow-xs" title="Bấm để AI viết lại kịch bản 3 hồi">
+                <span>✨</span> AI Viết Lại Kịch Bản
               </button>
               <button type="button" onclick="openScriptModal()" class="px-2 py-1 rounded-lg bg-[#070a12] hover:bg-[#1e293b] text-slate-300 border border-[#1c2538] text-[10px] flex items-center gap-0.5 transition whitespace-nowrap" title="Xem danh sách từng cảnh">
-                <span>📜</span> (<span id="txtScriptSegmentsCount">0</span>)
+                <span>📜</span> (<span id="txtScriptSegmentsCount">0</span> đoạn)
               </button>
             </div>
           </div>
@@ -421,36 +421,36 @@
     <!-- ======================================================== -->
     <main class="flex-1 bg-[#06090f] flex flex-col h-full overflow-hidden relative">
 
-      <!-- TOOLBAR TRÊN CANVAS (BO GÓC NÚT BẤM HIỆN ĐẠI) -->
-      <div class="h-10 bg-[#0b0f19] border-b border-[#1a2336] px-4 flex items-center justify-between shrink-0 z-10">
+      <!-- TOOLBAR TRÊN CANVAS (BO GÓC NÚT BẤM HIỆN ĐẠI, CHỐNG CO CHỮ KHI THU NHỎ) -->
+      <div class="h-10 bg-[#0b0f19] border-b border-[#1a2336] px-3 flex items-center justify-between shrink-0 z-10 gap-2 overflow-x-auto">
         <!-- Khung hình & Chế độ xem -->
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1.5">
-            <span class="text-[11px] text-slate-400">Khung hình:</span>
-            <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538]">
-              <button id="btn169" onclick="setRatio('16:9', true)" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white shadow-xs text-[11px] transition">
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">Khung hình:</span>
+            <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538] shrink-0">
+              <button id="btn169" onclick="setRatio('16:9', true)" class="px-2 py-0.5 rounded-md font-bold bg-rose-600 text-white shadow-xs text-[11px] whitespace-nowrap transition">
                 16:9
               </button>
-              <button id="btn916" onclick="setRatio('9:16', true)" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
+              <button id="btn916" onclick="setRatio('9:16', true)" class="px-2 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] whitespace-nowrap transition">
                 9:16 Shorts
               </button>
-              <button id="btn11" onclick="setRatio('1:1', true)" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] transition">
+              <button id="btn11" onclick="setRatio('1:1', true)" class="px-2 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] whitespace-nowrap transition">
                 1:1
               </button>
             </div>
           </div>
 
           <!-- Chế độ hiển thị 2 màn hình -->
-          <div class="flex items-center gap-1.5 border-l border-[#1c2538] pl-3">
-            <span class="text-[11px] text-slate-400">Chế độ xem:</span>
-            <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538]">
-              <button id="btnViewDual" onclick="setDualViewMode('dual')" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1 transition">
+          <div class="flex items-center gap-1.5 border-l border-[#1c2538] pl-2.5 shrink-0">
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">Chế độ xem:</span>
+            <div class="flex bg-[#070a12] p-0.5 rounded-lg border border-[#1c2538] shrink-0">
+              <button id="btnViewDual" onclick="setDualViewMode('dual')" class="px-2.5 py-0.5 rounded-md font-bold bg-rose-600 text-white text-[11px] flex items-center gap-1 whitespace-nowrap transition">
                 <span>⊞</span> 2 Màn Hình Song Song
               </button>
-              <button id="btnViewSource" onclick="setDualViewMode('source')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition">
+              <button id="btnViewSource" onclick="setDualViewMode('source')" class="px-2 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] flex items-center gap-1 whitespace-nowrap transition">
                 <span>🎥</span> Chỉ Bàn Dựng
               </button>
-              <button id="btnViewOutput" onclick="setDualViewMode('output')" class="px-2.5 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] flex items-center gap-1 transition">
+              <button id="btnViewOutput" onclick="setDualViewMode('output')" class="px-2 py-0.5 rounded-md text-slate-400 hover:text-white text-[11px] flex items-center gap-1 whitespace-nowrap transition">
                 <span>🎬</span> Chỉ Thành Phẩm
               </button>
             </div>
@@ -458,12 +458,12 @@
         </div>
 
         <!-- Zoom, Vùng An Toàn & Thư Mục -->
-        <div class="flex items-center gap-2">
-          <button id="btnSafe" onclick="toggleSafeGrid()" class="h-6 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-slate-300 text-[11px] border border-[#223048] flex items-center gap-1 transition shadow-xs">
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnSafe" onclick="toggleSafeGrid()" class="h-6 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-slate-300 text-[11px] border border-[#223048] flex items-center gap-1 whitespace-nowrap transition shadow-xs">
             <span>📐</span> Vùng An Toàn
           </button>
 
-          <button onclick="openExportsFolder()" class="h-6 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-amber-300 border border-amber-500/30 text-[11px] flex items-center gap-1 transition shadow-xs">
+          <button onclick="openExportsFolder()" class="h-6 px-2.5 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-amber-300 border border-amber-500/30 text-[11px] flex items-center gap-1 whitespace-nowrap transition shadow-xs">
             <span>📂</span> Mở Thư Mục Xuất
           </button>
         </div>
@@ -1391,7 +1391,19 @@ AIzaSyD_demoKey03_ghi789</textarea>
       const titleEl = document.getElementById('activeExportTitle');
       if (titleEl) titleEl.innerText = fn;
       const topStatus = document.getElementById('txtTopStatus');
-      if (topStatus) if (topStatus) topStatus.innerText = `ĐANG CHỌN: ${fn}`;
+      if (topStatus) topStatus.innerText = `ĐANG CHỌN: ${fn}`;
+
+      // Reset state for new video so old content is never leaked
+      activeScript = null;
+      const ideaBox = document.getElementById('inputStoryIdea');
+      if (ideaBox) ideaBox.value = "⏳ AI đang quét và phân tích hình ảnh video gốc...";
+      const badgeCount = document.getElementById('txtScriptSegmentsCount');
+      if (badgeCount) badgeCount.innerText = "0";
+      const badgeSource = document.getElementById('badgeScriptSource');
+      if (badgeSource) {
+        badgeSource.innerText = "⏳ Đang quét video...";
+        badgeSource.className = "text-[10px] text-amber-300 font-medium";
+      }
 
       await runAutoScan(videoPath);
     }
@@ -1410,8 +1422,49 @@ AIzaSyD_demoKey03_ghi789</textarea>
 
         autoScanData = data;
         applyAutoScanConfig(data);
+
+        // TỰ ĐỘNG BIÊN KỊCH 100%: Ngay khi nạp video, AI tự động viết luôn trọn bộ kịch bản 3 hồi
+        await autoGenerateScriptForSelectedVideo(targetPath, data);
       } catch (err) {
         console.warn("runAutoScan error:", err);
+      }
+    }
+
+    async function autoGenerateScriptForSelectedVideo(videoPath, scanData) {
+      const fn = (videoPath || "").split(/[\\/]/).pop() || "";
+      const stem = fn.replace(/\.[^/.]+$/, "");
+
+      // 1. Kiểm tra kịch bản có sẵn trên máy
+      try {
+        const curRes = await fetch(`/api/script/current?video_stem=${encodeURIComponent(stem)}`);
+        if (curRes.ok) {
+          const curData = await curRes.json();
+          if (curData.status === 'ok' && curData.script && curData.script.segments && curData.script.segments.length > 0) {
+            applyScriptToUI(curData.script, "✨ Kịch bản có sẵn");
+            const topStatus = document.getElementById('txtTopStatus');
+            if (topStatus) topStatus.innerText = `SẴN SÀNG: ${curData.script.segments.length} PHÂN ĐOẠN ĐÃ VIẾT TỰ ĐỘNG`;
+            return;
+          }
+        }
+      } catch (e) {
+        console.log("Check current script error:", e);
+      }
+
+      // 2. Nếu chưa có kịch bản, AI tự động viết kịch bản 3 hồi ngay lập tức
+      const badgeSource = document.getElementById('badgeScriptSource');
+      if (badgeSource) {
+        badgeSource.innerText = "⏳ AI đang tự động viết...";
+        badgeSource.className = "text-[10px] text-amber-300 font-bold animate-pulse";
+      }
+      const topStatus = document.getElementById('txtTopStatus');
+      if (topStatus) {
+        topStatus.innerText = `🤖 AI ĐANG TỰ ĐỘNG BIÊN KỊCH 3 HỒI BÁM SÁT HÌNH ẢNH: ${fn.toUpperCase()}`;
+      }
+
+      await generateAiScript(true);
+
+      if (topStatus && activeScript && activeScript.segments) {
+        topStatus.innerText = `✅ ĐÃ TỰ ĐỘNG BIÊN KỊCH XONG (${activeScript.segments.length} PHÂN ĐOẠN) - SẴN SÀNG XUẤT VIDEO`;
       }
     }
 
@@ -1497,12 +1550,17 @@ AIzaSyD_demoKey03_ghi789</textarea>
         }
       }
 
-      // 3. Cấu hình Mục 3 (Kịch Bản Hoặc Ý Tưởng Cốt Truyện Tự Động)
+      // 3. Cấu hình Mục 3 (Kịch Bản Hoặc Ý Tưởng Cốt Truyện Tự Động Từ Hình Ảnh Thực Tế)
       const ideaBox = document.getElementById('inputStoryIdea');
-      if (ideaBox && (!ideaBox.value.trim() || ideaBox.value.startsWith("Tóm tắt cốt truyện:"))) {
-        const autoIdea = `Tóm tắt cốt truyện: Phim xoay quanh ${titleClean} với nhịp độ ${cfg.genre || 'kịch tính'}. Mở đầu hé lộ bí mật then chốt, xung đột leo thang và cái kết bùng nổ.`;
-        ideaBox.value = autoIdea;
-        onStoryIdeaChanged(autoIdea);
+      if (ideaBox) {
+        ideaBox.value = "⏳ AI đang tự động viết kịch bản 3 hồi bám sát từng cảnh phim... (Không cần gõ trước)";
+        onStoryIdeaChanged(ideaBox.value);
+      }
+
+      const badgeSource = document.getElementById('badgeScriptSource');
+      if (badgeSource) {
+        badgeSource.innerText = "⏳ Đang tự động viết...";
+        badgeSource.className = "text-[10px] text-amber-300 font-bold animate-pulse";
       }
 
       const chars = data.detected_characters || [];
@@ -1767,9 +1825,50 @@ AIzaSyD_demoKey03_ghi789</textarea>
       }
     }
 
-    async function generateAiScript() {
+    function applyScriptToUI(script, sourceLabel = "✨ AI tự động") {
+      if (!script || !script.segments) return;
+      activeScript = script;
+      renderScriptModal(activeScript);
+
+      const ideaBox = document.getElementById('inputStoryIdea');
+      if (ideaBox && activeScript.segments) {
+        const player = document.getElementById('mainVideoPlayer');
+        const totalDur = (player && player.duration) ? player.duration : 1200;
+        const formattedScript = activeScript.segments.map((s, idx) => {
+          let timeSec = 0;
+          if (s.source_time !== undefined && s.source_time !== null) {
+            timeSec = parseFloat(s.source_time);
+          } else if (s.film_pos_pct !== undefined) {
+            timeSec = Math.round(parseFloat(s.film_pos_pct) * totalDur);
+          } else {
+            timeSec = Math.round((idx / Math.max(1, activeScript.segments.length)) * totalDur);
+          }
+          const tc = `[${formatTimeSec(timeSec)}] `;
+          return `Cảnh ${idx + 1} ${tc}: ${s.text}`;
+        }).join('\n\n');
+        ideaBox.value = formattedScript;
+        onStoryIdeaChanged(formattedScript);
+      }
+
+      const badgeCount = document.getElementById('txtScriptSegmentsCount');
+      if (badgeCount) badgeCount.innerText = activeScript.segments.length;
+      const badgeSource = document.getElementById('badgeScriptSource');
+      if (badgeSource) {
+        badgeSource.innerText = `${sourceLabel} (${activeScript.segments.length} đoạn)`;
+        badgeSource.className = "text-[10px] text-emerald-400 font-bold";
+      }
+
+      // Cập nhật câu thoại mở đầu vào ô xem trước phụ đề
+      if (activeScript.segments && activeScript.segments[0]) {
+        const subInp = document.getElementById('inputSubText');
+        if (subInp) subInp.value = activeScript.segments[0].text;
+        updateSubText(activeScript.segments[0].text);
+      }
+    }
+
+    async function generateAiScript(isAuto = false) {
       const btn = document.getElementById('btnGenerateScript');
-      const origText = btn ? btn.innerHTML : "<span>✨</span> AI Viết Kịch Bản";
+      const origText = btn ? btn.innerHTML : "<span>✨</span> AI Viết Lại Kịch Bản";
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = `<span>⏳</span> Đang viết...`;
@@ -1780,7 +1879,10 @@ AIzaSyD_demoKey03_ghi789</textarea>
         const genre = document.getElementById('selStyle')?.value || "Hành động, Kịch tính";
         const targetMins = parseFloat(document.getElementById('sliderDuration')?.value || "3");
         const aliases = getCollectedCharacterAliases();
-        const storyIdea = (document.getElementById('inputStoryIdea')?.value || "").trim();
+        let storyIdea = (document.getElementById('inputStoryIdea')?.value || "").trim();
+        if (storyIdea.startsWith("⏳") || storyIdea.startsWith("Tóm tắt cốt truyện: Phim xoay quanh")) {
+          storyIdea = "";
+        }
 
         const res = await fetch('/api/script/generate', {
           method: 'POST',
@@ -1797,45 +1899,12 @@ AIzaSyD_demoKey03_ghi789</textarea>
 
         const data = await res.json();
         if (data.status === 'ok') {
-          activeScript = data.script;
-          renderScriptModal(activeScript);
-
-          // Tự động hiện toàn bộ kịch bản vào ô Kịch Bản / Ý Tưởng kèm timecode chuẩn xác
-          const ideaBox = document.getElementById('inputStoryIdea');
-          if (ideaBox && activeScript.segments) {
-            const player = document.getElementById('mainVideoPlayer');
-            const totalDur = (player && player.duration) ? player.duration : 1200;
-            const formattedScript = activeScript.segments.map((s, idx) => {
-              let timeSec = 0;
-              if (s.source_time !== undefined && s.source_time !== null) {
-                timeSec = parseFloat(s.source_time);
-              } else if (s.film_pos_pct !== undefined) {
-                timeSec = Math.round(parseFloat(s.film_pos_pct) * totalDur);
-              } else {
-                timeSec = Math.round((idx / Math.max(1, activeScript.segments.length)) * totalDur);
-              }
-              const tc = `[${formatTimeSec(timeSec)}] `;
-              return `Cảnh ${idx + 1} ${tc}: ${s.text}`;
-            }).join('\n\n');
-            ideaBox.value = formattedScript;
-            onStoryIdeaChanged(formattedScript);
-          }
-
-          const badgeCount = document.getElementById('txtScriptSegmentsCount');
-          if (badgeCount) badgeCount.innerText = activeScript.segments?.length || 0;
-          const badgeSource = document.getElementById('badgeScriptSource');
-          if (badgeSource) badgeSource.innerText = "✨ AI đã viết";
-
-          // Cập nhật câu thoại mở đầu vào ô xem trước phụ đề
-          if (activeScript.segments && activeScript.segments[0]) {
-            document.getElementById('inputSubText').value = activeScript.segments[0].text;
-            updateSubText(activeScript.segments[0].text);
-          }
+          applyScriptToUI(data.script, isAuto ? "✨ AI tự động" : "✨ AI đã viết");
         } else {
-          alert("Lỗi sinh kịch bản: " + data.message);
+          if (!isAuto) alert("Lỗi sinh kịch bản: " + data.message);
         }
       } catch (err) {
-        alert("Lỗi kết nối biên kịch: " + err.message);
+        if (!isAuto) alert("Lỗi kết nối biên kịch: " + err.message);
       } finally {
         if (btn) {
           btn.disabled = false;
@@ -1847,11 +1916,16 @@ AIzaSyD_demoKey03_ghi789</textarea>
     async function loadCurrentScript() {
       try {
         const stem = selectedVideoPath ? selectedVideoPath.split(/[\\/]/).pop().replace(/\.[^/.]+$/, "").substring(0, 30) : "";
-        const url = stem ? `/api/script/current?video_stem=${encodeURIComponent(stem)}` : '/api/script/current';
+        if (!stem) {
+          activeScript = null;
+          renderEmptyScriptModal();
+          return;
+        }
+        const url = `/api/script/current?video_stem=${encodeURIComponent(stem)}`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (data.status === 'ok') {
+          if (data.status === 'ok' && data.script) {
             activeScript = data.script;
             renderScriptModal(activeScript);
 
@@ -1878,7 +1952,10 @@ AIzaSyD_demoKey03_ghi789</textarea>
             const badgeCount = document.getElementById('txtScriptSegmentsCount');
             if (badgeCount) badgeCount.innerText = activeScript.segments?.length || 0;
             const badgeSource = document.getElementById('badgeScriptSource');
-            if (badgeSource) badgeSource.innerText = "✨ Đã có kịch bản";
+            if (badgeSource) {
+              badgeSource.innerText = "✨ Đã có kịch bản";
+              badgeSource.className = "text-[10px] text-amber-400 font-semibold";
+            }
             return;
           }
         }
@@ -2304,7 +2381,10 @@ AIzaSyD_demoKey03_ghi789</textarea>
         const fontFamily = document.getElementById('selFontFamily')?.value || "Montserrat";
         const subStyle = document.getElementById('selSubStyle')?.value || "karaoke_box";
 
-        const storyIdea = (document.getElementById('inputStoryIdea')?.value || "").trim();
+        let storyIdea = (document.getElementById('inputStoryIdea')?.value || "").trim();
+        if (storyIdea.startsWith("⏳")) {
+          storyIdea = "";
+        }
 
         const payload = {
           source_video: selectedVideoPath,

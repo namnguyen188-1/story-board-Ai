@@ -32,6 +32,7 @@ studio/.venv/
 *.mp3
 *.mp4
 *.mkv
+*.bak
 *.words.json
 kênh/
 knh/

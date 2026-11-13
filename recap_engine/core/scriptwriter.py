@@ -10,25 +10,28 @@ import concurrent.futures
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 try:
-    from ..config import load_config, KeyRotator, save_config
+    from ..config import load_config, KeyRotator, save_config, get_shared_rotator
 except (ImportError, ValueError):
-    from config import load_config, KeyRotator, save_config
+    from config import load_config, KeyRotator, save_config, get_shared_rotator
 
 
 SYSTEM_PROMPT = """Bạn là biên kịch trưởng chuyên nghiệp của các kênh Review Phim triệu view (như Phim Hay, Cuồng Phim, Spoil Phim).
-Nhiệm vụ của bạn là viết kịch bản review phim cực kỳ cuốn hút, giữ chân người xem từ giây đầu tiên đến giây cuối cùng theo công thức 3 hồi kinh điển.
+Nhiệm vụ của bạn là viết kịch bản review phim cực kỳ cuốn hút, nghẹt thở, giữ chân người xem từ giây đầu tiên đến giây cuối cùng theo công thức 3 hồi kinh điển.
 
-QUY TẮC BẮT BUỘC:
-1. HOOK 3 GIÂY ĐẦU: Luôn mở đầu bằng câu giật gân, khơi gợi tò mò cực đại (Ví dụ: "Người đàn ông này...", "Cô gái này không thể ngờ...", "Đừng bao giờ dại dột chọc giận kẻ mang biệt danh...").
-2. ĐỔI TÊN NHÂN VẬT THÀNH BIỆT DANH (ALIAS): Tuyệt đối không dùng tên Tây rườm rà. Dùng danh xưng thân thuộc, hóm hỉnh (anh Áo Đen, gã Đầu Trọc, chị Đẹp, ông Trùm, bé Cưng,...).
-3. CẤU TRÚC 3 HỒI LEO THANG:
-   - Hồi 1 (Khởi nguồn): Hoàn cảnh trớ trêu, bi kịch hoặc sự kiện khởi phát.
-   - Hồi 2 (Xung đột & Dồn ép): Kẻ địch truy sát, cạm bẫy liên hoàn, tình thế ngàn cân treo sợi tóc.
-   - Hồi 3 (Đại chiến & Cú twist): Màn phản công mãn nhãn, kết cục bất ngờ và đúc kết ngắn.
-4. ĐỊNH DẠNG TỪNG CÂU ĐỌC (SEGMENT):
+QUY TẮC CỐT TỬ - KHỚP 100% VỚI HÀNH ĐỘNG THỰC TẾ TRONG VIDEO (CHỐNG NÓI ĐIÊU):
+1. TUYỆT ĐỐI KHÔNG ĐƯỢC BỊA ĐẶT CỐT TRUYỆN NGOÀI LỀ!
+   - Nếu video là cảnh rượt đuổi bắn nhau trên sa mạc thì toàn bộ lời bình phải mô tả nghẹt thở cuộc rượt đuổi, trốn chạy và chiến đấu.
+   - Tuyệt đối không được nói 'đang tận hưởng bình yên', 'đi dạo', hoặc kể chuyện thần thoại/cổ tích không có trên màn hình.
+2. MỖI PHÂN ĐOẠN (SEGMENT) BẮT BUỘC PHẢI MÔ TẢ ĐÚNG HÀNH ĐỘNG CỦA CẢNH ĐÓ VÀ GÁN CHÍNH XÁC `source_time` (mốc thời gian tính bằng giây trong video gốc):
+   - Khi màn hình ở mốc thời gian đó là cảnh rượt đuổi xe bay ➔ Lời bình phải mô tả cuộc rượt đuổi xe bay.
+   - Khi màn hình là cảnh nằm ngắm súng bắn tỉa ➔ Lời bình phải mô tả phát đạn phục kích định mệnh.
+   - Khi quái thú khổng lồ hoặc đoàn xe bọc thép xuất hiện ➔ Lời bình phải mô tả sự đe dọa khổng lồ đó.
+   - Trường `source_time`: BẮT BUỘC có (ví dụ: 10.5, 45.0, 95.0, 160.0...). Hệ thống dựng sẽ cắt clip video gốc bắt đầu đúng giây `source_time` này để khớp từng cử chỉ hành động với lời nói!
+3. HOOK 3 GIÂY ĐẦU: Luôn mở đầu bằng câu giật gân, khơi gợi tò mò cực đại bám sát cảnh mở màn thực tế (Ví dụ: "Đừng bao giờ dại dột chọc giận gã thợ săn sa mạc này nếu không muốn bỏ mạng...", "Người đàn ông này vừa ôm khối báu vật thì bị cả một binh đoàn bọc thép truy sát...").
+4. ĐỔI TÊN NHÂN VẬT THÀNH BIỆT DANH (ALIAS): Dùng danh xưng thân thuộc, hóm hỉnh, cuốn hút (anh Mũ Rộng, gã Thợ Săn, Trợ Lý Lùn, Tên Chỉ Huy, Binh Đoàn Bọc Thép,...).
+5. ĐỊNH DẠNG TỪNG CÂU ĐỌC (SEGMENT):
    - Mỗi câu thoại chỉ dài 12 - 25 từ (đọc trong khoảng 3.0s - 4.5s) để khớp hoàn hảo với nhịp cắt video nhanh chống Content-ID.
-   - Gán `scene_mood`: "suspense" (hồi hộp), "action" (hành động), "drama" (kịch tính), "climax" (cao trào), "twist" (bất ngờ).
-   - Gán `film_pos_pct`: Vị trí tương đối diễn ra trong phim từ 0.0 (đầu phim) đến 1.0 (kết phim) để bộ dựng tự động lấy đúng phân cảnh gốc.
+   - Gán `scene_mood`: "action" (hành động), "suspense" (hồi hộp), "drama" (kịch tính), "climax" (cao trào), "twist" (bất ngờ).
 
 BẠN BẮT BUỘC PHẢI TRẢ VỀ DỮ LIỆU ĐỊNH DẠNG JSON DUY NHẤT (không bọc trong markdown hoặc giải thích thêm):
 {
@@ -39,9 +42,10 @@ BẠN BẮT BUỘC PHẢI TRẢ VỀ DỮ LIỆU ĐỊNH DẠNG JSON DUY NHẤT 
     {
       "id": 1,
       "act": "hook",
-      "text": "Người đàn ông này vừa bước vào thang máy thì bất ngờ bị 10 gã sát thủ bịt mặt bao vây.",
+      "text": "Đừng bao giờ dại dột chọc giận kẻ mang biệt danh Anh Mũ Rộng nếu không muốn bỏ mạng nơi sa mạc.",
       "scene_mood": "suspense",
-      "film_pos_pct": 0.05
+      "source_time": 10.5,
+      "film_pos_pct": 0.02
     }
   ]
 }
@@ -69,9 +73,9 @@ class RecapScriptwriter:
         self.keys = self.config.get("gemini_keys", [])
         if not self.keys:
             raise ValueError("Chưa có Gemini API Key nào trong recap_config.json!")
-        self.rotator = KeyRotator(self.keys)
+        self.rotator = get_shared_rotator()
         self.preferred_model = self.config.get("model_name", "gemini-3.5-flash")
-        self.fallback_models = self.config.get("fallback_models", ["gemini-flash-latest", "gemini-flash-lite-latest"])
+        self.fallback_models = self.config.get("fallback_models", ["gemini-3.8-flash", "gemini-flash-latest"])
 
     def generate_recap_script(
         self,
@@ -105,16 +109,19 @@ class RecapScriptwriter:
             alias_list = ", ".join([f"{k} -> {v}" for k, v in user_aliases.items()])
             alias_instruction = f"\nBẮT BUỘC SỬ DỤNG CÁC BIỆT DANH SAU CHO NHÂN VẬT: {alias_list}\n"
 
-        prompt = f"""Hãy viết kịch bản review phim chi tiết:
+        prompt = f"""Hãy viết kịch bản review phim chi tiết và khớp 100% với video:
 - TÊN PHIM: {movie_title}
 - THỂ LOẠI: {genre}
 - PHONG CÁCH: {style}
 - THỜI LƯỢNG MONG MUỐN: {pacing_note}
 {alias_instruction}
-- TÓM TẮT NỘI DUNG / TRANSCRIPT GỐC (nếu có):
+- DỮ LIỆU CẢNH QUAY THỰC TẾ & CỐT TRUYỆN:
 {plot_context if plot_context else "Hãy sử dụng kiến thức chuẩn xác của bạn về cốt truyện phim này để viết một bản tóm tắt hấp dẫn nhất."}
 
-Hãy xuất đúng định dạng JSON như đã quy định, đủ {total_segments} segments từ mở đầu đến kết thúc trọn vẹn của bộ phim.
+YÊU CẦU CỐT TỬ:
+- Dựa vào diễn biến thực tế của từng cảnh quay ở trên, mỗi segment BẮT BUỘC PHẢI mô tả đúng hành động, sự kiện của cảnh quay đó (truy đuổi, bắn súng, phục kích, chạy trốn...). Tuyệt đối không nói chuyện ngoài lề!
+- Gán chính xác `source_time` (số giây trong video gốc) cho từng segment để hệ thống cắt đúng cảnh khớp với lời bình.
+- Hãy xuất đúng định dạng JSON như đã quy định, đủ {total_segments} segments từ mở đầu đến kết thúc trọn vẹn của bộ phim.
 """
 
         models_to_try = [self.preferred_model] + [m for m in self.fallback_models if m != self.preferred_model]
@@ -124,7 +131,7 @@ Hãy xuất đúng định dạng JSON như đã quy định, đủ {total_segme
 
         last_error = None
         while attempt < max_attempts:
-            client = self.rotator.get_client(timeout_sec=60.0)
+            client = self.rotator.get_client(timeout_sec=35.0)
             current_model = models_to_try[model_idx % len(models_to_try)]
             print(f"🔄 Scriptwriter attempt {attempt+1}/{max_attempts} with model '{current_model}' and key index {self.rotator.index}...", flush=True)
             try:

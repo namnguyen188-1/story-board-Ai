@@ -35,10 +35,19 @@ if os.name == "nt":
         pass
 
 
+def log_app(msg: str):
+    try:
+        log_file = RECAP_ROOT / "recap_app.log"
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+    except Exception:
+        pass
+
+
 def is_server_ready(timeout: float = 1.0) -> bool:
     for path in ("/api/status", "/"):
         try:
-            req = urllib.request.Request(f"{URL}{path}")
+            req = urllib.request.Request(f"{URL}{path}", headers={"User-Agent": "DesktopHealthCheck"})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status in (200, 204):
                     return True
@@ -47,29 +56,89 @@ def is_server_ready(timeout: float = 1.0) -> bool:
     return False
 
 
-def start_backend_server():
+def cleanup_stale_port(port: int = PORT) -> None:
+    """Kills any dead processes hanging on the port."""
     if is_server_ready():
+        return
+    try:
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        out = subprocess.check_output(["netstat", "-ano", "-p", "tcp"], text=True, errors="ignore", creationflags=flags)
+        pids = set()
+        for line in out.splitlines():
+            line = line.strip()
+            if f":{port}" in line and "LISTENING" in line.upper():
+                parts = line.split()
+                if len(parts) >= 5:
+                    try:
+                        pids.add(int(parts[-1]))
+                    except ValueError:
+                        pass
+        current_pid = os.getpid()
+        for pid in pids:
+            if pid != current_pid and pid > 0:
+                subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, creationflags=flags)
+        if pids:
+            time.sleep(0.5)
+    except Exception:
+        pass
+
+
+def start_backend_server():
+    log_app("start_backend_server() entered")
+    try:
+        if is_server_ready():
+            log_app("Server already ready")
+            return None
+
+        log_app("Running cleanup_stale_port...")
+        cleanup_stale_port(PORT)
+        log_app("cleanup_stale_port finished")
+
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        server_script = RECAP_ROOT / "server.py"
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(RECAP_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
+
+        log_app(f"Spawning server.py: {PYTHON} {server_script}")
+        proc = subprocess.Popen(
+            [PYTHON, "-u", str(server_script)],
+            cwd=str(RECAP_ROOT),
+            env=env,
+            creationflags=flags
+        )
+        log_app(f"server.py spawned with PID: {proc.pid}")
+        for i in range(50):
+            time.sleep(0.15)
+            if is_server_ready():
+                log_app(f"Server became ready after {i*0.15:.2f}s")
+                return proc
+            if proc.poll() is not None:
+                log_app(f"server.py terminated early with code {proc.poll()}")
+                break
+        return proc
+    except Exception as e:
+        log_app(f"EXCEPTION in start_backend_server: {e}")
         return None
 
-    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    server_script = RECAP_ROOT / "server.py"
-    proc = subprocess.Popen(
-        [PYTHON, "-u", str(server_script)],
-        cwd=str(RECAP_ROOT),
-        creationflags=flags
-    )
-    for _ in range(40):
-        time.sleep(0.15)
-        if is_server_ready():
-            return proc
-    return proc
+
+def get_icon_path() -> Path | None:
+    candidates = [
+        RECAP_ROOT / "web" / "assets" / "storyboard_ai_icon.ico",
+        RECAP_ROOT.parent / "studio" / "web" / "assets" / "storyboard_ai_icon.ico",
+        Path(r"D:\STORYBOARD_AI\studio\web\assets\storyboard_ai_icon.ico"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            return p
+    return None
 
 
 def run_webview2_desktop(server_proc=None):
     """Launches high-performance native desktop window with full H.264 hardware video decoding."""
     import webview
 
-    icon_path = Path(r"D:\STORYBOARD_AI\studio\web\assets\storyboard_ai_icon.ico")
+    icon_path = get_icon_path()
     profile_dir = RECAP_ROOT / ".recap_desktop_profile"
     profile_dir.mkdir(parents=True, exist_ok=True)
 
@@ -94,7 +163,7 @@ def run_webview2_desktop(server_proc=None):
             gui="edgechromium",
             private_mode=False,
             storage_path=str(profile_dir),
-            icon=str(icon_path) if icon_path.is_file() else None
+            icon=str(icon_path) if icon_path else None
         )
     finally:
         if server_proc:
@@ -115,15 +184,15 @@ def run_qt6_fallback(server_proc=None):
     app = QApplication(sys.argv)
     app.setApplicationName("Movie Recap Studio Pro")
 
-    icon_path = Path(r"D:\STORYBOARD_AI\studio\web\assets\storyboard_ai_icon.ico")
-    if icon_path.is_file():
+    icon_path = get_icon_path()
+    if icon_path:
         app.setWindowIcon(QIcon(str(icon_path)))
 
     win = QMainWindow()
     win.setWindowTitle("🎬 Movie Recap Studio Pro v0.0.1 - Phim Review Bất Bại")
     win.resize(1480, 920)
     win.setMinimumSize(1100, 720)
-    if icon_path.is_file():
+    if icon_path:
         win.setWindowIcon(QIcon(str(icon_path)))
 
     browser = QWebEngineView(win)
@@ -147,35 +216,88 @@ def run_qt6_fallback(server_proc=None):
                 pass
 
 
+def run_edge_app_mode(server_proc=None):
+    """Windows Native Edge/Chromium App Mode (100% available on all Windows 10/11)."""
+    from desktop_app import find_app_browser
+    browser_exe = find_app_browser()
+    if not browser_exe:
+        import webbrowser
+        webbrowser.open(URL)
+        return
+
+    profile_dir = RECAP_ROOT / ".recap_desktop_profile"
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        browser_exe,
+        f"--app={URL}",
+        f"--user-data-dir={profile_dir}",
+        "--window-size=1480,920",
+        "--window-position=50,30",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-features=msHub,msEdgeAppModeAddressBar",
+        "--app-id=MovieRecapStudioPro",
+    ]
+    # Khởi chạy cửa sổ ứng dụng ở chế độ hiển thị bình thường (KHÔNG dùng CREATE_NO_WINDOW)
+    proc = subprocess.Popen(cmd)
+    t_start = time.time()
+    try:
+        proc.wait()
+    finally:
+        elapsed = time.time() - t_start
+        if elapsed > 3.0:
+            if server_proc:
+                try:
+                    server_proc.terminate()
+                except Exception:
+                    pass
+        else:
+            if server_proc:
+                try:
+                    server_proc.wait()
+                except KeyboardInterrupt:
+                    server_proc.terminate()
+
+
 def main():
+    log_app("Starting main()...")
     proc = start_backend_server()
+    log_app(f"start_backend_server returned proc={proc}")
 
     # 1. Try native WebView2 (EdgeChromium) for 100% video codec compatibility (H.264/AAC)
     try:
+        log_app("Attempting run_webview2_desktop...")
         run_webview2_desktop(server_proc=proc)
+        log_app("run_webview2_desktop exited normally")
         return
     except Exception as e:
-        print(f"[DESKTOP] WebView2 unavailable ({e}), trying PyQt6 fallback...")
+        log_app(f"run_webview2_desktop failed: {e}")
 
     # 2. Try PyQt6 fallback
     try:
+        log_app("Attempting run_qt6_fallback...")
         run_qt6_fallback(server_proc=proc)
+        log_app("run_qt6_fallback exited normally")
         return
     except Exception as e:
-        print(f"[DESKTOP] PyQt6 fallback unavailable ({e}), trying Edge/Chrome App Mode...")
+        log_app(f"run_qt6_fallback failed: {e}")
 
     # 3. Try Windows Native Edge/Chromium App Mode (100% available on all Windows 10/11)
     try:
-        from desktop_app import find_app_browser, run_native_app_window
-        browser_exe = find_app_browser()
-        if browser_exe:
-            run_native_app_window(browser_exe, server_proc=proc)
-            return
+        log_app("Attempting run_edge_app_mode...")
+        run_edge_app_mode(server_proc=proc)
+        log_app("run_edge_app_mode exited normally")
+        return
     except Exception as e:
-        print(f"[FATAL] Could not launch desktop interface: {e}")
+        log_app(f"run_edge_app_mode failed: {e}")
 
-    if proc:
-        proc.terminate()
+    # 4. Ultimate fallback: open in default browser
+    try:
+        log_app("Attempting default browser open...")
+        import webbrowser
+        webbrowser.open(URL)
+    except Exception as e:
+        log_app(f"webbrowser.open failed: {e}")
 
 
 if __name__ == "__main__":

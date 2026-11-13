@@ -7,6 +7,7 @@ Video Analysis -> Scriptwriting -> Voiceover (Gemini TTS) -> Subtitling -> Fair-
 from pathlib import Path
 import json
 import time
+import re
 from typing import Dict, Any, List, Optional, Callable
 
 try:
@@ -89,12 +90,23 @@ class MovieRecapPipeline:
                 report("Đã trích xuất phụ đề gốc từ phim...", 10.0)
                 subs = analyzer.parse_srt(str(extracted_srt))
                 plot_context = analyzer.summarize_subtitles_for_llm(subs)
+        else:
+            report("Đang quét khung hình thị giác video gốc bằng AI Vision...", 9.0)
+            try:
+                vscan = analyzer.deep_visual_scan(num_frames=6)
+                if vscan and vscan.get("plot_synopsis"):
+                    vt_text = vscan.get("visual_timeline_text") or vscan["plot_synopsis"]
+                    plot_context = f"DIỄN BIẾN HÀNH ĐỘNG THỰC TẾ TRÊN TỪNG KHUNG HÌNH (BẮT BUỘC KHỚP 100%):\n{vt_text}\n\nTỔNG QUAN:\n{vscan['plot_synopsis']}"
+                    if not user_aliases and vscan.get("characters"):
+                        user_aliases = {c["orig"]: c["alias"] for c in vscan["characters"] if isinstance(c, dict)}
+            except Exception as e_v:
+                print(f"⚠️ Visual scan error in pipeline: {e_v}", flush=True)
 
         # STAGE 2: 3-Act Scriptwriting via Gemini or Custom Script/Idea
-        if custom_script and custom_script.strip():
+        if custom_script and custom_script.strip() and not custom_script.strip().startswith("⏳"):
             raw_input = custom_script.strip()
             lines = [l.strip() for l in raw_input.splitlines() if l.strip()]
-            if len(lines) >= 3 and any(len(l) > 20 for l in lines):
+            if len(lines) >= 3 and any(len(l) > 20 for l in lines) and not any("đang tự động" in l for l in lines):
                 report(f"Đang sử dụng kịch bản tùy chỉnh do bạn cung cấp ({len(lines)} phân đoạn)...", 20.0)
                 segments = []
                 for idx, line in enumerate(lines):

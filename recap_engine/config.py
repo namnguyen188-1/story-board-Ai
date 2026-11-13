@@ -136,7 +136,7 @@ class KeyRotator:
             self.index = (self.index + 1) % len(self.keys)
             return self.keys[self.index % len(self.keys)]
 
-    def get_client(self, timeout_sec: float = 60.0):
+    def get_client(self, timeout_sec: float = 35.0):
         """Returns a google-genai Client initialized with current key and http timeout."""
         key = self.get_current_key()
         if not key:
@@ -151,3 +151,14 @@ class KeyRotator:
                 retry_options=types.HttpRetryOptions(attempts=1)
             )
         )
+
+
+_SHARED_ROTATOR: Optional[KeyRotator] = None
+
+def get_shared_rotator() -> KeyRotator:
+    global _SHARED_ROTATOR
+    if _SHARED_ROTATOR is None:
+        cfg = load_config()
+        keys = cfg.get("gemini_keys", [])
+        _SHARED_ROTATOR = KeyRotator(keys)
+    return _SHARED_ROTATOR

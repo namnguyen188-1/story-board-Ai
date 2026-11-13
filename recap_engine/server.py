@@ -10,6 +10,7 @@ if str(RECAP_ROOT) not in sys.path:
     sys.path.insert(0, str(RECAP_ROOT))
 
 import json
+import re
 import uuid
 import threading
 import time
@@ -147,9 +148,9 @@ async def handle_generate_script(request):
     try:
         data = await request.json()
         writer = RecapScriptwriter()
-        plot_context = data.get("plot_context", "")
+        plot_context = data.get("plot_context", "").strip()
         story_idea = (data.get("story_idea") or data.get("custom_script") or "").strip()
-        if story_idea:
+        if story_idea and not story_idea.startswith("⏳"):
             plot_context = f"Ý TƯỞNG CỐT TRUYỆN YÊU CẦU TỪ NGƯỜI DÙNG:\n{story_idea}\n\n{plot_context}".strip()
 
         source_dur = 0.0
@@ -161,8 +162,14 @@ async def handle_generate_script(request):
                     analyzer = VideoAnalyzer(str(p))
                     meta = analyzer.probe()
                     source_dur = meta.get("duration", 0.0)
-                except Exception:
-                    pass
+                    # If plot_context is empty or generic, perform deep visual scan
+                    if not plot_context or plot_context.startswith("Tóm tắt cốt truyện: Phim xoay quanh"):
+                        vscan = analyzer.deep_visual_scan(num_frames=6)
+                        if vscan and vscan.get("plot_synopsis"):
+                            vt_text = vscan.get("visual_timeline_text") or vscan["plot_synopsis"]
+                            plot_context = f"DIỄN BIẾN HÀNH ĐỘNG THỰC TẾ TRÊN TỪNG KHUNG HÌNH (BẮT BUỘC KHỚP 100%):\n{vt_text}\n\nTỔNG QUAN:\n{vscan['plot_synopsis']}"
+                except Exception as ex:
+                    print(f"⚠️ handle_generate_script visual scan warning: {ex}")
 
         res = writer.generate_recap_script(
             movie_title=data.get("movie_title", "Phim Mới"),
@@ -209,24 +216,43 @@ def find_video_file(path_str: str) -> Path:
                 dls.sort(key=lambda x: x.stat().st_mtime, reverse=True)
                 return dls[0]
         return RECAP_ROOT / "demo_real_movie.mp4"
-    p = Path(path_str)
-    if p.is_file():
-        return p
 
-    search_dirs = [RECAP_ROOT, EXPORT_DIR, EXPORT_DIR / "downloads"]
+    try:
+        p = Path(path_str)
+        if p.is_file():
+            return p
+    except Exception:
+        p = Path("video.mp4")
+
+    # Search in RECAP_ROOT and EXPORT_DIR and Storyboard downloads
+    search_dirs = [
+        RECAP_ROOT,
+        EXPORT_DIR,
+        EXPORT_DIR / "downloads",
+        Path(r"D:\STORYBOARD_AI\recap_exports\downloads"),
+        Path(r"D:\STORYBOARD_AI\recap_engine")
+    ]
     for d in search_dirs:
-        if (d / path_str).is_file():
-            return d / path_str
-        if (d / p.name).is_file():
-            return d / p.name
+        if not d.is_dir():
+            continue
+        try:
+            if (d / path_str).is_file():
+                return d / path_str
+            if (d / p.name).is_file():
+                return d / p.name
+        except Exception:
+            pass
 
-    for found in EXPORT_DIR.glob(f"**/{p.name}"):
-        if found.is_file():
-            return found
-
-    for found in RECAP_ROOT.glob(f"**/{p.name}"):
-        if found.is_file():
-            return found
+    # Fuzzy normalization match (replaces fullwidth colons, pipes, spaces)
+    clean_target = re.sub(r"[:|：｜\s_\-—]+", "", p.name.lower())
+    if clean_target:
+        for d in search_dirs:
+            if not d.is_dir():
+                continue
+            for f in d.glob("*.mp4"):
+                clean_f = re.sub(r"[:|：｜\s_\-—]+", "", f.name.lower())
+                if clean_target == clean_f or (len(clean_target) > 5 and clean_target in clean_f):
+                    return f
 
     return p
 
@@ -400,25 +426,34 @@ async def handle_open_folder(request):
 async def handle_get_current_script(request):
     try:
         video_stem = request.query.get("video_stem", "").strip().lower()
+        if not video_stem:
+            return web.json_response({"status": "empty", "message": "Chưa chọn video"}, headers=cors_headers())
+
         script_files = list(EXPORT_DIR.glob("**/recap_script.json"))
         if not script_files:
             return web.json_response({"status": "empty", "message": "Chưa có file kịch bản"}, headers=cors_headers())
-        
+
         script_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
         selected_script = None
-        if video_stem:
-            for sf in script_files:
-                parent_dir = sf.parent
-                exported_vids = list(parent_dir.glob("*.mp4"))
-                if any(video_stem in v.name.lower() for v in exported_vids):
+        for sf in script_files:
+            parent_dir = sf.parent
+            exported_vids = list(parent_dir.glob("*.mp4"))
+            # Match against exported video filenames or check script metadata
+            if any(video_stem in v.name.lower() for v in exported_vids):
+                selected_script = sf
+                break
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    s_data = json.load(f)
+                s_title = (s_data.get("title") or "").lower()
+                if video_stem in s_title or s_title in video_stem:
                     selected_script = sf
                     break
-        
+            except Exception:
+                pass
+
         if not selected_script:
-            if not video_stem:
-                selected_script = script_files[0]
-            else:
-                return web.json_response({"status": "empty", "message": "Chưa có kịch bản cho video này"}, headers=cors_headers())
+            return web.json_response({"status": "empty", "message": "Chưa có kịch bản cho video này"}, headers=cors_headers())
 
         with open(selected_script, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -457,9 +492,10 @@ async def handle_auto_scan(request):
             except Exception:
                 pass
         video_path = data.get("video_path")
+        enable_visual = data.get("enable_visual_scan", True)
         p = find_video_file(video_path)
         analyzer = VideoAnalyzer(str(p.resolve()))
-        res = analyzer.auto_scan_and_configure()
+        res = analyzer.auto_scan_and_configure(enable_visual_scan=enable_visual)
         return web.json_response(res, headers=cors_headers())
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
