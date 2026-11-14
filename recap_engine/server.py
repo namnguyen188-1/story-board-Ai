@@ -421,8 +421,11 @@ async def handle_start_render(request):
             try:
                 print(f"\n🎬 [SERVER] Starting render job {job_id} for: {source_video}", flush=True)
                 pipeline = MovieRecapPipeline()
+                jobs[job_id]["pipeline"] = pipeline
 
                 def update_progress(msg, pct):
+                    if jobs[job_id].get("status") == "cancelled":
+                        raise RuntimeError("Tiến trình đã bị dừng!")
                     jobs[job_id]["message"] = msg
                     jobs[job_id]["progress"] = round(pct, 1)
                     print(f"[{job_id}] [{pct:.1f}%] {msg}", flush=True)
@@ -464,10 +467,13 @@ async def handle_start_render(request):
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                jobs[job_id]["status"] = "failed"
-                jobs[job_id]["error"] = str(e)
-                jobs[job_id]["message"] = f"Lỗi trong quá trình render: {e}"
-                print(f"❌ [SERVER] Job {job_id} failed: {e}\n", flush=True)
+                if jobs[job_id].get("status") != "cancelled":
+                    jobs[job_id]["status"] = "failed"
+                    jobs[job_id]["error"] = str(e)
+                    jobs[job_id]["message"] = f"Lỗi trong quá trình render: {e}"
+                    print(f"❌ [SERVER] Job {job_id} failed: {e}\n", flush=True)
+                else:
+                    print(f"🛑 [SERVER] Job {job_id} stopped cleanly.\n", flush=True)
 
         thread = threading.Thread(target=run_job, daemon=True)
         thread.start()
@@ -475,6 +481,236 @@ async def handle_start_render(request):
         return web.json_response({"status": "ok", "job_id": job_id}, headers=cors_headers())
     except Exception as e:
         return web.json_response({"status": "error", "message": str(e)}, status=400, headers=cors_headers())
+
+
+async def handle_stop_render(request):
+    """Stops the active video render job and terminates running processes immediately."""
+    try:
+        data = await request.json()
+        job_id = data.get("job_id")
+        
+        # If no job_id specified, find any currently running job
+        if not job_id:
+            for jid, job in jobs.items():
+                if job.get("status") == "running":
+                    job_id = jid
+                    break
+        
+        if job_id and job_id in jobs:
+            job = jobs[job_id]
+            job["status"] = "cancelled"
+            job["progress"] = 0.0
+            job["message"] = "Đã dừng tiến trình dựng video theo yêu cầu của bạn!"
+            
+            pipe = job.get("pipeline")
+            if pipe and hasattr(pipe, "cancel"):
+                pipe.cancel()
+            
+            # Kill any active ffmpeg workers spawned for recap
+            try:
+                subprocess.run(["taskkill", "/F", "/IM", "ffmpeg.exe"], capture_output=True, creationflags=WIN_NO_WINDOW)
+            except Exception:
+                pass
+            
+            print(f"🛑 [SERVER] Render job {job_id} stopped immediately!", flush=True)
+            return web.json_response({"status": "ok", "message": "Đã dừng tiến trình render thành công!"}, headers=cors_headers())
+        
+        return web.json_response({"status": "error", "message": "Không tìm thấy tiến trình nào đang chạy"}, status=404, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+# -------------------------------------------------------------
+# SEO & YouTube Multi-Channel Management Endpoints
+# -------------------------------------------------------------
+from core.seo_packager import RecapSeoPackager
+import core.youtube_manager as ym
+
+
+async def handle_get_seo(request):
+    """Retrieves or generates YouTube SEO package for a given video."""
+    try:
+        video_file = request.query.get("video_file", "")
+        stem = request.query.get("video_stem", "")
+        if not stem and video_file:
+            stem = Path(video_file).stem
+        
+        if stem:
+            seo_path = EXPORT_DIR / f"{stem}_seo.json"
+            if seo_path.is_file():
+                try:
+                    with open(seo_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    return web.json_response({"status": "ok", "seo": data, "cached": True}, headers=cors_headers())
+                except Exception:
+                    pass
+        
+        # If not cached, generate dynamically
+        packager = RecapSeoPackager()
+        clean_title = stem.replace("_", " ").title() if stem else "Review Phim Điện Ảnh"
+        seo_data = packager.generate_seo_package(
+            movie_title=clean_title,
+            genre="Hành động, Kịch tính",
+            language="vi"
+        )
+        if stem:
+            packager.save_seo_package(EXPORT_DIR / f"{stem}_seo.json", seo_data)
+            
+        return web.json_response({"status": "ok", "seo": seo_data, "cached": False}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_generate_seo(request):
+    """Forces generation / regeneration of SEO package."""
+    try:
+        data = await request.json()
+        title = data.get("movie_title") or "Review Phim"
+        genre = data.get("genre") or "Hành động, Kịch tính"
+        lang = data.get("language") or "vi"
+        aspect = data.get("aspect_ratio") or "16:9"
+        stem = data.get("video_stem")
+        
+        packager = RecapSeoPackager()
+        seo_data = packager.generate_seo_package(
+            movie_title=title,
+            genre=genre,
+            language=lang,
+            aspect_ratio=aspect
+        )
+        if stem:
+            packager.save_seo_package(EXPORT_DIR / f"{stem}_seo.json", seo_data)
+            
+        return web.json_response({"status": "ok", "seo": seo_data}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_get_youtube_channels(request):
+    """Returns connected YouTube channels and active channel id."""
+    try:
+        summary = ym.get_channels_summary()
+        return web.json_response({"status": "ok", "data": summary}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_set_youtube_active_channel(request):
+    """Sets the active YouTube channel."""
+    try:
+        data = await request.json()
+        cid = data.get("channel_id")
+        if not cid:
+            return web.json_response({"status": "error", "message": "Missing channel_id"}, status=400, headers=cors_headers())
+        res = ym.set_active_channel(cid)
+        return web.json_response({"status": "ok", "data": res}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_save_youtube_oauth(request):
+    """Saves YouTube OAuth Client ID & Secret."""
+    try:
+        data = await request.json()
+        client_id = data.get("client_id", "").strip()
+        client_secret = data.get("client_secret", "").strip()
+        raw_json = data.get("raw_json", "").strip()
+        res = ym.set_oauth_credentials(client_id, client_secret, raw_json if raw_json else None)
+        return web.json_response({"status": "ok", "data": res}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_get_youtube_auth_url(request):
+    """Generates the Google OAuth authorization URL."""
+    try:
+        redirect_uri = "http://localhost:8095/api/youtube/callback"
+        auth_url = ym.build_auth_url(redirect_uri=redirect_uri)
+        return web.json_response({"status": "ok", "auth_url": auth_url}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_youtube_callback(request):
+    """Handles OAuth redirect code from Google."""
+    try:
+        code = request.query.get("code")
+        if not code:
+            return web.Response(text="Thiếu OAuth authorization code từ Google.", status=400)
+        redirect_uri = "http://localhost:8095/api/youtube/callback"
+        res = ym.exchange_code_and_add_channel(code, redirect_uri)
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"><title>Kết nối YouTube Thành Công</title></head>
+        <body style="font-family:sans-serif;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+          <div style="background:#1e293b;padding:30px;border-radius:16px;text-align:center;max-width:400px;border:1px solid #334155;">
+            <div style="font-size:48px;margin-bottom:12px;">✅</div>
+            <h2 style="margin:0 0 8px 0;color:#38bdf8;">Kết Nối Kênh Thành Công!</h2>
+            <p style="font-size:13px;color:#94a3b8;">{res.get('message', 'Kênh YouTube đã được thêm vào hệ thống')}</p>
+            <p style="font-size:11px;color:#64748b;margin-top:15px;">Cửa sổ này sẽ tự đóng trong giây lát...</p>
+            <script>setTimeout(() => {{ window.close(); if (window.opener) window.opener.location.reload(); }}, 2000);</script>
+          </div>
+        </body>
+        </html>
+        """
+        return web.Response(text=html, content_type="text/html")
+    except Exception as e:
+        return web.Response(text=f"Lỗi xác thực OAuth: {e}", status=500)
+
+
+async def handle_start_youtube_upload(request):
+    """Starts background upload of a video to YouTube."""
+    try:
+        data = await request.json()
+        video_file = data.get("video_file", "").strip()
+        channel_id = data.get("channel_id") or ym.get_channels_summary().get("active_channel_id")
+        title = data.get("title", "").strip() or "Movie Recap"
+        description = data.get("description", "").strip()
+        tags = data.get("tags", [])
+        privacy = data.get("privacy", "private")
+        pinned_comment = data.get("pinned_comment")
+        thumbnail_file = data.get("thumbnail_file")
+
+        if not channel_id:
+            return web.json_response({"status": "error", "message": "Chưa chọn kênh YouTube nào để đăng!"}, status=400, headers=cors_headers())
+
+        v_path = EXPORT_DIR / video_file if not Path(video_file).is_file() else Path(video_file)
+        if not v_path.is_file():
+            cand = list(EXPORT_DIR.rglob(Path(video_file).name))
+            if cand:
+                v_path = cand[0]
+            else:
+                return web.json_response({"status": "error", "message": f"Không tìm thấy video: {video_file}"}, status=404, headers=cors_headers())
+
+        th_path = None
+        if thumbnail_file:
+            t_cand = EXPORT_DIR / thumbnail_file if not Path(thumbnail_file).is_file() else Path(thumbnail_file)
+            if t_cand.is_file():
+                th_path = t_cand
+
+        res = ym.start_background_upload(
+            video_path=v_path,
+            channel_id=channel_id,
+            title=title,
+            description=description,
+            tags=tags if isinstance(tags, list) else [t.strip() for t in str(tags).split(",") if t.strip()],
+            privacy_status=privacy,
+            thumbnail_path=th_path,
+            pinned_comment=pinned_comment
+        )
+        return web.json_response({"status": "ok", "result": res}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_get_youtube_upload_status(request):
+    """Polls the current YouTube upload progress."""
+    try:
+        st = ym.get_current_upload_status()
+        return web.json_response({"status": "ok", "upload_state": st}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
 
 
 async def handle_get_progress(request):
@@ -695,7 +931,17 @@ def create_app():
     app.router.add_get("/api/movie/info", handle_get_movie_info)
     app.router.add_post("/api/voice/preview", handle_preview_voice)
     app.router.add_post("/api/render", handle_start_render)
+    app.router.add_post("/api/render/stop", handle_stop_render)
     app.router.add_get("/api/progress/{job_id}", handle_get_progress)
+    app.router.add_get("/api/seo", handle_get_seo)
+    app.router.add_post("/api/seo/generate", handle_generate_seo)
+    app.router.add_get("/api/youtube/channels", handle_get_youtube_channels)
+    app.router.add_post("/api/youtube/active-channel", handle_set_youtube_active_channel)
+    app.router.add_post("/api/youtube/oauth-config", handle_save_youtube_oauth)
+    app.router.add_get("/api/youtube/auth-url", handle_get_youtube_auth_url)
+    app.router.add_get("/api/youtube/callback", handle_youtube_callback)
+    app.router.add_post("/api/youtube/upload", handle_start_youtube_upload)
+    app.router.add_get("/api/youtube/upload-status", handle_get_youtube_upload_status)
     app.router.add_get("/api/videos/list", handle_list_videos)
     app.router.add_get("/api/exports", handle_get_exports)
     app.router.add_post("/api/exports/delete", handle_delete_export)

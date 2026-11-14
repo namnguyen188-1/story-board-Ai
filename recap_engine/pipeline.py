@@ -36,6 +36,13 @@ class MovieRecapPipeline:
         self.scriptwriter = RecapScriptwriter()
         self.voice_engine = RecapVoiceEngine()
         self.renderer = RecapRenderer()
+        self.cancelled = False
+
+    def cancel(self):
+        """Signals the pipeline to stop and aborts renderer operations."""
+        self.cancelled = True
+        if hasattr(self.renderer, "cancel"):
+            self.renderer.cancel()
 
     def run(
         self,
@@ -78,6 +85,8 @@ class MovieRecapPipeline:
         session_dir.mkdir(parents=True, exist_ok=True)
 
         def report(msg: str, pct: float):
+            if self.cancelled:
+                raise RuntimeError("Tiến trình dựng video đã bị dừng theo yêu cầu của bạn!")
             if progress_callback:
                 progress_callback(msg, pct)
             print(f"[{pct:.1f}%] {msg}", flush=True)
@@ -261,6 +270,7 @@ class MovieRecapPipeline:
             bgm_volume=bgm_volume,
             export_srt=export_srt,
             export_thumbnails=export_thumbnails,
+            language=language,
             progress_callback=render_progress
         )
 
@@ -291,6 +301,28 @@ class MovieRecapPipeline:
                     shutil.copy2(final_output_path.with_suffix(".txt"), root_export_vid.with_suffix(".txt"))
         except Exception:
             pass
+
+        # Tự động tạo bộ SEO YouTube VidIQ chuẩn triệu view
+        try:
+            from core.seo_packager import RecapSeoPackager
+            seo_pack = RecapSeoPackager()
+            seo_data = seo_pack.generate_seo_package(
+                movie_title=movie_title,
+                genre=genre,
+                script_segments=script_data.get("segments", []),
+                language=language,
+                aspect_ratio=aspect_ratio,
+                duration_sec=total_voice_duration
+            )
+            seo_path = final_output_path.with_name(f"{final_output_path.stem}_seo.json")
+            seo_pack.save_seo_package(seo_path, seo_data)
+            print(f"✅ [SEO] Auto-generated YouTube VidIQ SEO package: {seo_path.name}", flush=True)
+            root_seo = export_dir / f"{final_output_path.stem}_seo.json"
+            if root_seo.resolve() != seo_path.resolve():
+                import shutil
+                shutil.copy2(seo_path, root_seo)
+        except Exception as _seo_err:
+            print(f"⚠️ [SEO] Auto-generate warning: {_seo_err}", flush=True)
 
         total_time = round(time.time() - t0, 1)
         report(f"🎉 Xuất video review thành công trong {total_time}s!", 100.0)

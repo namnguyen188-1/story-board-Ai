@@ -21,6 +21,7 @@ try:
         build_watermark_drawtext, build_cta_drawtext,
         compute_cta_times, get_cta_asset_path, build_cta_chromakey_filter
     )
+    from .modern_cta_engine import generate_modern_pill_badge
 except (ImportError, ValueError):
     from core.ffmpeg_utils import get_ffmpeg_path, check_nvenc_available
     from core.fair_use_fx import (
@@ -28,6 +29,7 @@ except (ImportError, ValueError):
         build_watermark_drawtext, build_cta_drawtext,
         compute_cta_times, get_cta_asset_path, build_cta_chromakey_filter
     )
+    from core.modern_cta_engine import generate_modern_pill_badge
 
 
 class RecapRenderer:
@@ -61,6 +63,7 @@ class RecapRenderer:
         bgm_volume: float = 0.15,
         export_srt: bool = True,
         export_thumbnails: bool = True,
+        language: str = "vi",
         progress_callback: Optional[Callable[[str, float], None]] = None
     ) -> str:
         """
@@ -243,16 +246,34 @@ class RecapRenderer:
             inputs = ["-i", str(raw_video_path), "-i", str(master_voice_path)]
             next_idx = 2
 
-            # CTA Chromakey setup
-            cta_input_idx = None
+            # CTA Modern Transparent Badge & SFX setup
+            cta_badge_idx = None
+            cta_sfx_idx = None
             cta_times = []
-            cta_asset = get_cta_asset_path() if cta_overlay else None
-            if cta_overlay and cta_asset and cta_asset.is_file():
+            if cta_overlay:
                 cta_times = compute_cta_times(total_dur, is_vertical=(aspect_ratio == "9:16"))
                 if cta_times:
-                    cta_input_idx = next_idx
-                    inputs.extend(["-i", str(cta_asset)])
+                    target_w, target_h = get_target_dimensions(aspect_ratio)
+                    badge_png = tmp_dir / "cta_modern_pill.png"
+                    badge_w = int(target_w * (0.82 if aspect_ratio == "9:16" else 0.44))
+                    badge_h = int(64 if aspect_ratio != "9:16" else 70)
+                    generate_modern_pill_badge(
+                        output_path=badge_png,
+                        text=cta_text or ("点击订阅与点赞，精彩不迷路！" if language == "zh" else "Đăng ký & Like để không bỏ lỡ phim hay!"),
+                        target_width=badge_w,
+                        target_height=badge_h,
+                        language=language
+                    )
+                    cta_badge_idx = next_idx
+                    inputs.extend(["-loop", "1", "-i", str(badge_png)])
                     next_idx += 1
+
+                    # Optional SFX audio from cta_asset
+                    cta_asset = get_cta_asset_path()
+                    if cta_asset and cta_asset.is_file():
+                        cta_sfx_idx = next_idx
+                        inputs.extend(["-i", str(cta_asset)])
+                        next_idx += 1
 
             # BGM setup
             bgm_input_idx = None
@@ -282,32 +303,29 @@ class RecapRenderer:
                 if wm_f:
                     base_vf.append(wm_f)
 
-            # Fallback text CTA if video asset is missing
-            if cta_overlay and not cta_input_idx:
-                cta_f = build_cta_drawtext(
-                    text=cta_text or "🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ",
-                    font_size=32 if aspect_ratio != "9:16" else 28,
-                    aspect_ratio=aspect_ratio
-                )
-                if cta_f:
-                    base_vf.append(cta_f)
-
             if base_vf:
                 fc_parts.append(f"[{curr_v}]{','.join(base_vf)}[v_base]")
                 curr_v = "v_base"
 
-            # Step 5B: Chromakey CTA Overlay (Transparent Green Screen)
-            if cta_input_idx is not None and cta_times:
-                target_w, _ = get_target_dimensions(aspect_ratio)
-                cta_clauses, out_v_tag = build_cta_chromakey_filter(
-                    cta_idx=cta_input_idx,
-                    times=cta_times,
-                    base_stream=curr_v,
-                    target_w=target_w,
-                    is_vertical=(aspect_ratio == "9:16")
-                )
-                fc_parts.extend(cta_clauses)
-                curr_v = out_v_tag
+            # Step 5B: Modern Transparent Pill CTA Overlay (100% Alpha Channel, Smooth Fade In/Out)
+            if cta_badge_idx is not None and cta_times:
+                margin_b = 160 if aspect_ratio == "9:16" else 35
+                cta_dur = 4.8
+                for i, t_start in enumerate(cta_times):
+                    t_end = t_start + cta_dur
+                    fade_in_d = 0.35
+                    fade_out_d = 0.35
+                    fade_out_st = max(t_start + fade_in_d, t_end - fade_out_d)
+                    c_tag = f"cta_b_{i}"
+                    fc_parts.append(
+                        f"[{cta_badge_idx}:v]format=rgba,fade=t=in:st={t_start:.2f}:d={fade_in_d}:alpha=1,"
+                        f"fade=t=out:st={fade_out_st:.2f}:d={fade_out_d}:alpha=1[{c_tag}]"
+                    )
+                    next_v = f"v_cta_{i}"
+                    fc_parts.append(
+                        f"[{curr_v}][{c_tag}]overlay=(W-w)/2:H-h-{margin_b}:enable='between(t,{t_start:.2f},{t_end:.2f})'[{next_v}]"
+                    )
+                    curr_v = next_v
 
             # Step 5C: Audio Mixing (Voice 100% + Movie Ambience + BGM + CTA SFX)
             has_movie_audio = (movie_audio_vol > 0.001)
@@ -327,15 +345,15 @@ class RecapRenderer:
                 fc_parts.append(f"[{bgm_input_idx}:a]volume={bgm_volume:.2f}[v_bgm]")
                 a_inputs_list.append("[v_bgm]")
 
-            # CTA Sound Effects (Whoosh, Pop, Bell Chime)
-            if cta_input_idx is not None and cta_times:
+            # CTA Sound Effects (Chime SFX)
+            if cta_sfx_idx is not None and cta_times:
                 try:
                     if len(cta_times) == 1:
-                        fc_parts.append(f"[{cta_input_idx}:a]adelay={int(cta_times[0]*1000)}|{int(cta_times[0]*1000)},volume=0.85[cta_a_0]")
+                        fc_parts.append(f"[{cta_sfx_idx}:a]adelay={int(cta_times[0]*1000)}|{int(cta_times[0]*1000)},volume=0.85[cta_a_0]")
                         a_inputs_list.append("[cta_a_0]")
                     elif len(cta_times) > 1:
                         asplit_tags = "".join([f"[cta_as_{k}]" for k in range(len(cta_times))])
-                        fc_parts.append(f"[{cta_input_idx}:a]asplit={len(cta_times)}{asplit_tags}")
+                        fc_parts.append(f"[{cta_sfx_idx}:a]asplit={len(cta_times)}{asplit_tags}")
                         for k, t_sec in enumerate(cta_times):
                             fc_parts.append(f"[cta_as_{k}]adelay={int(t_sec*1000)}|{int(t_sec*1000)},volume=0.85[cta_a_{k}]")
                             a_inputs_list.append(f"[cta_a_{k}]")

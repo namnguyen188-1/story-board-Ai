@@ -51,6 +51,15 @@
 
     <!-- Actions -->
     <div class="flex items-center gap-2">
+      <button id="btnOpenSeoPackage" onclick="openSeoModal()" class="h-7 px-3 rounded-lg bg-gradient-to-r from-purple-950/90 to-indigo-950/90 hover:from-purple-900 hover:to-indigo-900 text-purple-200 border border-purple-500/50 text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm">
+        <span>🚀</span> Bộ SEO VidIQ
+      </button>
+      <button id="btnOpenYouTubeManager" onclick="openYouTubeModal()" class="h-7 px-3 rounded-lg bg-gradient-to-r from-red-950/90 to-rose-950/90 hover:from-red-900 hover:to-rose-900 text-red-200 border border-red-500/50 text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm">
+        <span>📺</span> Kênh YouTube
+      </button>
+      <button id="btnStopProduction" onclick="stopActiveProduction()" class="hidden h-7 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-[11px] flex items-center gap-1.5 transition shadow-md animate-pulse">
+        <span>⏹️</span> DỪNG RENDER
+      </button>
       <button onclick="openScriptModal()" class="h-7 px-3 rounded-lg bg-[#141b29] hover:bg-[#1c263a] text-slate-200 border border-[#223048] text-[11px] font-medium flex items-center gap-1.5 transition shadow-xs">
         <span>📜</span> Kịch Bản
       </button>
@@ -488,15 +497,24 @@
             </div>
           </div>
 
-          <!-- Nút Kêu Gọi Đăng Ký, Like & Chuông 🔔 -->
+          <!-- Nút Kêu Gọi Đăng Ký, Like & Chuông 🔔 (Modern Gradient Capsule Pill) -->
           <div class="pt-1.5 border-t border-[#1c2538]/60 space-y-1.5">
-            <label class="flex items-center justify-between cursor-pointer">
-              <span class="text-[11px] text-rose-400 font-bold flex items-center gap-1.5">
-                <span>🔔</span> Nút Kêu Gọi Sub, Like & Chuông
-              </span>
-              <input id="chkCtaOverlay" type="checkbox" checked onchange="toggleCtaPreview()" class="accent-rose-500 w-3.5 h-3.5">
-            </label>
-            <input id="inputCtaText" type="text" value="🔔 ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ" oninput="updateCtaPreview(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1 text-[10px] text-rose-300 font-semibold focus:outline-none focus:border-rose-500 transition-colors" placeholder="Chữ kêu gọi Sub, Like, Chuông...">
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input id="chkCtaOverlay" type="checkbox" checked onchange="toggleCtaPreview()" class="accent-rose-500 w-3.5 h-3.5">
+                <span class="text-[11px] text-rose-400 font-bold flex items-center gap-1">
+                  <span>🔔</span> Banner CTA Đăng Ký & Like
+                </span>
+              </label>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-gradient-to-r from-rose-500/20 to-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold font-mono">Pill Capsule 3D</span>
+            </div>
+            <!-- Ngôn ngữ mẫu nhanh cho CTA -->
+            <div class="flex gap-1">
+              <button type="button" onclick="setCtaTextPreset('vi')" class="flex-1 py-0.5 rounded bg-[#161f30] hover:bg-rose-900/40 text-[9px] text-slate-300 hover:text-white border border-[#233149] transition">🇻🇳 Tiếng Việt</button>
+              <button type="button" onclick="setCtaTextPreset('zh')" class="flex-1 py-0.5 rounded bg-[#161f30] hover:bg-rose-900/40 text-[9px] text-slate-300 hover:text-white border border-[#233149] transition">🇨🇳 Tiếng Trung</button>
+              <button type="button" onclick="setCtaTextPreset('en')" class="flex-1 py-0.5 rounded bg-[#161f30] hover:bg-rose-900/40 text-[9px] text-slate-300 hover:text-white border border-[#233149] transition">🇺🇸 English</button>
+            </div>
+            <input id="inputCtaText" type="text" value="Đăng ký & Like để không bỏ lỡ phim hay!" oninput="updateCtaPreview(this.value)" class="w-full bg-[#070a12] border border-[#1c2538] rounded-lg px-2.5 py-1 text-[10px] text-rose-300 font-semibold focus:outline-none focus:border-rose-500 transition-colors" placeholder="Chữ kêu gọi Sub, Like, Chuông...">
           </div>
 
           <div class="grid grid-cols-2 gap-1.5 pt-0.5 text-[11px]">
@@ -636,10 +654,13 @@
                 <span id="txtWatermarkDisplay">@ReviewPhimHay</span>
               </div>
 
-              <!-- Nút Kêu Gọi Sub, Like & Chuông 🔔 (Call To Action Overlay Preview) -->
-              <div id="ctaOverlayPreview" class="absolute bottom-[24%] left-1/2 -translate-x-1/2 z-25 px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 text-white font-extrabold text-[11px] shadow-2xl border-2 border-white/40 flex items-center gap-2 select-none pointer-events-none animate-pulse transition-all">
-                <span class="text-sm">🔔</span>
-                <span id="txtCtaDisplay">ĐĂNG KÝ KÊNH • BẤM LIKE & CHIA SẺ</span>
+              <!-- Nút Kêu Gọi Sub, Like & Chuông 🔔 (Modern Pill Capsule Matching Reference) -->
+              <div id="ctaOverlayPreview" class="absolute bottom-[24%] left-1/2 -translate-x-1/2 z-25 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#ea2360] via-[#ff5e36] to-[#ffa500] text-white font-extrabold text-[11px] shadow-2xl border-2 border-white/60 flex items-center gap-2 select-none pointer-events-none animate-pulse transition-all">
+                <div class="flex items-center -space-x-1 text-amber-300 drop-shadow">
+                  <span class="text-sm">🔔</span>
+                  <span class="text-xs">🔔</span>
+                </div>
+                <span id="txtCtaDisplay">Đăng ký & Like để không bỏ lỡ phim hay!</span>
               </div>
 
               <!-- ============================================== -->
@@ -1000,6 +1021,224 @@
       <div class="p-2.5 bg-[#11192b] border-t border-[#2d3a52] flex justify-between items-center text-[11px] text-slate-400 shrink-0">
         <span class="truncate max-w-md">Thư mục xuất bản: <strong id="lblActiveExportDir" class="text-slate-200 font-mono">./exports</strong></span>
         <button onclick="closeExportsModal()" class="px-4 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: BỘ SEO YOUTUBE VIDIQ (TITLES, CHAPTERS, TAGS, PINNED) -->
+  <!-- ======================================================== -->
+  <div id="modalSeoPackage" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#0b101c] border border-purple-500/40 rounded-2xl w-full max-w-5xl flex flex-col shadow-2xl overflow-hidden max-h-[92vh]">
+      <!-- Header -->
+      <div class="p-3.5 bg-gradient-to-r from-purple-950/80 via-[#11192b] to-[#0b101c] border-b border-purple-500/30 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-400/40 flex items-center justify-center text-lg">
+            🚀
+          </div>
+          <div>
+            <h3 class="font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-amber-200 text-sm tracking-wide">
+              BỘ SEO YOUTUBE CHUẨN VIDIQ & TRIỆU VIEW
+            </h3>
+            <p class="text-[10px] text-purple-300/80 font-mono">Tự động tối ưu hóa Tiêu đề A/B, Mô tả có Chapters/Timestamps, 30 Tags & Pinned Comment</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="regenerateActiveSeo()" id="btnRegenSeo" class="h-7 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1 transition shadow-sm">
+            <span>🔄</span> Tạo Lại AI
+          </button>
+          <button onclick="copyAllSeo()" class="h-7 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1 transition shadow-sm">
+            <span>📋</span> Copy Tất Cả
+          </button>
+          <button onclick="closeSeoModal()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">✕</button>
+        </div>
+      </div>
+
+      <!-- Selector Bar -->
+      <div class="px-4 py-2 bg-[#090d17] border-b border-[#1b2538] flex items-center justify-between text-xs gap-3">
+        <div class="flex items-center gap-2 flex-1">
+          <span class="text-slate-400 font-semibold shrink-0">Chọn video:</span>
+          <select id="selSeoVideoTarget" onchange="onSeoVideoChanged(this.value)" class="bg-[#0f1626] border border-purple-500/30 rounded-lg px-2.5 py-1 text-purple-200 font-mono text-xs w-full max-w-md focus:outline-none">
+            <option value="">-- Đang nạp danh sách video --</option>
+          </select>
+        </div>
+        <span id="lblSeoCacheStatus" class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-mono">Đã tối ưu hóa</span>
+      </div>
+
+      <!-- Body Content -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Cột Trái: Tiêu đề & Tags & Comment -->
+          <div class="space-y-3.5">
+            <!-- Tiêu đề A/B -->
+            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-amber-400 flex items-center gap-1">
+                  <span>🅰️</span> Tiêu Đề A (Kịch Tính / Giật Gân / Tò Mò)
+                </span>
+                <button onclick="copySeoField('txtSeoTitleA')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy</button>
+              </div>
+              <input id="txtSeoTitleA" type="text" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-white font-semibold focus:outline-none">
+            </div>
+
+            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-sky-400 flex items-center gap-1">
+                  <span>🅱️</span> Tiêu Đề B (Chuẩn SEO Từ Khóa Tìm Kiếm)
+                </span>
+                <button onclick="copySeoField('txtSeoTitleB')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy</button>
+              </div>
+              <input id="txtSeoTitleB" type="text" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-white font-semibold focus:outline-none">
+            </div>
+
+            <!-- Tags -->
+            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-emerald-400 flex items-center gap-1">
+                  <span>🏷️</span> 30 Thẻ Tags SEO YouTube (Dạng Phẩy Sẵn Sàng Dán)
+                </span>
+                <button onclick="copySeoField('txtSeoTags')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy Tags</button>
+              </div>
+              <textarea id="txtSeoTags" rows="3" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg p-2 text-[11px] text-emerald-300 font-mono focus:outline-none"></textarea>
+            </div>
+
+            <!-- Hashtags & Pinned Comment -->
+            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-pink-400 flex items-center gap-1">
+                  <span>📌</span> Bình Luận Ghim (Pinned Comment) & Hashtags
+                </span>
+                <button onclick="copySeoField('txtSeoPinned')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy Comment</button>
+              </div>
+              <textarea id="txtSeoPinned" rows="3" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg p-2 text-[11px] text-pink-200 focus:outline-none"></textarea>
+            </div>
+          </div>
+
+          <!-- Cột Phải: Mô tả chi tiết có Chapters -->
+          <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1e2a42] flex flex-col space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-purple-300 flex items-center gap-1">
+                <span>📝</span> Mô Tả Video Đầy Đủ (Có Chapters / Dấu Thời Gian)
+              </span>
+              <button onclick="copySeoField('txtSeoDescription')" class="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold transition shadow-xs">Copy Toàn Bộ Mô Tả</button>
+            </div>
+            <textarea id="txtSeoDescription" rows="18" readonly class="flex-1 w-full bg-[#050811] border border-[#19243a] rounded-lg p-3 text-[11px] text-slate-200 font-mono leading-relaxed focus:outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 bg-[#0a0f1b] border-t border-[#1e2a42] flex justify-between items-center shrink-0">
+        <span class="text-[11px] text-slate-400">Gợi ý: Dán trọn gói Tiêu đề, Mô tả và Tags vào YouTube Studio để tối ưu điểm SEO 100/100.</span>
+        <div class="flex items-center gap-2">
+          <button onclick="handOffSeoToYouTube()" class="h-8 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 transition">
+            <span>📺</span> Đăng Thẳng Lên Kênh YouTube ➔
+          </button>
+          <button onclick="closeSeoModal()" class="h-8 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: YOUTUBE MULTI-CHANNEL HUB & 1-CLICK UPLOADER     -->
+  <!-- ======================================================== -->
+  <div id="modalYouTubeManager" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#0b101c] border border-red-500/40 rounded-2xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden max-h-[92vh]">
+      <!-- Header -->
+      <div class="p-3.5 bg-gradient-to-r from-red-950/80 via-[#11192b] to-[#0b101c] border-b border-red-500/30 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-red-600/20 border border-red-400/40 flex items-center justify-center text-lg">
+            📺
+          </div>
+          <div>
+            <h3 class="font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-rose-300 to-white text-sm tracking-wide">
+              YOUTUBE MULTI-CHANNEL HUB & 1-CLICK UPLOADER
+            </h3>
+            <p class="text-[10px] text-red-300/80 font-mono">Đã kết nối 5 kênh YouTube • Chọn kênh và tải video lên trực tiếp qua YouTube API</p>
+          </div>
+        </div>
+        <button onclick="closeYouTubeModal()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">✕</button>
+      </div>
+
+      <!-- Body Content -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <!-- 1. Chọn Kênh YouTube Đăng -->
+        <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-amber-400 flex items-center gap-1.5">
+              <span>🌟</span> Kênh YouTube Đích Đến (Chọn 1 trong 5 kênh đã kết nối)
+            </span>
+            <span id="lblActiveChannelStatus" class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-mono">Đã xác thực OAuth</span>
+          </div>
+          <select id="selYouTubeChannel" onchange="onYouTubeChannelChanged(this.value)" class="w-full bg-[#050811] border border-red-500/40 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none">
+            <option value="">-- Đang nạp danh sách 5 kênh --</option>
+          </select>
+        </div>
+
+        <!-- 2. Form Tải Lên Video -->
+        <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-400 font-semibold mb-1">Video tải lên:</label>
+              <select id="selYouTubeVideo" onchange="onYouTubeVideoSelected(this.value)" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="">-- Chọn video trong thư viện exports --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 font-semibold mb-1">Quyền riêng tư (Privacy):</label>
+              <select id="selYouTubePrivacy" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                <option value="private" selected>🔒 Riêng tư (Private - Khuyên dùng để kiểm tra)</option>
+                <option value="unlisted">🔗 Không công khai (Unlisted)</option>
+                <option value="public">🌐 Công khai (Public - Xuất bản ngay)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Tiêu đề video YouTube:</label>
+            <input id="inputYtTitle" type="text" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-red-500" placeholder="Tiêu đề video YouTube...">
+          </div>
+
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Mô tả video (Description):</label>
+            <textarea id="inputYtDescription" rows="5" class="w-full bg-[#050811] border border-[#19243a] rounded-lg p-2.5 text-[11px] text-slate-200 font-mono focus:outline-none focus:border-red-500" placeholder="Mô tả video có timestamps..."></textarea>
+          </div>
+
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">Thẻ Tags (cách nhau dấu phẩy):</label>
+            <input id="inputYtTags" type="text" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-red-500" placeholder="review phim, tóm tắt phim, ...">
+          </div>
+        </div>
+
+        <!-- 3. Hộp Trạng Thái Upload -->
+        <div id="boxUploadProgress" class="hidden p-3.5 rounded-xl bg-[#060c18] border border-red-500/50 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-red-400 flex items-center gap-1.5">
+              <span class="animate-spin">⚙️</span> <span id="txtUploadStatusMsg">Đang chuẩn bị tải video lên YouTube...</span>
+            </span>
+            <span id="txtUploadProgressPct" class="font-mono text-emerald-400 font-bold">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div id="barUploadProgress" class="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div id="boxUploadResult" class="hidden pt-1">
+            <a id="linkYouTubeVideo" href="#" target="_blank" class="text-xs text-sky-400 hover:underline font-bold flex items-center gap-1">
+              <span>🎉</span> Xem video trên YouTube ➔
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 bg-[#0a0f1b] border-t border-[#1e2a42] flex justify-between items-center shrink-0">
+        <span class="text-[11px] text-slate-400">Video sẽ được tải lên theo tiêu chuẩn bảo mật Google OAuth 2.0.</span>
+        <div class="flex items-center gap-2">
+          <button id="btnStartUpload" onclick="startYouTubeUploadProcess()" class="h-8 px-5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs shadow-lg shadow-red-950/50 flex items-center gap-1.5 transition">
+            <span>🚀</span> Bắt Đầu Tải Lên Kênh
+          </button>
+          <button onclick="closeYouTubeModal()" class="h-8 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Đóng</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2523,6 +2762,12 @@
               <button onclick="previewInModal(${idx})" class="h-7 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition">
                 <span>▶</span> Xem Thử
               </button>
+              <button onclick="openSeoModalForVideo('${encodeURIComponent(exp.rel_path)}')" class="h-7 px-2.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-500/50 text-xs flex items-center gap-1 font-bold transition shadow-xs" title="Mở bộ SEO VidIQ tối ưu hóa Tiêu đề, Mô tả, Tags">
+                <span>🚀</span> SEO
+              </button>
+              <button onclick="openYouTubeModalForVideo('${encodeURIComponent(exp.rel_path)}')" class="h-7 px-2.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-500/50 text-xs flex items-center gap-1 font-bold transition shadow-xs" title="Đăng thẳng video lên Kênh YouTube của bạn">
+                <span>📺</span> Đăng YT
+              </button>
               <button onclick="playNativeByIndex(${idx})" class="h-7 px-2.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1 transition" title="Mở trực tiếp bằng phần mềm xem phim Windows (VLC, Media Player)">
                 <span>📺</span> Mở Máy
               </button>
@@ -3202,8 +3447,75 @@
       }
     }
 
-    // 14. Start Production
+    // CTA Text Presets (Tiếng Việt / Tiếng Trung / Tiếng Anh)
+    function setCtaTextPreset(lang) {
+      const input = document.getElementById('inputCtaText');
+      if (!input) return;
+      if (lang === 'zh') {
+        input.value = "点击订阅与点赞，精彩不迷路！";
+      } else if (lang === 'en') {
+        input.value = "Subscribe & Like to never miss great movies!";
+      } else {
+        input.value = "Đăng ký & Like để không bỏ lỡ phim hay!";
+      }
+      updateCtaPreview(input.value);
+      showToast(`Đã chọn banner CTA: ${input.value}`);
+    }
+
+    // 14. Start Production & Emergency Stop
     let renderInterval = null;
+    let activeJobId = null;
+
+    async function stopActiveProduction() {
+      if (!activeJobId && !renderInterval) {
+        showToast("Không có tiến trình render nào đang chạy!");
+        return;
+      }
+      if (!confirm("Bạn có chắc chắn muốn DỪNG & HỦY tiến trình dựng video này ngay lập tức không?\n\nTiến trình FFmpeg và tài nguyên máy tính sẽ được giải phóng ngay lập tức.")) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/render/stop', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ job_id: activeJobId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          if (renderInterval) {
+            clearInterval(renderInterval);
+            renderInterval = null;
+          }
+          activeJobId = null;
+
+          const progressOverlay = document.getElementById('renderProgressOverlay');
+          if (progressOverlay) {
+            progressOverlay.innerHTML = `
+              <div class="text-xs text-rose-400 font-bold flex items-center gap-1.5">
+                <span>⏹️</span> ĐÃ HỦY VÀ DỪNG RENDER THÀNH CÔNG!
+              </div>
+              <p class="text-[10px] text-slate-300 mt-1">Đã giải phóng 100% CPU, GPU và tiến trình FFmpeg.</p>
+            `;
+            setTimeout(() => progressOverlay.remove(), 2500);
+          }
+
+          const btn = document.getElementById('btnStartProduction');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>🚀</span> Xuất Video Review Chuyên Nghiệp';
+          }
+          const hdrStop = document.getElementById('btnStopProduction');
+          if (hdrStop) hdrStop.classList.add('hidden');
+
+          showToast("Đã dừng khẩn cấp quá trình dựng video!");
+        } else {
+          alert("Lỗi khi dừng: " + (data.error || "Không thể dừng tiến trình"));
+        }
+      } catch (err) {
+        alert("Lỗi kết nối khi gửi yêu cầu dừng: " + err.message);
+      }
+    }
+
     async function startProduction(e) {
       const evt = e || window.event;
       const btn = evt ? (evt.target.closest('button') || evt.target) : document.getElementById('btnStartProduction');
@@ -3298,11 +3610,16 @@
         }
 
         const jobId = data.job_id;
+        activeJobId = jobId;
+
+        // Hiện nút Dừng trên thanh Header
+        document.getElementById('btnStopProduction')?.classList.remove('hidden');
+
         let progressOverlay = document.getElementById('renderProgressOverlay');
         if (!progressOverlay) {
           progressOverlay = document.createElement('div');
           progressOverlay.id = 'renderProgressOverlay';
-          progressOverlay.className = 'fixed bottom-6 right-6 z-50 bg-[#0f172a] border border-amber-500/50 rounded-xl p-4 shadow-2xl w-80 space-y-2';
+          progressOverlay.className = 'fixed bottom-6 right-6 z-50 bg-[#0f172a] border border-amber-500/50 rounded-xl p-4 shadow-2xl w-84 space-y-2.5 backdrop-blur-md';
           document.body.appendChild(progressOverlay);
         }
         progressOverlay.innerHTML = `
@@ -3310,7 +3627,12 @@
             <span class="font-bold text-amber-400 flex items-center gap-1.5">
               <span class="animate-spin">⚙️</span> Đang Xuất Video Review...
             </span>
-            <span id="txtRenderPct" class="font-mono text-emerald-400 font-bold">0%</span>
+            <div class="flex items-center gap-2">
+              <span id="txtRenderPct" class="font-mono text-emerald-400 font-bold">0%</span>
+              <button onclick="stopActiveProduction()" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition" title="Dừng khẩn cấp tiến trình render">
+                <span>⏹️</span> Dừng
+              </button>
+            </div>
           </div>
           <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
             <div id="barRenderPct" class="bg-gradient-to-r from-rose-500 to-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
@@ -3333,6 +3655,8 @@
               if (pData.status === 'completed') {
                 clearInterval(renderInterval);
                 renderInterval = null;
+                activeJobId = null;
+                document.getElementById('btnStopProduction')?.classList.add('hidden');
                 if (btn) {
                   btn.disabled = false;
                   btn.innerHTML = origText;
@@ -3344,16 +3668,28 @@
                 const badge = document.getElementById('txtOutputBadge');
                 if (badge) badge.innerText = "✅ VỪA XUẤT XONG";
 
+                showToast("🎉 Xuất video review thành công! Tự động tạo Bộ SEO YouTube.");
                 setTimeout(() => { progressOverlay?.remove(); }, 3500);
               } else if (pData.status === 'failed') {
                 clearInterval(renderInterval);
                 renderInterval = null;
+                activeJobId = null;
+                document.getElementById('btnStopProduction')?.classList.add('hidden');
                 if (btn) {
                   btn.disabled = false;
                   btn.innerHTML = origText;
                 }
                 alert("❌ Lỗi render: " + pData.error);
                 progressOverlay?.remove();
+              } else if (pData.status === 'cancelled') {
+                clearInterval(renderInterval);
+                renderInterval = null;
+                activeJobId = null;
+                document.getElementById('btnStopProduction')?.classList.add('hidden');
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = origText;
+                }
               }
             }
           } catch (err) {
@@ -3368,6 +3704,403 @@
           btn.innerHTML = origText;
         }
       }
+    }
+
+    // ========================================================
+    // BỘ SEO YOUTUBE VIDIQ SUITE (JAVASCRIPT LOGIC)
+    // ========================================================
+    let activeSeoVideoRel = "";
+    let activeSeoData = null;
+
+    function openSeoModal(targetVideoRel = "") {
+      const modal = document.getElementById('modalSeoPackage');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+
+      // Nạp danh sách video vào dropdown
+      const sel = document.getElementById('selSeoVideoTarget');
+      if (sel) {
+        sel.innerHTML = "";
+        if (!currentExports || currentExports.length === 0) {
+          sel.innerHTML = '<option value="">-- Chưa có video nào trong thư viện --</option>';
+        } else {
+          currentExports.forEach((exp, idx) => {
+            const opt = document.createElement('option');
+            opt.value = exp.rel_path;
+            opt.innerText = `${idx === 0 ? '🌟 Mới: ' : ''}${exp.name} (${exp.size_mb} MB)`;
+            sel.appendChild(opt);
+          });
+        }
+      }
+
+      if (targetVideoRel) {
+        activeSeoVideoRel = targetVideoRel;
+        if (sel) sel.value = targetVideoRel;
+      } else if (currentExports && currentExports.length > 0) {
+        activeSeoVideoRel = currentExports[0].rel_path;
+        if (sel) sel.value = activeSeoVideoRel;
+      }
+
+      if (activeSeoVideoRel) {
+        loadSeoData(activeSeoVideoRel);
+      }
+    }
+
+    function openSeoModalForVideo(relPath) {
+      const cleanPath = decodeURIComponent(relPath);
+      openSeoModal(cleanPath);
+    }
+
+    function closeSeoModal() {
+      document.getElementById('modalSeoPackage')?.classList.add('hidden');
+    }
+
+    function onSeoVideoChanged(val) {
+      if (!val) return;
+      activeSeoVideoRel = val;
+      loadSeoData(val);
+    }
+
+    async function loadSeoData(videoRelPath, forceRegen = false) {
+      const lblStatus = document.getElementById('lblSeoCacheStatus');
+      if (lblStatus) {
+        lblStatus.innerText = forceRegen ? "Đang tạo mới..." : "Đang tải...";
+        lblStatus.className = "text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-500/30 font-mono animate-pulse";
+      }
+
+      try {
+        const url = forceRegen
+          ? '/api/seo/generate'
+          : `/api/seo?video=${encodeURIComponent(videoRelPath)}`;
+        const opts = forceRegen
+          ? {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ video: videoRelPath, movie_title: document.getElementById('inputMovieTitle')?.value })
+            }
+          : { method: 'GET' };
+
+        const res = await fetch(url, opts);
+        const data = await res.json();
+        if (data.status === 'ok' && data.seo) {
+          activeSeoData = data.seo;
+          document.getElementById('txtSeoTitleA').value = data.seo.title_a || "";
+          document.getElementById('txtSeoTitleB').value = data.seo.title_b || "";
+          document.getElementById('txtSeoTags').value = Array.isArray(data.seo.tags) ? data.seo.tags.join(', ') : (data.seo.tags || "");
+          document.getElementById('txtSeoPinned').value = `${data.seo.pinned_comment || ""}\n\n${(data.seo.hashtags || []).join(' ')}`;
+          document.getElementById('txtSeoDescription').value = data.seo.description || "";
+
+          if (lblStatus) {
+            lblStatus.innerText = data.cached ? "⚡ Đã tối ưu sẵn" : "✨ Vừa tạo AI mới";
+            lblStatus.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-mono";
+          }
+        } else {
+          alert("Không thể nạp dữ liệu SEO: " + (data.message || "Lỗi không xác định"));
+          if (lblStatus) {
+            lblStatus.innerText = "Lỗi nạp SEO";
+            lblStatus.className = "text-[10px] px-2 py-0.5 rounded bg-rose-950/80 text-rose-400 border border-rose-500/30 font-mono";
+          }
+        }
+      } catch (err) {
+        alert("Lỗi kết nối khi nạp SEO: " + err.message);
+      }
+    }
+
+    async function regenerateActiveSeo() {
+      if (!activeSeoVideoRel) {
+        alert("Chưa chọn video để tạo SEO!");
+        return;
+      }
+      const btn = document.getElementById('btnRegenSeo');
+      const orig = btn ? btn.innerHTML : "🔄 Tạo Lại AI";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Đang tạo...";
+      }
+      await loadSeoData(activeSeoVideoRel, true);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+      showToast("Đã tạo mới bộ SEO YouTube chuẩn VidIQ!");
+    }
+
+    function copySeoField(fieldId) {
+      const el = document.getElementById(fieldId);
+      if (!el || !el.value) return;
+      navigator.clipboard.writeText(el.value).then(() => {
+        showToast("Đã copy nội dung vào clipboard!");
+      }).catch(err => {
+        el.select();
+        document.execCommand('copy');
+        showToast("Đã copy nội dung!");
+      });
+    }
+
+    function copyAllSeo() {
+      if (!activeSeoData) {
+        alert("Chưa có dữ liệu SEO để copy!");
+        return;
+      }
+      const fullText = [
+        "=== TIÊU ĐỀ A ===",
+        activeSeoData.title_a || "",
+        "",
+        "=== TIÊU ĐỀ B ===",
+        activeSeoData.title_b || "",
+        "",
+        "=== MÔ TẢ VIDEO (DESCRIPTIONS & CHAPTERS) ===",
+        activeSeoData.description || "",
+        "",
+        "=== 30 THẺ TAGS YOUTUBE ===",
+        Array.isArray(activeSeoData.tags) ? activeSeoData.tags.join(', ') : (activeSeoData.tags || ""),
+        "",
+        "=== BÌNH LUẬN GHIM (PINNED COMMENT) ===",
+        activeSeoData.pinned_comment || "",
+        "",
+        "=== HASHTAGS ===",
+        (activeSeoData.hashtags || []).join(' ')
+      ].join('\n');
+
+      navigator.clipboard.writeText(fullText).then(() => {
+        showToast("🎉 Đã sao chép TOÀN BỘ Bộ SEO (Tiêu đề, Mô tả, Tags, Comment)!");
+      }).catch(() => {
+        showToast("Đã sao chép bộ SEO!");
+      });
+    }
+
+    function handOffSeoToYouTube() {
+      closeSeoModal();
+      openYouTubeModal(activeSeoVideoRel);
+    }
+
+    // ========================================================
+    // YOUTUBE MULTI-CHANNEL HUB & 1-CLICK UPLOADER LOGIC
+    // ========================================================
+    let ytChannels = [];
+    let ytActiveChannelId = "";
+    let ytUploadPollInterval = null;
+
+    async function openYouTubeModal(targetVideoRel = "") {
+      const modal = document.getElementById('modalYouTubeManager');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+
+      // 1. Nạp danh sách 5 kênh
+      await loadYouTubeChannels();
+
+      // 2. Nạp video vào dropdown
+      const selVid = document.getElementById('selYouTubeVideo');
+      if (selVid) {
+        selVid.innerHTML = "";
+        if (!currentExports || currentExports.length === 0) {
+          selVid.innerHTML = '<option value="">-- Chưa có video nào trong exports --</option>';
+        } else {
+          currentExports.forEach((exp, idx) => {
+            const opt = document.createElement('option');
+            opt.value = exp.rel_path;
+            opt.innerText = `${idx === 0 ? '🌟 Mới: ' : ''}${exp.name} (${exp.size_mb} MB)`;
+            selVid.appendChild(opt);
+          });
+        }
+      }
+
+      const chosenRel = targetVideoRel || (currentExports && currentExports[0]?.rel_path) || "";
+      if (chosenRel && selVid) {
+        selVid.value = chosenRel;
+        onYouTubeVideoSelected(chosenRel);
+      }
+    }
+
+    function openYouTubeModalForVideo(relPath) {
+      const cleanPath = decodeURIComponent(relPath);
+      openYouTubeModal(cleanPath);
+    }
+
+    function closeYouTubeModal() {
+      document.getElementById('modalYouTubeManager')?.classList.add('hidden');
+      if (ytUploadPollInterval) {
+        clearInterval(ytUploadPollInterval);
+        ytUploadPollInterval = null;
+      }
+    }
+
+    async function loadYouTubeChannels() {
+      try {
+        const res = await fetch('/api/youtube/channels');
+        const data = await res.json();
+        if (data.status === 'ok') {
+          ytChannels = data.channels || [];
+          ytActiveChannelId = data.active_channel_id || (ytChannels[0]?.id || "");
+
+          const sel = document.getElementById('selYouTubeChannel');
+          if (sel) {
+            sel.innerHTML = "";
+            ytChannels.forEach((ch, idx) => {
+              const opt = document.createElement('option');
+              opt.value = ch.id;
+              const isAct = (ch.id === ytActiveChannelId);
+              opt.innerText = `${isAct ? '🌟 [KÊNH CHỌN] ' : ''}${ch.title || 'Kênh YouTube ' + (idx + 1)} (${ch.id}) • ${ch.subscribers || '0'} subs`;
+              if (isAct) opt.selected = true;
+              sel.appendChild(opt);
+            });
+          }
+
+          const lblStatus = document.getElementById('lblActiveChannelStatus');
+          if (lblStatus) {
+            lblStatus.innerText = `Đã kết nối ${ytChannels.length} kênh • Kênh active: ${ytActiveChannelId.substring(0, 10)}...`;
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi nạp kênh YouTube:", err);
+      }
+    }
+
+    async function onYouTubeChannelChanged(val) {
+      if (!val) return;
+      ytActiveChannelId = val;
+      try {
+        await fetch('/api/youtube/active-channel', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ channel_id: val })
+        });
+        showToast(`Đã chuyển sang kênh: ${val}`);
+      } catch (err) {
+        console.error("Lỗi đổi kênh active:", err);
+      }
+    }
+
+    async function onYouTubeVideoSelected(relPath) {
+      if (!relPath) return;
+      // Tự động điền dữ liệu từ Bộ SEO nếu có
+      try {
+        const res = await fetch(`/api/seo?video=${encodeURIComponent(relPath)}`);
+        const data = await res.json();
+        if (data.status === 'ok' && data.seo) {
+          const s = data.seo;
+          document.getElementById('inputYtTitle').value = s.title_a || s.title_b || "";
+          document.getElementById('inputYtDescription').value = s.description || "";
+          document.getElementById('inputYtTags').value = Array.isArray(s.tags) ? s.tags.join(', ') : (s.tags || "");
+        }
+      } catch (e) {}
+    }
+
+    async function startYouTubeUploadProcess() {
+      const selVid = document.getElementById('selYouTubeVideo');
+      const videoRel = selVid ? selVid.value : "";
+      if (!videoRel) {
+        alert("Vui lòng chọn video cần đăng!");
+        return;
+      }
+      const title = (document.getElementById('inputYtTitle')?.value || "").trim();
+      if (!title) {
+        alert("Vui lòng nhập tiêu đề cho video YouTube!");
+        return;
+      }
+      const desc = document.getElementById('inputYtDescription')?.value || "";
+      const tags = (document.getElementById('inputYtTags')?.value || "").split(',').map(x => x.trim()).filter(Boolean);
+      const privacy = document.getElementById('selYouTubePrivacy')?.value || "private";
+
+      if (!confirm(`Xác nhận tải video lên kênh YouTube?\n\nKênh: ${ytActiveChannelId}\nTiêu đề: ${title}\nQuyền: ${privacy.toUpperCase()}`)) {
+        return;
+      }
+
+      const btn = document.getElementById('btnStartUpload');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Đang kết nối YouTube...";
+      }
+
+      const boxProgress = document.getElementById('boxUploadProgress');
+      if (boxProgress) boxProgress.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/youtube/upload', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            video_rel_path: videoRel,
+            title: title,
+            description: desc,
+            tags: tags,
+            privacy: privacy,
+            channel_id: ytActiveChannelId
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          showToast("Đã khởi chạy tiến trình tải video lên YouTube!");
+          pollYouTubeUploadProgress();
+        } else {
+          alert("Lỗi tải video lên YouTube: " + (data.message || "Không xác định"));
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "<span>🚀</span> Bắt Đầu Tải Lên Kênh";
+          }
+        }
+      } catch (err) {
+        alert("Lỗi kết nối YouTube Upload: " + err.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = "<span>🚀</span> Bắt Đầu Tải Lên Kênh";
+        }
+      }
+    }
+
+    function pollYouTubeUploadProgress() {
+      if (ytUploadPollInterval) clearInterval(ytUploadPollInterval);
+
+      ytUploadPollInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/youtube/upload-status');
+          const data = await res.json();
+          if (data.status === 'ok') {
+            const st = data.upload_status || {};
+            const pct = st.progress || 0;
+            const msg = st.status_message || (st.state === 'running' ? 'Đang tải lên YouTube API...' : 'Khởi tạo...');
+
+            const pctEl = document.getElementById('txtUploadProgressPct');
+            const barEl = document.getElementById('barUploadProgress');
+            const msgEl = document.getElementById('txtUploadStatusMsg');
+
+            if (pctEl) pctEl.innerText = `${pct}%`;
+            if (barEl) barEl.style.width = `${pct}%`;
+            if (msgEl) msgEl.innerText = msg;
+
+            if (st.state === 'done') {
+              clearInterval(ytUploadPollInterval);
+              ytUploadPollInterval = null;
+              if (msgEl) msgEl.innerText = "🎉 TẢI LÊN YOUTUBE THÀNH CÔNG!";
+              const resBox = document.getElementById('boxUploadResult');
+              const linkEl = document.getElementById('linkYouTubeVideo');
+              if (resBox && linkEl && st.video_id) {
+                resBox.classList.remove('hidden');
+                linkEl.href = `https://youtu.be/${st.video_id}`;
+                linkEl.innerText = `🎉 Xem video đã xuất bản trên YouTube: https://youtu.be/${st.video_id}`;
+              }
+              const btn = document.getElementById('btnStartUpload');
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = "✅ ĐÃ TẢI LÊN THÀNH CÔNG";
+              }
+              showToast("🎉 Video đã tải lên YouTube thành công!");
+            } else if (st.state === 'error') {
+              clearInterval(ytUploadPollInterval);
+              ytUploadPollInterval = null;
+              if (msgEl) msgEl.innerText = "❌ Lỗi: " + (st.error || "Tải lên thất bại");
+              const btn = document.getElementById('btnStartUpload');
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = "<span>🚀</span> Thử Tải Lại";
+              }
+              alert("Lỗi tải lên YouTube: " + (st.error || "Không xác định"));
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi polling upload YouTube:", err);
+        }
+      }, 1500);
     }
 
     // Auto initialize on load
