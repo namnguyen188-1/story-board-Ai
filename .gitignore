@@ -72,3 +72,6 @@ Thumbs.db
 .DS_Store
 .vscode/
 .idea/
+
+# YouTube connected credentials
+*youtube_channels.json

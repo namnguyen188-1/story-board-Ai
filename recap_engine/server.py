@@ -527,38 +527,122 @@ from core.seo_packager import RecapSeoPackager
 import core.youtube_manager as ym
 
 
+async def handle_static_seo_css(request):
+    css_file = WEB_DIR / "seo_youtube.css"
+    if css_file.is_file():
+        return web.Response(text=css_file.read_text(encoding="utf-8"), content_type="text/css", headers=cors_headers())
+    return web.Response(text="", status=404, headers=cors_headers())
+
+
+async def handle_static_seo_js(request):
+    js_file = WEB_DIR / "seo_youtube.js"
+    if js_file.is_file():
+        return web.Response(text=js_file.read_text(encoding="utf-8"), content_type="application/javascript", headers=cors_headers())
+    return web.Response(text="", status=404, headers=cors_headers())
+
+
 async def handle_get_seo(request):
-    """Retrieves or generates YouTube SEO package for a given video."""
+    """Retrieves or generates YouTube SEO package compatible with Storyboard AI & Movie Recap Studio."""
     try:
-        video_file = request.query.get("video_file", "")
-        stem = request.query.get("video_stem", "")
-        if not stem and video_file:
-            stem = Path(video_file).stem
+        video_rel = request.query.get("video", "") or request.query.get("video_file", "")
+        series_name = request.query.get("series", "").strip()
+        force_regen = request.query.get("force_regenerate", "0") in ("1", "true")
         
-        if stem:
-            seo_path = EXPORT_DIR / f"{stem}_seo.json"
-            if seo_path.is_file():
-                try:
-                    with open(seo_path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    return web.json_response({"status": "ok", "seo": data, "cached": True}, headers=cors_headers())
-                except Exception:
-                    pass
+        target_name = series_name or (Path(video_rel).stem.replace("_", " ").title() if video_rel else "") or "Review Phim Điện Ảnh"
+        stem = Path(video_rel).stem if video_rel else re.sub(r'[^a-zA-Z0-9_-]+', '_', target_name)
         
-        # If not cached, generate dynamically
+        seo_path = EXPORT_DIR / f"{stem}_seo.json"
+        if not force_regen and seo_path.is_file():
+            try:
+                with open(seo_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                data["status"] = "ok"
+                data["seo"] = dict(data)
+                data["cached"] = True
+                return web.json_response(data, headers=cors_headers())
+            except Exception:
+                pass
+        
         packager = RecapSeoPackager()
-        clean_title = stem.replace("_", " ").title() if stem else "Review Phim Điện Ảnh"
         seo_data = packager.generate_seo_package(
-            movie_title=clean_title,
+            movie_title=target_name,
             genre="Hành động, Kịch tính",
             language="vi"
         )
-        if stem:
-            packager.save_seo_package(EXPORT_DIR / f"{stem}_seo.json", seo_data)
+        try:
+            packager.save_seo_package(seo_path, seo_data)
+        except Exception:
+            pass
             
-        return web.json_response({"status": "ok", "seo": seo_data, "cached": False}, headers=cors_headers())
+        seo_data["status"] = "ok"
+        seo_data["seo"] = dict(seo_data)
+        seo_data["cached"] = False
+        return web.json_response(seo_data, headers=cors_headers())
     except Exception as e:
-        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+        return web.json_response({"status": "error", "error": str(e), "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_youtube_channel_select(request):
+    try:
+        data = await request.json()
+        cid = data.get("channel_id", "")
+        res = ym.set_active_channel(cid)
+        return web.json_response(res, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_youtube_channel_privacy(request):
+    try:
+        data = await request.json()
+        cid = data.get("channel_id", "")
+        priv = data.get("default_privacy", "private")
+        res = ym.update_channel_privacy(cid, priv)
+        return web.json_response(res, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_youtube_get_channel_settings(request):
+    try:
+        cid = request.query.get("channel_id", "").strip()
+        if not cid:
+            cfg = ym.load_youtube_config()
+            cid = cfg.get("active_channel_id", "")
+        settings = ym.get_channel_publish_settings(cid)
+        return web.json_response({"ok": True, "channel_id": cid, "publish_settings": settings}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_youtube_save_channel_settings(request):
+    try:
+        data = await request.json()
+        cid = data.get("channel_id", "").strip()
+        settings = data.get("settings", {})
+        res = ym.update_channel_publish_settings(cid, settings)
+        return web.json_response(res, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_youtube_playlists(request):
+    try:
+        cid = request.query.get("channel_id", "").strip()
+        playlists = ym.fetch_channel_playlists(cid)
+        return web.json_response({"ok": True, "playlists": playlists}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e), "playlists": []}, headers=cors_headers())
+
+
+async def handle_youtube_channel_delete(request):
+    try:
+        data = await request.json()
+        cid = data.get("channel_id", "")
+        res = ym.delete_channel(cid)
+        return web.json_response(res, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "error": str(e)}, status=500, headers=cors_headers())
 
 
 async def handle_generate_seo(request):
@@ -587,12 +671,14 @@ async def handle_generate_seo(request):
 
 
 async def handle_get_youtube_channels(request):
-    """Returns connected YouTube channels and active channel id."""
+    """Returns connected YouTube channels and active channel id matching Storyboard AI."""
     try:
         summary = ym.get_channels_summary()
-        return web.json_response({"status": "ok", "data": summary}, headers=cors_headers())
+        summary["status"] = "ok"
+        summary["data"] = dict(summary)
+        return web.json_response(summary, headers=cors_headers())
     except Exception as e:
-        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+        return web.json_response({"status": "error", "message": str(e), "channels": []}, status=500, headers=cors_headers())
 
 
 async def handle_set_youtube_active_channel(request):
@@ -660,28 +746,49 @@ async def handle_youtube_callback(request):
 
 
 async def handle_start_youtube_upload(request):
-    """Starts background upload of a video to YouTube."""
+    """Starts background upload of a video to YouTube supporting all Storyboard AI features."""
     try:
         data = await request.json()
-        video_file = data.get("video_file", "").strip()
+        video_file = (data.get("video_file") or "").strip()
         channel_id = data.get("channel_id") or ym.get_channels_summary().get("active_channel_id")
-        title = data.get("title", "").strip() or "Movie Recap"
-        description = data.get("description", "").strip()
+        title = (data.get("title") or "").strip() or "Movie Recap"
+        description = (data.get("description") or "").strip()
         tags = data.get("tags", [])
         privacy = data.get("privacy", "private")
+        publish_at = data.get("publish_at")
+        playlist_id = data.get("playlist_id", "auto")
+        new_playlist_title = data.get("new_playlist_title")
+        contains_synthetic = data.get("contains_synthetic_media", True)
+        made_for_kids = data.get("made_for_kids", False)
+        category_id = data.get("category_id", "1")
+        license_type = data.get("license", "youtube")
+        embeddable = data.get("embeddable", True)
+        public_stats = data.get("public_stats_viewable", True)
+        default_lang = data.get("default_language")
+        default_audio_lang = data.get("default_audio_language")
         pinned_comment = data.get("pinned_comment")
         thumbnail_file = data.get("thumbnail_file")
 
         if not channel_id:
-            return web.json_response({"status": "error", "message": "Chưa chọn kênh YouTube nào để đăng!"}, status=400, headers=cors_headers())
+            return web.json_response({"status": "error", "ok": False, "error": "Chưa chọn kênh YouTube nào để đăng!"}, status=400, headers=cors_headers())
 
-        v_path = EXPORT_DIR / video_file if not Path(video_file).is_file() else Path(video_file)
-        if not v_path.is_file():
-            cand = list(EXPORT_DIR.rglob(Path(video_file).name))
-            if cand:
-                v_path = cand[0]
+        v_path = None
+        if video_file:
+            cand = EXPORT_DIR / video_file if not Path(video_file).is_file() else Path(video_file)
+            if cand.is_file():
+                v_path = cand
             else:
-                return web.json_response({"status": "error", "message": f"Không tìm thấy video: {video_file}"}, status=404, headers=cors_headers())
+                matches = list(EXPORT_DIR.rglob(Path(video_file).name))
+                if matches:
+                    v_path = matches[0]
+
+        if not v_path or not v_path.is_file():
+            # Pick latest finished recap export
+            exports = sorted(list(EXPORT_DIR.glob("*.mp4")), key=lambda p: p.stat().st_mtime, reverse=True)
+            if exports:
+                v_path = exports[0]
+            else:
+                return web.json_response({"status": "error", "ok": False, "error": "Chưa có video thành phẩm nào trong thư mục exports để tải lên!"}, status=404, headers=cors_headers())
 
         th_path = None
         if thumbnail_file:
@@ -697,11 +804,24 @@ async def handle_start_youtube_upload(request):
             tags=tags if isinstance(tags, list) else [t.strip() for t in str(tags).split(",") if t.strip()],
             privacy_status=privacy,
             thumbnail_path=th_path,
-            pinned_comment=pinned_comment
+            playlist_id=playlist_id,
+            contains_synthetic_media=contains_synthetic,
+            publish_at=publish_at,
+            made_for_kids=made_for_kids,
+            category_id=category_id,
+            license_type=license_type,
+            embeddable=embeddable,
+            public_stats_viewable=public_stats,
+            default_language=default_lang,
+            default_audio_language=default_audio_lang,
+            pinned_comment=pinned_comment,
+            new_playlist_title=new_playlist_title
         )
-        return web.json_response({"status": "ok", "result": res}, headers=cors_headers())
+        res["status"] = "ok"
+        res["ok"] = True
+        return web.json_response(res, headers=cors_headers())
     except Exception as e:
-        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+        return web.json_response({"status": "error", "ok": False, "error": str(e), "message": str(e)}, status=500, headers=cors_headers())
 
 
 async def handle_get_youtube_upload_status(request):
@@ -933,15 +1053,29 @@ def create_app():
     app.router.add_post("/api/render", handle_start_render)
     app.router.add_post("/api/render/stop", handle_stop_render)
     app.router.add_get("/api/progress/{job_id}", handle_get_progress)
+    # SEO & YouTube Suite (100% Storyboard AI & Recap Studio Compatible)
+    app.router.add_get("/seo_youtube.css", handle_static_seo_css)
+    app.router.add_get("/seo_youtube.js", handle_static_seo_js)
+    app.router.add_get("/api/episode/seo", handle_get_seo)
+    app.router.add_post("/api/episode/seo", handle_generate_seo)
     app.router.add_get("/api/seo", handle_get_seo)
     app.router.add_post("/api/seo/generate", handle_generate_seo)
     app.router.add_get("/api/youtube/channels", handle_get_youtube_channels)
+    app.router.add_post("/api/youtube/channels/select", handle_youtube_channel_select)
+    app.router.add_post("/api/youtube/channels/privacy", handle_youtube_channel_privacy)
+    app.router.add_get("/api/youtube/channels/settings", handle_youtube_get_channel_settings)
+    app.router.add_post("/api/youtube/channels/settings", handle_youtube_save_channel_settings)
+    app.router.add_get("/api/youtube/playlists", handle_youtube_playlists)
+    app.router.add_get("/api/youtube/auth_url", handle_get_youtube_auth_url)
+    app.router.add_post("/api/youtube/credentials", handle_save_youtube_oauth)
+    app.router.add_post("/api/youtube/channels/delete", handle_youtube_channel_delete)
     app.router.add_post("/api/youtube/active-channel", handle_set_youtube_active_channel)
     app.router.add_post("/api/youtube/oauth-config", handle_save_youtube_oauth)
     app.router.add_get("/api/youtube/auth-url", handle_get_youtube_auth_url)
     app.router.add_get("/api/youtube/callback", handle_youtube_callback)
     app.router.add_post("/api/youtube/upload", handle_start_youtube_upload)
     app.router.add_get("/api/youtube/upload-status", handle_get_youtube_upload_status)
+    app.router.add_get("/api/youtube/upload_status", handle_get_youtube_upload_status)
     app.router.add_get("/api/videos/list", handle_list_videos)
     app.router.add_get("/api/exports", handle_get_exports)
     app.router.add_post("/api/exports/delete", handle_delete_export)

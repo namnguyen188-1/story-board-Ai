@@ -24,6 +24,7 @@
       animation: floatWatermark 4s ease-in-out infinite;
     }
   </style>
+  <link rel="stylesheet" href="/seo_youtube.css">
 </head>
 <body class="bg-[#070a12] text-[#cbd5e1] font-sans antialiased h-screen overflow-hidden flex flex-col text-xs">
 
@@ -755,6 +756,197 @@
             </div>
           </div>
 
+<div class="youtube-quick-bar" id="youtubeQuickBar">
+
+          <!-- Hidden legacy selects to maintain 100% JS backward compatibility -->
+
+          <div style="display:none;">
+
+            <select id="ytQuickChannelSelect" onchange="syncSelectedYouTubeChannel(this.value)"><option value="">Chưa có kênh</option></select>
+
+            <select id="ytQuickPrivacySelect" onchange="syncPrivacyChoice(this.value)"><option value="unlisted" selected>Unlisted</option></select>
+
+            <select id="ytQuickPlaylistSelect" onchange="syncPlaylistChoice(this.value)"><option value="auto" selected>Auto</option></select>
+
+          </div>
+
+
+
+          <!-- ROW 1: 100% ICONS CLUSTER (Height 26px) -->
+
+          <div class="yt-icon-bar">
+
+            <div class="yt-slots-cluster">
+
+              <span class="yt-icon-badge" title="Xuất bản trực tiếp YouTube">
+
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" style="flex-shrink:0;"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#fff"/></svg>
+
+              </span>
+
+              <div id="ytChannelNumberSlots" class="yt-number-slots"></div>
+
+            </div>
+
+
+
+            <div class="yt-actions-cluster">
+
+              <button class="yt-btn-gear" type="button" onclick="openYouTubeAdvancedModal()" title="⚙ Cấu hình xuất bản kênh (AI, Lên lịch, Danh mục, COPPA...)">⚙</button>
+
+              <a id="btnVisitQuickChannel" href="#" target="_blank" class="yt-btn-gear" style="display:none;" title="🔗 Mở trang kênh trên YouTube">🔗</a>
+
+              <button class="yt-btn-publish" id="btnQuickUploadShort" style="display:none;" type="button" onclick="triggerYouTubeShortUploadFromMonitor()" title="📱 Đăng riêng Shorts 9:16">
+
+                <span>📱 Shorts</span>
+
+              </button>
+
+              <button class="yt-btn-publish" id="btnQuickUploadYouTube" type="button" onclick="triggerYouTubeUploadFromMonitor()" title="🚀 Đăng video 16:9 lên YouTube">
+
+                <span>🚀 Đăng</span>
+
+              </button>
+
+              <button class="yt-btn-publish" id="btnQuickUploadBoth" style="display:none;" type="button" onclick="triggerYouTubeBothUploadFromMonitor()" title="🔥 Đăng cả 16:9 + Shorts">
+
+                <span>🔥 Cả 2</span>
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- ROW 2: MINI STATUS LINE (Height ~14px, font 9.5px) -->
+
+          <div class="yt-mini-status-line">
+
+            <span id="ytActiveChannelTitle" style="color:#38bdf8;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">🔴 Chưa chọn kênh</span>
+
+            <span id="ytActivePresetSummary" style="color:#94a3b8;font-size:0.65rem;white-space:nowrap;margin-left:auto;"></span>
+
+          </div>
+
+
+
+          <div id="ytQuickUploadProgressLine" style="width:100%;display:none;margin-top:4px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#cbd5e1;margin-bottom:2px;">
+
+
+
+
+
+
+
+              <span id="ytQuickProgressMsg">Đang tải video lên YouTube...</span>
+
+
+
+
+
+
+
+              <span id="ytQuickProgressPct" style="color:#ef4444;font-weight:700;">0%</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div style="width:100%;height:4px;background:#1e293b;border-radius:2px;overflow:hidden;">
+
+
+
+
+
+
+
+              <div id="ytQuickProgressBar" style="width:0%;height:100%;background:#ef4444;transition:width 0.3s ease;"></div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div id="ytQuickSuccessBox" style="display:none;margin-top:6px;font-size:0.72rem;color:#10b981;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+
+
+
+
+
+
+
+              <span>✅ Đã đăng:</span>
+
+
+
+
+
+
+
+              <a id="ytQuickVideoLink" href="#" target="_blank" style="color:#38bdf8;text-decoration:underline;"></a>
+
+
+
+
+
+
+
+              <a id="ytQuickChannelLink" href="#" target="_blank" class="btn btn-secondary btn-xs" style="margin-left:auto;font-size:0.68rem;padding:2px 8px;text-decoration:none;">📺 Xem Kênh ↗</a>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </div>
+
+
         </div>
 
       </div>
@@ -1028,222 +1220,5843 @@
   <!-- ======================================================== -->
   <!-- MODAL: BỘ SEO YOUTUBE VIDIQ (TITLES, CHAPTERS, TAGS, PINNED) -->
   <!-- ======================================================== -->
-  <div id="modalSeoPackage" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-    <div class="bg-[#0b101c] border border-purple-500/40 rounded-2xl w-full max-w-5xl flex flex-col shadow-2xl overflow-hidden max-h-[92vh]">
-      <!-- Header -->
-      <div class="p-3.5 bg-gradient-to-r from-purple-950/80 via-[#11192b] to-[#0b101c] border-b border-purple-500/30 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-400/40 flex items-center justify-center text-lg">
-            🚀
+  
+  <!-- ======================================================== -->
+  <!-- STORYBOARD AI EXECUTIVE SEO COMMAND CENTER (VIDIQ SUITE) -->
+  <!-- ======================================================== -->
+<div class="modal-overlay" id="modalSeoPackage">
+
+
+
+
+
+
+
+    <div class="modal-dialog" style="max-width:880px;width:95vw;max-height:92vh;display:flex;flex-direction:column;padding:0;background:#090d16;border:1px solid rgba(99,102,241,0.3);border-radius:14px;box-shadow:0 25px 60px rgba(0,0,0,0.85);overflow:hidden;">
+
+
+
+
+
+
+
+      
+
+
+
+
+
+
+
+      <!-- MODAL HEADER -->
+
+
+
+
+
+
+
+      <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,#111827,#090d16);display:flex;justify-content:space-between;align-items:center;">
+
+
+
+
+
+
+
+        <div style="display:flex;align-items:center;gap:10px;">
+
+
+
+
+
+
+
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#eab308);display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(245,158,11,0.4);">
+
+
+
+
+
+
+
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
           <div>
-            <h3 class="font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-amber-200 text-sm tracking-wide">
-              BỘ SEO YOUTUBE CHUẨN VIDIQ & TRIỆU VIEW
+
+
+
+
+
+
+
+            <h3 style="margin:0;font-size:1.05rem;color:#ffffff;font-weight:700;display:flex;align-items:center;gap:8px;">
+
+
+
+
+
+
+
+              Gói Đăng YouTube
+
+
+
+
+
+
+
+              <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;padding:2px 8px;font-weight:700;">PRO AI</span>
+
+
+
+
+
+
+
             </h3>
-            <p class="text-[10px] text-purple-300/80 font-mono">Tự động tối ưu hóa Tiêu đề A/B, Mô tả có Chapters/Timestamps, 30 Tags & Pinned Comment</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="regenerateActiveSeo()" id="btnRegenSeo" class="h-7 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1 transition shadow-sm">
-            <span>🔄</span> Tạo Lại AI
-          </button>
-          <button onclick="copyAllSeo()" class="h-7 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1 transition shadow-sm">
-            <span>📋</span> Copy Tất Cả
-          </button>
-          <button onclick="closeSeoModal()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">✕</button>
-        </div>
-      </div>
 
-      <!-- Selector Bar -->
-      <div class="px-4 py-2 bg-[#090d17] border-b border-[#1b2538] flex items-center justify-between text-xs gap-3">
-        <div class="flex items-center gap-2 flex-1">
-          <span class="text-slate-400 font-semibold shrink-0">Chọn video:</span>
-          <select id="selSeoVideoTarget" onchange="onSeoVideoChanged(this.value)" class="bg-[#0f1626] border border-purple-500/30 rounded-lg px-2.5 py-1 text-purple-200 font-mono text-xs w-full max-w-md focus:outline-none">
-            <option value="">-- Đang nạp danh sách video --</option>
-          </select>
-        </div>
-        <span id="lblSeoCacheStatus" class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-mono">Đã tối ưu hóa</span>
-      </div>
 
-      <!-- Body Content -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- Cột Trái: Tiêu đề & Tags & Comment -->
-          <div class="space-y-3.5">
-            <!-- Tiêu đề A/B -->
-            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="font-bold text-amber-400 flex items-center gap-1">
-                  <span>🅰️</span> Tiêu Đề A (Kịch Tính / Giật Gân / Tò Mò)
-                </span>
-                <button onclick="copySeoField('txtSeoTitleA')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy</button>
-              </div>
-              <input id="txtSeoTitleA" type="text" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-white font-semibold focus:outline-none">
+
+
+
+
+
+            <div style="font-size:0.73rem;color:#94a3b8;margin-top:2px;" id="seoModalSubtitle">
+
+
+
+
+
+
+
+              Tiêu đề theo nội dung tập, mô tả, tags liên quan và một thumbnail chính
+
+
+
+
+
+
+
             </div>
 
-            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="font-bold text-sky-400 flex items-center gap-1">
-                  <span>🅱️</span> Tiêu Đề B (Chuẩn SEO Từ Khóa Tìm Kiếm)
-                </span>
-                <button onclick="copySeoField('txtSeoTitleB')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy</button>
-              </div>
-              <input id="txtSeoTitleB" type="text" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-white font-semibold focus:outline-none">
-            </div>
 
-            <!-- Tags -->
-            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="font-bold text-emerald-400 flex items-center gap-1">
-                  <span>🏷️</span> 30 Thẻ Tags SEO YouTube (Dạng Phẩy Sẵn Sàng Dán)
-                </span>
-                <button onclick="copySeoField('txtSeoTags')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy Tags</button>
-              </div>
-              <textarea id="txtSeoTags" rows="3" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg p-2 text-[11px] text-emerald-300 font-mono focus:outline-none"></textarea>
-            </div>
 
-            <!-- Hashtags & Pinned Comment -->
-            <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="font-bold text-pink-400 flex items-center gap-1">
-                  <span>📌</span> Bình Luận Ghim (Pinned Comment) & Hashtags
-                </span>
-                <button onclick="copySeoField('txtSeoPinned')" class="px-2 py-0.5 rounded bg-[#162035] hover:bg-purple-900/60 text-purple-300 text-[10px] font-semibold transition border border-purple-500/30">Copy Comment</button>
-              </div>
-              <textarea id="txtSeoPinned" rows="3" readonly class="w-full bg-[#050811] border border-[#19243a] rounded-lg p-2 text-[11px] text-pink-200 focus:outline-none"></textarea>
-            </div>
+
+
+
+
           </div>
 
-          <!-- Cột Phải: Mô tả chi tiết có Chapters -->
-          <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1e2a42] flex flex-col space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-purple-300 flex items-center gap-1">
-                <span>📝</span> Mô Tả Video Đầy Đủ (Có Chapters / Dấu Thời Gian)
-              </span>
-              <button onclick="copySeoField('txtSeoDescription')" class="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold transition shadow-xs">Copy Toàn Bộ Mô Tả</button>
-            </div>
-            <textarea id="txtSeoDescription" rows="18" readonly class="flex-1 w-full bg-[#050811] border border-[#19243a] rounded-lg p-3 text-[11px] text-slate-200 font-mono leading-relaxed focus:outline-none"></textarea>
-          </div>
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+        <div style="display:flex;align-items:center;gap:10px;">
+
+
+
+
+
+
+
+          <button type="button" class="btn btn-primary btn-sm" id="btnCopyAllSeoHeader" onclick="copyAllSeoPackage()" style="background:#10b981;border:1px solid #059669;color:#ffffff;font-weight:700;font-size:0.75rem;display:flex;align-items:center;gap:6px;box-shadow:0 0 12px rgba(16,185,129,0.35);cursor:pointer;padding:6px 12px;">
+
+
+
+
+
+
+
+            📋 Sao Chép Gói SEO (1-Click)
+
+
+
+
+
+
+
+          </button>
+
+
+
+
+
+
+
+          <button class="modal-close" onclick="closeAllModals()" style="font-size:1.4rem;color:#94a3b8;background:transparent;border:none;cursor:pointer;padding:4px 8px;">&times;</button>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
       </div>
 
-      <!-- Footer -->
-      <div class="p-3 bg-[#0a0f1b] border-t border-[#1e2a42] flex justify-between items-center shrink-0">
-        <span class="text-[11px] text-slate-400">Gợi ý: Dán trọn gói Tiêu đề, Mô tả và Tags vào YouTube Studio để tối ưu điểm SEO 100/100.</span>
-        <div class="flex items-center gap-2">
-          <button onclick="handOffSeoToYouTube()" class="h-8 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 transition">
-            <span>📺</span> Đăng Thẳng Lên Kênh YouTube ➔
-          </button>
-          <button onclick="closeSeoModal()" class="h-8 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Đóng</button>
-        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <!-- DUAL SEO PACKAGE TABS: LONG VIDEO (16:9) vs YOUTUBE SHORTS (9:16) -->
+
+
+
+
+
+
+
+      <div class="seo-tab-bar" style="display:flex;gap:6px;padding:10px 20px 0 20px;background:#090d16;border-bottom:1px solid rgba(255,255,255,0.08);">
+
+
+
+
+
+
+
+        <button type="button" class="seo-tab-btn active" id="tabSeoLong" onclick="switchSeoPackTab('long')" style="padding:9px 18px;border-radius:8px 8px 0 0;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer;border:1px solid rgba(99,102,241,0.3);border-bottom:none;background:linear-gradient(180deg,#1e1b4b,#0f172a);color:#fff;transition:all 0.15s ease;">
+
+
+
+
+
+
+
+          <span>🎬 Gói SEO Video Dài (16:9)</span>
+
+
+
+
+
+
+
+          <span class="badge" style="background:#059669;color:#fff;font-size:0.62rem;font-weight:700;">KIỂM TRA NỘI BỘ</span>
+
+
+
+
+
+
+
+        </button>
+
+
+
+
+
+
+
+        <button type="button" class="seo-tab-btn" id="tabSeoShort" onclick="switchSeoPackTab('short')" style="padding:9px 18px;border-radius:8px 8px 0 0;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer;border:1px solid transparent;background:transparent;color:#94a3b8;transition:all 0.15s ease;">
+
+
+
+
+
+
+
+          <span>📱 Gói SEO YouTube Shorts (9:16)</span>
+
+
+
+
+
+
+
+          <span class="badge" style="background:#eab308;color:#000;font-size:0.62rem;font-weight:700;">VIRAL FEED</span>
+
+
+
+
+
+
+
+        </button>
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <!-- MODAL BODY (SCROLLABLE) -->
+
+
+
+
+
+
+
+      <div style="padding:18px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px;">
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        <!-- LONG VIDEO TAB CONTENT (16:9) -->
+
+
+
+
+
+
+
+        <div id="seoLongTabContent" style="display:flex;flex-direction:column;gap:16px;">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- 1. STUDIO SEO EXECUTIVE COMMAND CENTER -->
+
+
+
+
+
+
+
+        <div class="seo-executive-hero">
+
+
+
+
+
+
+
+          <!-- Top Master Score Gauge & Badges -->
+
+
+
+
+
+
+
+          <div class="seo-hero-header">
+
+
+
+
+
+
+
+            <div class="seo-gauge-block">
+
+
+
+
+
+
+
+              <div class="seo-gauge-circle">
+
+
+
+
+
+
+
+                <span class="seo-gauge-val" id="seoOverallScoreVal">94</span>
+
+
+
+
+
+
+
+                <span class="seo-gauge-denom">/100</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-gauge-info">
+
+
+
+
+
+
+
+                <div class="seo-gauge-title-row">
+
+
+
+
+
+
+
+                  <span class="seo-master-title">BỘ ĐIỀU KHIỂN SEO &amp; THUẬT TOÁN YOUTUBE</span>
+
+
+
+
+
+
+
+                  <span class="seo-tier-pill" id="seoOverallTierPill">A+ XUẤT SẮC · TOP 5% THỊ TRƯỜNG</span>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div class="seo-gauge-sub" id="seoOverallScoreDesc">
+
+
+
+
+
+
+
+                  Tối ưu hóa toàn diện theo thuật toán phân phối YouTube &amp; bộ tiêu chuẩn đề xuất vidIQ Pro.
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div class="seo-hero-actions">
+
+
+
+
+
+
+
+              <button class="btn btn-secondary btn-xs" type="button" onclick="toggleVidiqBreakdown()" id="btnToggleVidiqBreakdown" style="padding:6px 12px;display:flex;align-items:center;gap:6px;border-color:rgba(99,102,241,0.4);background:rgba(30,27,75,0.7);color:#c7d2fe;">
+
+
+
+
+
+
+
+                <span>📊 Chi Tiết Tiêu Chí</span>
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- 4 Master KPI Metric Cards -->
+
+
+
+
+
+
+
+          <div class="seo-kpi-grid">
+
+
+
+
+
+
+
+            <div class="seo-kpi-card" id="kpiCardTitle">
+
+
+
+
+
+
+
+              <div class="seo-kpi-header">
+
+
+
+
+
+
+
+                <span class="seo-kpi-icon">🎯</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-name">Tiêu Đề &amp; CTR</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-score" id="kpiScoreTitle">93/100</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-bar-bg"><div class="seo-kpi-bar-fill" id="kpiBarTitle" style="width:93%;"></div></div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-meta" id="kpiMetaTitle">Độ dài vàng · Giật hook cao</div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="seo-kpi-card" id="kpiCardDesc">
+
+
+
+
+
+
+
+              <div class="seo-kpi-header">
+
+
+
+
+
+
+
+                <span class="seo-kpi-icon">📝</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-name">Mô Tả &amp; Chapters</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-score" id="kpiScoreDesc">100/100</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-bar-bg"><div class="seo-kpi-bar-fill" id="kpiBarDesc" style="width:100%;"></div></div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-meta" id="kpiMetaDesc">Chapters tự động · Có mốc 00:00</div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="seo-kpi-card" id="kpiCardTags">
+
+
+
+
+
+
+
+              <div class="seo-kpi-header">
+
+
+
+
+
+
+
+                <span class="seo-kpi-icon">🏷️</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-name">Bộ Thẻ Tags</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-score" id="kpiScoreTags">98/100</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-bar-bg"><div class="seo-kpi-bar-fill" id="kpiBarTags" style="width:98%;"></div></div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-meta" id="kpiMetaTags">Phủ từ khóa ngách · Đủ dung lượng</div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="seo-kpi-card" id="kpiCardThumb">
+
+
+
+
+
+
+
+              <div class="seo-kpi-header">
+
+
+
+
+
+
+
+                <span class="seo-kpi-icon">🖼️</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-name">Thumbnail 16:9 HD</span>
+
+
+
+
+
+
+
+                <span class="seo-kpi-score" id="kpiScoreThumb">100/100</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-bar-bg"><div class="seo-kpi-bar-fill" id="kpiBarThumb" style="width:100%;"></div></div>
+
+
+
+
+
+
+
+              <div class="seo-kpi-meta" id="kpiMetaThumb">Chuẩn 1280x720 · Tránh mặt YuNet</div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- Collapsible Checklist Breakdown -->
+
+
+
+
+
+
+
+          <div id="vidiqBreakdownList" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);flex-direction:column;gap:6px;"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- Hidden legacy bridge elements to maintain compatibility -->
+
+
+
+
+
+
+
+          <div style="display:none;">
+
+
+
+
+
+
+
+            <span id="vidiqScoreNumber">—</span>
+
+
+
+
+
+
+
+            <span id="vidiqScoreMax">/100</span>
+
+
+
+
+
+
+
+            <span id="vidiqScoreRating"></span>
+
+
+
+
+
+
+
+            <span id="vidiqActionableBadge"></span>
+
+
+
+
+
+
+
+            <span id="vidiqPerformanceBadge"></span>
+
+
+
+
+
+
+
+            <span id="seoTitleScoreBadge"></span>
+
+
+
+
+
+
+
+            <span id="seoDescScoreBadge"></span>
+
+
+
+
+
+
+
+            <span id="seoTagsScoreBadge"></span>
+
+
+
+
+
+
+
+            <div id="seoMeasuredBenchmark">
+
+
+
+
+
+
+
+              <span id="seoBenchmarkPercentileBadge"></span>
+
+
+
+
+
+
+
+              <span id="seoBenchmarkEdgeBadge"></span>
+
+
+
+
+
+
+
+              <span id="seoBenchmarkMyScore"></span>
+
+
+
+
+
+
+
+              <span id="seoBenchmarkMyTier"></span>
+
+
+
+
+
+
+
+              <span id="seoBenchmarkMarketAvg"></span>
+
+
+
+
+
+
+
+              <span id="seoBenchmarkDelta"></span>
+
+
+
+
+
+
+
+              <span id="seoBenchmarkDeltaPercent"></span>
+
+
+
+
+
+
+
+              <div id="seoBenchmarkPillarsContainer"></div>
+
+
+
+
+
+
+
+              <p id="seoBenchmarkSummaryText"></p>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- 2. SMART INTELLIGENCE SUITE: vidIQ Optimizer & Golden Publishing Schedule -->
+
+
+
+
+
+
+
+        <div class="seo-intel-grid">
+
+
+
+
+
+
+
+          <!-- Left: vidIQ Engine & Ranked Titles -->
+
+
+
+
+
+
+
+          <div class="seo-intel-card">
+
+
+
+
+
+
+
+            <div class="seo-intel-head">
+
+
+
+
+
+
+
+              <div class="seo-intel-badge-title">
+
+
+
+
+
+
+
+                <span class="vidiq-brand-pill">vidIQ</span>
+
+
+
+
+
+
+
+                <span class="seo-intel-title">Bảng Điểm Sức Hút Tiêu Đề</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <span id="seoAutoScoreStatus" class="seo-intel-status">3/3 Tiêu đề đạt điểm cao</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+            <div id="seoVidiqScoreCards" class="seo-vidiq-cards-container">
+
+
+
+
+
+
+
+              <!-- Dynamically populated in app.js with progress bars -->
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <!-- Collapsible vidIQ MCP Key Config -->
+
+
+
+
+
+
+
+            <details class="seo-sub-details" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;">
+
+
+
+
+
+
+
+              <summary style="font-size:0.7rem;color:#818cf8;cursor:pointer;font-weight:600;">⚙️ Cấu hình API vidIQ (Chấm điểm SEO)</summary>
+
+
+
+
+
+
+
+              <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+
+
+
+
+
+
+
+                <p id="seoOfficialStatusText" class="seo-muted" style="margin:0;">Nhập khóa vidIQ API/MCP để tự động chấm điểm cho mỗi tập mới tạo.</p>
+
+
+
+
+
+
+
+                <div class="seo-input-row">
+
+
+
+
+
+
+
+                  <input type="password" id="seoVidiqKey" autocomplete="off" placeholder="Dán vidIQ API Key...">
+
+
+
+
+
+
+
+                  <button type="button" class="btn btn-secondary btn-xs" onclick="saveVidiqConnection()">Lưu Khóa</button>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div class="seo-small-note">
+
+
+
+
+
+
+
+                  <a href="https://app.vidiq.com/account/settings/mcp" target="_blank" rel="noopener noreferrer">Lấy khóa tại vidIQ</a> · Tự động chấm điểm tiêu đề khi tạo tập mới.
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div id="seoVidiqScores" class="seo-small-note" style="display:none;"></div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </details>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- Right: Golden Publishing Schedule & Competitor Spy -->
+
+
+
+
+
+
+
+          <div class="seo-intel-card">
+
+
+
+
+
+
+
+            <div class="seo-intel-head">
+
+
+
+
+
+
+
+              <div class="seo-intel-badge-title">
+
+
+
+
+
+
+
+                <span class="schedule-clock-pill">⏰</span>
+
+
+
+
+
+
+
+                <span class="seo-intel-title">Lịch Đăng Giờ Vàng YouTube</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <span id="seoScheduleBadge" class="seo-intel-status" style="color:#10b981;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:9999px;border:1px solid rgba(16,185,129,0.3);">ĐỀ XUẤT A+</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div class="seo-schedule-body">
+
+
+
+
+
+
+
+              <div class="seo-schedule-row">
+
+
+
+
+
+
+
+                <span class="seo-sched-label">🎯 Thị trường mục tiêu:</span>
+
+
+
+
+
+
+
+                <span class="seo-sched-val" id="seoScheduleMarket" style="font-weight:600;color:#e2e8f0;">Hoa Kỳ &amp; Toàn Cầu (US &amp; Global)</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-schedule-row">
+
+
+
+
+
+
+
+                <span class="seo-sched-label">📅 Ngày vàng trong tuần:</span>
+
+
+
+
+
+
+
+                <span class="seo-sched-val" id="seoScheduleDays" style="color:#38bdf8;font-weight:700;">Thứ Năm, Thứ Sáu, Thứ Bảy, Chủ Nhật</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-schedule-row">
+
+
+
+
+
+
+
+                <span class="seo-sched-label">🔥 Khung giờ vàng đỉnh cao:</span>
+
+
+
+
+
+
+
+                <span class="seo-sched-val" id="seoScheduleHours" style="color:#fbbf24;font-weight:700;">14:00 – 16:00 EST (19:00 – 21:00 GMT)</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-schedule-row">
+
+
+
+
+
+
+
+                <span class="seo-sched-label">⚡ Lịch đề xuất hôm nay:</span>
+
+
+
+
+
+
+
+                <span class="seo-sched-val" id="seoScheduleBestTime" style="color:#4ade80;font-weight:700;">15:00 EST (Tự động canh giờ)</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="seo-schedule-tip-box" id="seoScheduleTip">
+
+
+
+
+
+
+
+                💡 Đăng trước 1-2 tiếng để YouTube xử lý 4K và kích hoạt thuật toán đề xuất đúng giờ khán giả duyệt feed.
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <!-- Competitor Spy Tool -->
+
+
+
+
+
+
+
+            <details class="seo-sub-details" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;">
+
+
+
+
+
+
+
+              <summary style="font-size:0.7rem;color:#818cf8;cursor:pointer;font-weight:600;">🔍 Soi &amp; Đối chiếu video đối thủ</summary>
+
+
+
+
+
+
+
+              <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+
+
+
+
+
+
+
+                <div class="seo-input-row">
+
+
+
+
+
+
+
+                  <input type="text" id="inputCompetitorUrl" placeholder="Dán link video YouTube đối thủ...">
+
+
+
+
+
+
+
+                  <button type="button" id="btnAuditCompetitor" class="btn btn-primary btn-xs" onclick="auditCompetitorRealScore()" style="background:#4f46e5;border-color:#6366f1;">Soi Đối Thủ</button>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div id="competitorAuditResultBox" style="display:none;margin-top:8px;"></div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </details>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- 2. HIGH-CTR TITLES (5 VIRAL CHOICES) -->
+
+
+
+
+
+
+
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+
+
+
+
+
+
+
+            <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+              <span>🎯 3 Gợi Ý Tiêu Đề Theo Nội Dung Tập</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;" id="seoTitleScoreBadge">Chưa kiểm tra</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#3b82f6;color:#fff;font-size:0.65rem;">GÂY TÒ MÒ</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <span style="font-size:0.7rem;color:#64748b;">Chọn 1 tiêu đề phù hợp nhất để đăng</span>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+          <div id="seoTitlesContainer" style="display:flex;flex-direction:column;gap:8px;">
+
+
+
+
+
+
+
+            <!-- Titles injected here -->
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- 3. THUMBNAIL STUDIO & HOOK TEXT -->
+
+
+
+
+
+
+
+        <!-- 3. THUMBNAIL STUDIO & HOOK TEXT -->
+
+
+
+
+
+
+
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+
+
+
+
+
+
+
+            <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+              <span id="seoThumbCardTitle">🖼️ Ảnh Thu Nhỏ Thumbnail HD (1280x720)</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;" id="seoThumbScoreBadge">Kỹ thuật ảnh: chưa kiểm tra</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#eab308;color:#000;font-size:0.65rem;font-weight:700;">XEM VÙNG THỜI LƯỢNG</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#3b82f6;color:#fff;font-size:0.65rem;font-weight:700;">1 ẢNH CHÍNH</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <span style="font-size:0.7rem;color:#64748b;">Xem lại chữ và khuôn mặt ở kích thước điện thoại</span>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+          
+
+
+
+
+
+
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;" class="seo-thumb-grid">
+
+
+
+
+
+
+
+            <div>
+
+
+
+
+
+
+
+              <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #334155;background:#000;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;">
+
+
+
+
+
+
+
+                <img id="seoThumbnailPreview" src="" alt="Thumbnail preview" style="width:100%;height:100%;object-fit:cover;display:none;">
+
+
+
+
+
+
+
+                <!-- YouTube Duration Badge Overlay Simulator -->
+
+
+
+
+
+
+
+                <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.88);color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.25);pointer-events:none;display:flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,0,0,0.6);" title="Mô phỏng huy hiệu thời lượng: kiểm tra xem có che chữ hoặc nhân vật không.">
+
+
+
+
+
+
+
+                  <span style="color:#ef4444;font-size:0.5rem;">●</span> 26:59
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div id="seoThumbnailPlaceholder" style="color:#64748b;font-size:0.75rem;text-align:center;padding:10px;">
+
+
+
+
+
+
+
+                  Đang nạp ảnh Thumbnail...
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <!-- 5 Checklist vidIQ Criteria Breakdown -->
+
+
+
+
+
+
+
+              <div id="seoThumbChecklistContainer" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;">
+
+
+
+
+
+
+
+                <!-- Injected by JavaScript -->
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+            <div style="display:flex;flex-direction:column;gap:9px;">
+
+
+
+
+
+
+
+              <div class="field-wrap">
+
+
+
+
+
+
+
+                <label for="seoCustomHookText" style="font-size:0.73rem;color:#cbd5e1;font-weight:600;">Chữ giật tít trên Thumbnail (1 bên chữ - 1 bên người)</label>
+
+
+
+
+
+
+
+                <input type="text" id="seoCustomHookText" value="DOMINA TU MENTE: ¡PAZ TOTAL!" style="font-weight:700;letter-spacing:0.04em;" placeholder="Nhập chữ giật tít: DOMINA TU MENTE: ¡PAZ TOTAL!">
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+
+
+                <div class="field-wrap">
+
+
+
+                  <label for="seoThumbnailGenreStyle" style="font-size:0.7rem;color:#38bdf8;font-weight:700;">🎭 Thể loại &amp; Phong cách Thumbnail</label>
+
+
+
+                  <select id="seoThumbnailGenreStyle" onchange="regenerateThumbnailHook()" style="font-size:0.73rem;padding:6px;background:#0f172a;border:1px solid #0284c7;color:#38bdf8;border-radius:6px;width:100%;font-weight:600;">
+
+
+
+                    <option value="auto" selected>✨ Tự động theo Series</option>
+
+
+
+                    <option value="stoic">🏛️ Khắc Kỷ / Triết Học / Tượng Cổ Điển (Stoic)</option>
+
+
+
+                    <option value="whiteboard">✏️ Vẽ Tranh POSCA / After Skool / Alan Watts</option>
+
+
+
+                    <option value="family_drama">⚡ Drama / Đối Đầu / Đời Sống Thực Tế</option>
+
+
+
+                    <option value="mafia_thriller">🕶️ Xã Hội Đen / Kịch Tính / Phim Noir</option>
+
+
+
+                    <option value="psychological_horror">👁️ Kinh Dị / Tâm Lý / Bí Ẩn</option>
+
+
+
+                    <option value="history">⚔️ Lịch Sử / Hùng Tráng / Chiến Tranh</option>
+
+
+
+                    <option value="action">💥 Hành Động / Bom Tấn / Cháy Nổ</option>
+
+
+
+                    <option value="documentary">🔍 Phóng Sự / Khám Phá / Tài Liệu</option>
+
+
+
+                  </select>
+
+
+
+                </div>
+
+
+
+                <div class="field-wrap">
+
+
+
+                  <label for="seoThumbnailSceneSelect" style="font-size:0.7rem;color:#94a3b8;font-weight:600;">Khung hình cảnh</label>
+
+
+
+                  <select id="seoThumbnailSceneSelect" onchange="regenerateThumbnailHook()" style="font-size:0.73rem;padding:6px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;width:100%;">
+
+
+
+                    <option value="888" selected>🔥 Bắt Trend Đối Thủ (Chuẩn HD + Bơm EXIF)</option>
+
+
+
+                    <option value="999">🔥 AI Max CTR (Theo Thể Loại)</option>
+
+
+
+                    <option value="3">Cảnh 3 (Gương mặt cận cảnh)</option>
+
+
+
+                    <option value="1">Cảnh 1 (Khắc kỷ suy tưởng)</option>
+
+
+
+                    <option value="2">Cảnh 2 (Góc nghiêng điện ảnh)</option>
+
+
+
+                    <option value="5">Cảnh 5 (Tư thế dũng mãnh)</option>
+
+
+
+                  </select>
+
+
+
+                </div>
+
+
+
+                <div class="field-wrap">
+
+
+
+                  <label for="seoThumbnailSideSelect" style="font-size:0.7rem;color:#94a3b8;font-weight:600;">Vị trí đặt chữ</label>
+
+
+
+                  <select id="seoThumbnailSideSelect" onchange="regenerateThumbnailHook()" style="font-size:0.73rem;padding:6px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;width:100%;">
+
+                    <option value="auto" selected>⚡ Khóa 50/50 Tự Động (Bán thân đặc tả &amp; Chữ khổng lồ)</option>
+
+                    <option value="left">👈 Bên Trái (Người bên Phải)</option>
+
+                    <option value="right">👉 Bên Phải (Người bên Trái)</option>
+
+                    <option value="top">⬆️ Phía Trên (Giữa trời / Trên đầu)</option>
+
+                    <option value="bottom">⬇️ Phía Dưới (Dưới chân / Dưới bàn)</option>
+
+                  </select>
+
+
+
+                </div>
+
+
+
+                <div class="field-wrap">
+
+
+
+                  <label for="seoThumbnailFontSize" style="font-size:0.7rem;color:#94a3b8;font-weight:600;">Cỡ chữ giật tít</label>
+
+
+
+                  <select id="seoThumbnailFontSize" onchange="regenerateThumbnailHook()" style="font-size:0.73rem;padding:6px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:6px;width:100%;">
+
+                    <option value="viral" selected>🔥 Khổng Lồ 50/50 (130-195px - Chuẩn Triệu View)</option>
+
+                    <option value="large">⚡ Lớn Đậm (100-130px)</option>
+
+                    <option value="standard">🎯 Tiêu Chuẩn (80-100px)</option>
+
+                  </select>
+
+
+
+                </div>
+
+
+
+              </div>
+
+              <div style="display:flex;gap:6px;margin-top:8px;">
+
+                <button type="button" class="btn btn-secondary btn-sm" id="btnUpdateThumbnail" onclick="regenerateThumbnailHook()" style="flex:1;border-color:rgba(234,179,8,0.5);color:#fef08a;font-size:0.73rem;">
+
+                  🔄 Đổi Chữ / Cỡ Chữ
+
+                </button>
+
+                <button type="button" class="btn btn-warning btn-sm" id="btnGenFierceThumb" onclick="generateFierceThumbnail()" style="flex:1.3;background:linear-gradient(135deg, #e11d48, #be123c);border-color:#f43f5e;color:#fff;font-size:0.73rem;font-weight:700;">
+
+                  🔥 Tạo Mặt Phản Ứng Cực Gắt (AI Max CTR)
+
+                </button>
+
+                <a id="btnDownloadThumbnail" href="#" download="thumbnail_seo.jpg" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;padding:0 10px;" title="Tải ảnh Thumbnail">
+
+                  ⬇️ Tải Ảnh
+
+                </a>
+
+              </div>
+
+            </div> <!-- END flex column right -->
+
+          </div> <!-- END seo-thumb-grid -->
+
+
+
+          <!-- BẮT TREND & PHÂN TÍCH THUMBNAIL ĐỐI THỦ -->
+
+
+
+
+
+
+
+          <div style="margin-top:14px;padding:12px;background:#090d16;border:1px solid #334155;border-radius:10px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+
+
+
+
+
+
+
+              <div style="font-size:0.78rem;font-weight:700;color:#fef08a;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+                <span>🏛️ Phân Tích &amp; Bắt Trend Thumbnail Đối Thủ (Clone &amp; Outrank 100 Điểm)</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#dc2626;color:#fff;font-size:0.62rem;font-weight:700;">HACK SUGGESTED VIDEOS</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <span style="font-size:0.68rem;color:#94a3b8;">Dùng thumbnail phong cách đối thủ giúp video ăn đề xuất triệu view</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+
+
+
+
+
+
+
+              <label class="btn btn-secondary btn-xs" style="cursor:pointer;border-color:#38bdf8;color:#38bdf8;font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;">
+
+
+
+
+
+
+
+                📁 Tải Lên Ảnh Đối Thủ <input type="file" id="seoCompetitorFileInput" accept="image/*" style="display:none;" onchange="handleCompetitorFileUpload(this)">
+
+
+
+
+
+
+
+              </label>
+
+
+
+
+
+
+
+              <button type="button" class="btn btn-secondary btn-xs" id="btnAnalyzeCompetitor" onclick="analyzeCompetitorThumbnail()" style="border-color:#eab308;color:#fef08a;font-size:0.72rem;">
+
+
+
+
+
+
+
+                🔍 Kiểm Tra Kỹ Thuật Ảnh
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+              <button type="button" class="btn btn-success btn-xs" id="btnImportCompetitor" onclick="importCompetitorThumbnail()" style="background:#059669;color:#fff;font-weight:700;font-size:0.72rem;border-color:#10b981;">
+
+
+
+
+
+
+
+                🚀 Kích Hoạt Ảnh Đối Thủ &amp; Bơm EXIF Lên 100 Điểm vidIQ
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <!-- Container for Competitor Analysis Report -->
+
+
+
+
+
+
+
+            <div id="seoCompetitorAnalysisBox" style="display:none;margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;font-size:0.72rem;line-height:1.45;">
+
+
+
+
+
+
+
+              <!-- Injected by JavaScript -->
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- 4+ BẢN THUMBNAIL ĐIỆN ẢNH CHUẨN CAO CẤP -->
+
+
+
+
+
+
+
+          <div style="display:none !important;" id="seoThumbnailGalleryContainer">
+            <div id="seoThumbnailGallery"></div>
+          </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- 4. DESCRIPTION & AUTOMATED CHAPTERS -->
+
+
+
+
+
+
+
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+
+
+
+
+
+
+
+            <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+              <span>📝 Mô Tả Video &amp; Mốc Thời Gian</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;" id="seoDescScoreBadge">Chưa kiểm tra</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <button type="button" class="btn btn-secondary btn-xs" id="btnCopyDesc" onclick="copySeoDescription()" style="border-color:#38bdf8;color:#38bdf8;font-weight:600;">
+
+
+
+
+
+
+
+              📋 Sao Chép Mô Tả
+
+
+
+
+
+
+
+            </button>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+          <textarea id="seoDescriptionArea" rows="7" style="width:100%;background:#090d16;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:10px;font-size:0.74rem;line-height:1.5;font-family:monospace;resize:vertical;" readonly></textarea>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- 5. 30 TAGS & HASHTAGS -->
+
+
+
+
+
+
+
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+
+
+
+
+
+
+
+            <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+              <span>🏷️ Tags Liên Quan Đến Nội Dung</span>
+
+
+
+
+
+
+
+              <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;" id="seoTagsScoreBadge">Chưa kiểm tra</span>
+
+
+
+
+
+
+
+              <span class="badge badge-cyan" id="seoTagsCountBadge">0/500 ký tự</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <button type="button" class="btn btn-secondary btn-xs" id="btnCopyTags" onclick="copySeoTags()" style="border-color:#10b981;color:#10b981;font-weight:700;">
+
+
+
+
+
+
+
+              📋 Sao Chép 30 Tags
+
+
+
+
+
+
+
+            </button>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+          <div id="seoTagsPills" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;max-height:120px;overflow-y:auto;padding:6px;background:#090d16;border-radius:8px;border:1px solid #1e293b;">
+
+
+
+
+
+
+
+            <!-- Tags pills here -->
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- HASHTAGS & PINNED COMMENT -->
+
+
+
+
+
+
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+
+
+
+
+
+
+
+            <div style="background:#090d16;border:1px solid #1e293b;border-radius:8px;padding:10px;">
+
+
+
+
+
+
+
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+
+
+
+
+
+
+
+                <span style="font-size:0.73rem;font-weight:700;color:#38bdf8;">#️⃣ Hashtags Xu Hướng</span>
+
+
+
+
+
+
+
+                <button type="button" class="btn btn-secondary btn-xs" id="btnCopyHash" onclick="copySeoHashtags()" style="padding:1px 6px;font-size:0.65rem;">Sao Chép</button>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div id="seoHashtagsText" style="font-size:0.71rem;color:#cbd5e1;line-height:1.4;"></div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+            <div style="background:#090d16;border:1px solid #1e293b;border-radius:8px;padding:10px;">
+
+
+
+
+
+
+
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+
+
+
+
+
+
+
+                <span style="font-size:0.73rem;font-weight:700;color:#f59e0b;">📌 Bình Luận Ghim Tương Tác</span>
+
+
+
+
+
+
+
+                <button type="button" class="btn btn-secondary btn-xs" id="btnCopyPin" onclick="copySeoPinnedComment()" style="padding:1px 6px;font-size:0.65rem;">Sao Chép</button>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div id="seoPinnedCommentText" style="font-size:0.71rem;color:#cbd5e1;line-height:1.4;max-height:48px;overflow-y:auto;"></div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </div> <!-- END 5. 30 TAGS & HASHTAGS card -->
+
+        <!-- 6. 1-CLICK YOUTUBE DIRECT PUBLISH -->
+
+        <div style="background:linear-gradient(135deg,rgba(239,68,68,0.08),rgba(220,38,38,0.03));border:1px solid rgba(239,68,68,0.35);border-radius:12px;padding:14px;margin-top:14px;">
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+
+            <div style="font-size:0.83rem;font-weight:700;color:#fca5a5;display:flex;align-items:center;gap:6px;">
+
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#ef4444"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#fff"/></svg>
+
+              <span id="seoPublishHeaderTitle">🚀 Xuất Bản &amp; Đăng Video Lên YouTube (1-Click)</span>
+
+              <span class="badge" style="background:#dc2626;color:#fff;font-size:0.65rem;font-weight:700;">API V3 TỰ ĐỘNG</span>
+
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;">
+
+              <button type="button" class="yt-circle-btn yt-circle-config" onclick="openYouTubeAdvancedModal()" title="🎛️ Cấu hình đầy đủ YouTube Studio (AI, Lên lịch, COPPA...)">🎛️</button>
+
+              <button type="button" class="yt-circle-btn yt-circle-manage" onclick="openYouTubeModal()" title="⚙ Quản Lý Đa Kênh">⚙</button>
+
+            </div>
+
+          </div>
+
+          <div style="font-size:0.72rem;color:#94a3b8;line-height:1.4;margin-bottom:10px;">
+
+            Hệ thống tự động sử dụng <strong>Tiêu đề đang chọn</strong>, <strong>Mô tả có mốc thời gian chapters</strong>, <strong>Tags liên quan</strong> và <strong>Thumbnail chính</strong> để tải thẳng lên kênh YouTube của bạn.
+
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:center;" class="yt-upload-controls-grid">
+
+            <div class="field-wrap">
+
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+
+                <label style="font-size:0.7rem;color:#cbd5e1;font-weight:600;">Kênh đăng video</label>
+
+                <a id="btnVisitSeoChannel" href="#" target="_blank" style="display:none;font-size:0.68rem;color:#38bdf8;text-decoration:none;font-weight:600;" title="Mở trang chủ kênh này trên YouTube">🔗 Mở Kênh ↗</a>
+
+              </div>
+
+              <select id="seoYtChannelSelect" onchange="syncSelectedYouTubeChannel(this.value)" style="width:100%;font-size:0.75rem;padding:6px;background:#090d16;border:1px solid #334155;color:#e2e8f0;border-radius:6px;">
+
+                <option value="">Đang nạp danh sách kênh...</option>
+
+              </select>
+
+            </div>
+
+            <div class="field-wrap">
+
+              <label style="font-size:0.7rem;color:#cbd5e1;font-weight:600;">Quyền riêng tư</label>
+
+              <select id="seoYtPrivacySelect" onchange="syncPrivacyChoice(this.value)" style="width:100%;font-size:0.75rem;padding:6px;background:#090d16;border:1px solid #334155;color:#e2e8f0;border-radius:6px;">
+
+                <option value="schedule_seo" selected>⏰ Lên lịch SEO</option>
+
+                <option value="public">🌐 Công khai</option>
+
+                <option value="unlisted">👁️ Không công khai</option>
+
+                <option value="private">🔒 Riêng tư</option>
+
+              </select>
+
+            </div>
+
+            <div class="field-wrap">
+
+              <label style="font-size:0.7rem;color:#cbd5e1;font-weight:600;">Danh sách phát (Playlist)</label>
+
+              <select id="seoYtPlaylistSelect" onchange="syncPlaylistChoice(this.value)" style="width:100%;font-size:0.75rem;padding:6px;background:#090d16;border:1px solid #334155;color:#e2e8f0;border-radius:6px;">
+
+                <option value="auto" selected>🔥 Tự động (Theo Series &amp; Chủ đề)</option>
+
+                <option value="none">Không gán danh sách phát</option>
+
+              </select>
+
+            </div>
+
+            <div style="padding-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+
+              <button type="button" class="btn btn-danger btn-sm" id="btnSeoModalUploadYt" onclick="triggerYouTubeUploadFromSeoModal()" style="background:#dc2626;color:#fff;font-weight:700;padding:7px 16px;border:none;box-shadow:0 0 15px rgba(220,38,38,0.45);cursor:pointer;display:flex;align-items:center;gap:6px;">
+
+                <span id="btnSeoModalUploadYtText">🚀 Đăng Video Dài (16:9) Lên Kênh</span>
+
+              </button>
+
+              <button type="button" class="btn btn-warning btn-sm" id="btnSeoModalUploadBoth" onclick="triggerYouTubeBothUploadFromSeoModal()" style="display:none;" title="Tự động đăng tuần tự cả 2 video: Video Dài 16:9 kèm Thumbnail trước, rồi tiếp nối Shorts 9:16">
+
+                <span id="btnSeoModalUploadYtBoth">🔥 Đăng Cả 2 Thể Loại (Dài + Shorts)</span>
+
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- Realtime Progress and Status Box -->
+
+          <div id="seoYtProgressBox" style="display:none;margin-top:12px;padding:12px 14px;background:#090d16;border-radius:8px;border:1px solid #1e293b;">
+
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;margin-bottom:6px;">
+
+              <span id="seoYtProgressMsg" style="color:#f8fafc;font-weight:600;">Đang chuẩn bị video và thumbnail...</span>
+
+              <span id="seoYtProgressPct" style="color:#ef4444;font-weight:700;">0%</span>
+
+            </div>
+
+            <div style="width:100%;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+
+              <div id="seoYtProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,#ef4444,#f59e0b);transition:width 0.3s ease;"></div>
+
+            </div>
+
+            <div id="seoYtVideoLinkBox" style="display:none;margin-top:8px;font-size:0.72rem;color:#38bdf8;">
+
+              <span>🎉 Đăng thành công: </span><a id="seoYtVideoUrl" href="#" target="_blank" style="color:#38bdf8;text-decoration:underline;font-weight:700;">Xem video trên YouTube ↗</a>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+
+
+
+
+
+
+      </div> <!-- END seoLongTabContent -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- SHORTS TAB CONTENT (9:16) -->
+
+
+
+
+
+
+
+        <div id="seoShortTabContent" style="display:none;flex-direction:column;gap:16px;">
+
+
+
+
+
+
+
+          
+
+
+
+
+
+
+
+          <!-- S1. VIDIQ SHORTS ALGORITHM HERO -->
+
+
+
+
+
+
+
+          <div style="background:linear-gradient(135deg,rgba(234,179,8,0.1),rgba(245,158,11,0.05));border:1px solid rgba(234,179,8,0.35);border-radius:12px;padding:14px 18px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+
+
+
+
+
+
+
+              <div style="display:flex;align-items:center;gap:14px;">
+
+
+
+
+
+
+
+                <div style="width:68px;height:68px;border-radius:50%;background:#451a03;border:3px solid #eab308;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(234,179,8,0.4);flex-shrink:0;">
+
+
+
+
+
+
+
+                  <span style="font-size:1.45rem;font-weight:900;color:#fef08a;line-height:1;" id="vidiqShortsScoreNumber">—</span>
+
+
+
+
+
+
+
+                  <span style="font-size:0.62rem;font-weight:700;color:#fde047;letter-spacing:0.05em;">/ 100</span>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div>
+
+
+
+
+
+
+
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+
+
+
+
+
+
+
+                    <span style="font-size:0.72rem;color:#fef08a;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">vidIQ Shorts Algorithm Score</span>
+
+
+
+
+
+
+
+                    <span class="badge" style="background:#eab308;color:#000;font-size:0.65rem;font-weight:700;padding:1px 6px;">VIRAL SHORTS FEED</span>
+
+
+
+
+
+
+
+                    <span class="badge" style="background:#059669;color:#fff;font-size:0.65rem;font-weight:700;padding:1px 6px;">RETENTION &gt; 85%</span>
+
+
+
+
+
+
+
+                  </div>
+
+
+
+
+
+
+
+                  <div style="font-size:1.02rem;color:#ffffff;font-weight:700;margin-top:3px;" id="vidiqShortsScoreRating">Trích đoạn cần đối chiếu trước khi đăng</div>
+
+
+
+
+
+
+
+                  <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;">Trích xuất tự động đoạn cao trào Climax, tỷ lệ dọc 9:16, kèm Hook Banner &amp; CTA dẫn về video dài</div>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div style="display:flex;gap:8px;">
+
+
+
+
+
+
+
+                <button class="btn btn-warning btn-xs" type="button" onclick="regenerateEpisodeShortModal()" style="background:#eab308;color:#000;font-weight:700;border:none;">
+
+
+
+
+
+
+
+                  🔄 Render Lại Short
+
+
+
+
+
+
+
+                </button>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- S2. SHORTS VIDEO PREVIEW & HOOK BANNER CONTROLS -->
+
+
+
+
+
+
+
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+
+
+
+
+
+
+
+              <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+                <span>📱 Video Shorts 9:16 (Bản Trích Cao Trào)</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;" id="seoShortFileBadge">episode_short.mp4</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#3b82f6;color:#fff;font-size:0.65rem;font-weight:700;">1080x1920 60FPS</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <span style="font-size:0.7rem;color:#64748b;">Thời lượng chuẩn: 35s - 50s (&lt; 60s)</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div style="display:grid;grid-template-columns:160px 160px 1fr;gap:14px;align-items:start;">
+            <!-- 1. Video vertical preview -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:0.72rem;font-weight:700;color:#38bdf8;display:flex;align-items:center;gap:4px;">
+                <span>📱 Video Shorts (9:16)</span>
+              </div>
+              <div style="background:#000;border:1px solid #334155;border-radius:10px;aspect-ratio:9/16;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 15px rgba(0,0,0,0.6);">
+                <video id="seoShortVideoPreview" controls playsinline style="width:100%;height:100%;object-fit:cover;display:none;"></video>
+                <div id="seoShortPlaceholder" style="color:#64748b;font-size:0.72rem;text-align:center;padding:12px;">
+                  ⏳ Đang nạp video Shorts...
+                </div>
+              </div>
+              <a class="btn btn-secondary btn-xs" id="btnDownloadShortMp4" href="#" download="02_VIDEO_SHORTS_9x16.mp4" style="font-size:0.68rem;text-align:center;padding:5px 6px;border-radius:6px;background:#1e293b;color:#38bdf8;border:1px solid #334155;">
+                ⬇ Tải Video Shorts 9:16
+              </a>
+            </div>
+
+            <!-- 2. Thumbnail vertical preview -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:0.72rem;font-weight:700;color:#eab308;display:flex;align-items:center;gap:4px;">
+                <span>🖼️ Thumbnail Shorts (9:16)</span>
+              </div>
+              <div style="background:#000;border:1px solid #334155;border-radius:10px;aspect-ratio:9/16;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 15px rgba(0,0,0,0.6);">
+                <img id="seoShortThumbnailImg" style="width:100%;height:100%;object-fit:cover;display:none;" alt="Thumbnail Shorts 9:16" />
+                <div id="seoShortThumbnailPlaceholder" style="color:#64748b;font-size:0.72rem;text-align:center;padding:12px;">
+                  ⏳ Đang nạp Thumbnail Shorts...
+                </div>
+              </div>
+              <a class="btn btn-secondary btn-xs" id="btnDownloadShortThumb" href="#" download="02_THUMBNAIL_SHORTS_9x16.jpg" style="font-size:0.68rem;text-align:center;padding:5px 6px;border-radius:6px;background:#1e293b;color:#eab308;border:1px solid #334155;">
+                ⬇ Tải Thumbnail 9:16
+              </a>
+            </div>
+
+            <!-- 3. Banner controls & Info -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div class="field-wrap">
+                <label for="seoShortHookText" style="font-size:0.73rem;color:#cbd5e1;font-weight:600;">Banner chữ giật gân phía trên (Top Hook Banner)</label>
+                <input type="text" id="seoShortHookText" value="EL ARTE DEL SILENCIO" style="font-weight:700;letter-spacing:0.04em;" placeholder="Nhập banner phía trên...">
+              </div>
+              <div class="field-wrap">
+                <label for="seoShortCtaText" style="font-size:0.73rem;color:#cbd5e1;font-weight:600;">Lời kêu gọi phía dưới (Bottom CTA Banner - Kéo view về video dài)</label>
+                <input type="text" id="seoShortCtaText" value="👉 VER EPISODIO COMPLETO EN EL CANAL" style="font-weight:700;" placeholder="Nhập lời kêu gọi...">
+              </div>
+              <div style="font-size:0.72rem;color:#94a3b8;line-height:1.5;background:rgba(56,189,248,0.06);border-left:3px solid #38bdf8;padding:10px 14px;border-radius:0 8px 8px 0;margin-top:2px;">
+                ✨ <b>Chuẩn YouTube Shorts Native 9:16:</b> Video Full HD dọc nguyên bản 1080x1920 (không cắt xén từ 16:9), Thumbnail chữ đúc khối 3D nung chảy ánh kim, phụ đề Karaoke vùng an toàn né nút Like &amp; Comment của YouTube.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+          <!-- S3. HIGH-CTR SHORTS TITLES -->
+
+
+
+
+
+
+
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+
+
+
+
+
+
+
+              <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+                <span>🎯 Gợi Ý Tiêu Đề YouTube Shorts (Có Hashtag #shorts)</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;">Chưa kiểm tra</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#eab308;color:#000;font-size:0.65rem;font-weight:700;">DƯỚI 60 KÝ TỰ</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <span style="font-size:0.7rem;color:#64748b;">Thuật toán Shorts ưu tiên tiêu đề ngắn đọc nhanh trên điện thoại</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div id="seoShortTitlesContainer" style="display:flex;flex-direction:column;gap:8px;">
+
+
+
+
+
+
+
+              <!-- Short titles injected here -->
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- S4. SHORTS DESCRIPTION & CROSS-PROMO LINK -->
+
+
+
+
+
+
+
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+
+
+
+
+
+
+
+              <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+                <span>📝 Mô Tả YouTube Shorts (Kèm Lời Kêu Gọi Xem Video Dài)</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;">CHUYỂN ĐỔI CAO</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <button type="button" class="btn btn-secondary btn-xs" onclick="copySeoShortDescription()" style="border-color:#38bdf8;color:#38bdf8;font-weight:600;">
+
+
+
+
+
+
+
+                📋 Sao Chép Mô Tả Shorts
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <textarea id="seoShortDescriptionArea" rows="5" style="width:100%;background:#090d16;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:10px;font-size:0.74rem;line-height:1.5;font-family:monospace;resize:vertical;" readonly></textarea>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- S5. SHORTS TAGS & HASHTAGS -->
+
+
+
+
+
+
+
+          <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+
+
+
+
+
+
+
+              <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+                <span>🏷️ Thẻ Tags &amp; Hashtags Xu Hướng Shorts</span>
+
+
+
+
+
+
+
+                <span class="badge" style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;">VIRAL TAGS</span>
+
+
+
+
+
+
+
+                <span class="badge badge-cyan" id="seoShortTagsCountBadge">0 tags</span>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <button type="button" class="btn btn-secondary btn-xs" onclick="copySeoShortTags()" style="border-color:#10b981;color:#10b981;font-weight:700;">
+
+
+
+
+
+
+
+                📋 Sao Chép Tags Shorts
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <div id="seoShortTagsPills" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;max-height:90px;overflow-y:auto;padding:6px;background:#090d16;border-radius:8px;border:1px solid #1e293b;">
+
+
+
+
+
+
+
+              <!-- Short Tags pills here -->
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <!-- HASHTAGS & PINNED COMMENT -->
+
+
+
+
+
+
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+
+
+
+
+
+
+
+              <div style="background:#090d16;border:1px solid #1e293b;border-radius:8px;padding:10px;">
+
+
+
+
+
+
+
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+
+
+
+
+
+
+
+                  <span style="font-size:0.73rem;font-weight:700;color:#38bdf8;">#️⃣ Hashtags Shorts Viral</span>
+
+
+
+
+
+
+
+                  <button type="button" class="btn btn-secondary btn-xs" onclick="copySeoShortHashtags()" style="padding:1px 6px;font-size:0.65rem;">Sao Chép</button>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div id="seoShortHashtagsText" style="font-size:0.71rem;color:#cbd5e1;line-height:1.4;"></div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              
+
+
+
+
+
+
+
+              <div style="background:#090d16;border:1px solid #1e293b;border-radius:8px;padding:10px;">
+
+
+
+
+
+
+
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+
+
+
+
+
+
+
+                  <span style="font-size:0.73rem;font-weight:700;color:#f59e0b;">📌 Bình Luận Ghim Tương Tác Mobile</span>
+
+
+
+
+
+
+
+                  <button type="button" class="btn btn-secondary btn-xs" onclick="copySeoShortPinnedComment()" style="padding:1px 6px;font-size:0.65rem;">Sao Chép</button>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div id="seoShortPinnedCommentText" style="font-size:0.71rem;color:#cbd5e1;line-height:1.4;max-height:48px;overflow-y:auto;"></div>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        </div> <!-- END seoShortTabContent -->
+
+
+
+      </div> <!-- END MODAL BODY (SCROLLABLE) -->
+
+
+
+      <!-- MODAL FOOTER -->
+
+
+
+
+
+
+
+      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.08);background:#090d16;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+
+
+
+
+
+
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+
+
+
+
+
+
+
+          <button type="button" class="btn btn-primary btn-sm" id="btnCopyAllSeo" onclick="copyAllSeoPackage()" style="background:#10b981;border:1px solid #059669;color:#ffffff;font-weight:700;font-size:0.75rem;display:flex;align-items:center;gap:6px;box-shadow:0 0 10px rgba(16,185,129,0.3);cursor:pointer;">
+
+
+
+
+
+
+
+            📋 Sao Chép Gói SEO (1-Click)
+
+
+
+
+
+
+
+          </button>
+
+
+
+
+
+
+
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openCurrentFolder()" style="display:flex;align-items:center;gap:6px;font-size:0.75rem;">
+
+
+
+
+
+
+
+            📁 Mở Thư Mục Gói Đăng
+
+
+
+
+
+
+
+          </button>
+
+
+
+
+
+
+
+          <button type="button" class="btn btn-secondary btn-sm" id="btnForceRegenSeo" onclick="triggerRegenerateSeo()" style="border-color:rgba(99,102,241,0.4);color:#a5b4fc;font-size:0.75rem;">
+
+
+
+
+
+
+
+            🔄 Tạo Lại Gói Mới
+
+
+
+
+
+
+
+          </button>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <button type="button" class="btn btn-primary btn-sm modal-close" onclick="closeAllModals()" style="background:#4f46e5;color:#fff;">
+
+
+
+
+
+
+
+          Xong &amp; Đóng
+
+
+
+
+
+
+
+        </button>
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
   </div>
 
   <!-- ======================================================== -->
-  <!-- MODAL: YOUTUBE MULTI-CHANNEL HUB & 1-CLICK UPLOADER     -->
+  <!-- STORYBOARD AI MULTI-CHANNEL YOUTUBE MANAGER (API V3) -->
   <!-- ======================================================== -->
-  <div id="modalYouTubeManager" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-    <div class="bg-[#0b101c] border border-red-500/40 rounded-2xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden max-h-[92vh]">
-      <!-- Header -->
-      <div class="p-3.5 bg-gradient-to-r from-red-950/80 via-[#11192b] to-[#0b101c] border-b border-red-500/30 flex justify-between items-center shrink-0">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-red-600/20 border border-red-400/40 flex items-center justify-center text-lg">
-            📺
+<div class="modal-overlay" id="modalYouTubeManager">
+
+
+
+
+
+
+
+    <div class="modal-dialog" style="max-width:860px;width:95vw;max-height:88vh;display:flex;flex-direction:column;padding:0;background:#090d16;border:1px solid rgba(239,68,68,0.35);border-radius:14px;box-shadow:0 25px 60px rgba(0,0,0,0.9);overflow:hidden;">
+
+
+
+
+
+
+
+      
+
+
+
+
+
+
+
+      <!-- HEADER -->
+
+
+
+
+
+
+
+      <div style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,#1c1017,#090d16);display:flex;justify-content:space-between;align-items:center;">
+
+
+
+
+
+
+
+        <div style="display:flex;align-items:center;gap:10px;">
+
+
+
+
+
+
+
+          <div style="width:36px;height:36px;border-radius:10px;background:#dc2626;display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(220,38,38,0.5);">
+
+
+
+
+
+
+
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#dc2626"/></svg>
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
           <div>
-            <h3 class="font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-rose-300 to-white text-sm tracking-wide">
-              YOUTUBE MULTI-CHANNEL HUB & 1-CLICK UPLOADER
+
+
+
+
+
+
+
+            <h3 style="margin:0;font-size:1.05rem;color:#ffffff;font-weight:700;display:flex;align-items:center;gap:8px;">
+
+
+
+
+
+
+
+              Quản Lý Đa Kênh YouTube
+
+
+
+
+
+
+
+              <span class="badge" style="background:#dc2626;color:#fff;font-size:0.68rem;padding:2px 8px;font-weight:700;">API V3</span>
+
+
+
+
+
+
+
             </h3>
-            <p class="text-[10px] text-red-300/80 font-mono">Đã kết nối 5 kênh YouTube • Chọn kênh và tải video lên trực tiếp qua YouTube API</p>
-          </div>
-        </div>
-        <button onclick="closeYouTubeModal()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold">✕</button>
-      </div>
 
-      <!-- Body Content -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-        <!-- 1. Chọn Kênh YouTube Đăng -->
-        <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-amber-400 flex items-center gap-1.5">
-              <span>🌟</span> Kênh YouTube Đích Đến (Chọn 1 trong 5 kênh đã kết nối)
-            </span>
-            <span id="lblActiveChannelStatus" class="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-mono">Đã xác thực OAuth</span>
-          </div>
-          <select id="selYouTubeChannel" onchange="onYouTubeChannelChanged(this.value)" class="w-full bg-[#050811] border border-red-500/40 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none">
-            <option value="">-- Đang nạp danh sách 5 kênh --</option>
-          </select>
-        </div>
 
-        <!-- 2. Form Tải Lên Video -->
-        <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1e2a42] space-y-3">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-slate-400 font-semibold mb-1">Video tải lên:</label>
-              <select id="selYouTubeVideo" onchange="onYouTubeVideoSelected(this.value)" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none">
-                <option value="">-- Chọn video trong thư viện exports --</option>
-              </select>
+
+
+
+
+
+            <div style="font-size:0.73rem;color:#94a3b8;margin-top:2px;">
+
+
+
+
+
+
+
+              Thêm không giới hạn kênh, chọn kênh mặc định và xuất bản video 1-click
+
+
+
+
+
+
+
             </div>
-            <div>
-              <label class="block text-slate-400 font-semibold mb-1">Quyền riêng tư (Privacy):</label>
-              <select id="selYouTubePrivacy" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none">
-                <option value="private" selected>🔒 Riêng tư (Private - Khuyên dùng để kiểm tra)</option>
-                <option value="unlisted">🔗 Không công khai (Unlisted)</option>
-                <option value="public">🌐 Công khai (Public - Xuất bản ngay)</option>
-              </select>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <button class="modal-close" onclick="closeAllModals()" style="font-size:1.4rem;color:#94a3b8;background:transparent;border:none;cursor:pointer;padding:4px 8px;">&times;</button>
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <!-- BODY -->
+
+
+
+
+
+
+
+      <div style="padding:16px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px;">
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        <!-- SECTION 1: DANH SÁCH KÊNH ĐÃ KẾT NỐI -->
+
+
+
+
+
+
+
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:12px 14px;">
+
+
+
+
+
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+
+
+
+
+
+
+
+            <div style="font-size:0.83rem;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+              <span>📺 Danh Sách Kênh Của Bạn</span>
+
+
+
+
+
+
+
+              <span class="badge badge-cyan" id="ytChannelCountBadge">0 Kênh</span>
+
+
+
+
+
+
+
             </div>
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+            <!-- NÚT KẾT NỐI DUY NHẤT: TỰ ĐỘNG CẤU HÌNH & KẾT NỐI GOOGLE TRONG 1 CLICK -->
+
+
+
+
+
+
+
+            <div style="display:flex;align-items:center;gap:8px;">
+
+
+
+
+
+
+
+              <input type="file" id="ytUnifiedClientSecretInput" accept=".json" style="display:none;" onchange="handleUnifiedSecretFile(this)">
+
+
+
+
+
+
+
+              <button type="button" class="btn btn-danger btn-sm" id="btnUnifiedYouTubeConnect" onclick="handleUnifiedYouTubeConnect()" style="background:#dc2626;color:#fff;font-weight:700;border:none;padding:5px 12px;font-size:0.74rem;border-radius:6px;box-shadow:0 0 12px rgba(220,38,38,0.35);cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+
+
+
+
+
+
+
+                <span>🔴 + Kết Nối Kênh YouTube</span>
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
           </div>
 
-          <div>
-            <label class="block text-slate-400 font-semibold mb-1">Tiêu đề video YouTube:</label>
-            <input id="inputYtTitle" type="text" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-red-500" placeholder="Tiêu đề video YouTube...">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- Channel Table Header -->
+
+
+
+
+
+
+
+          <div style="display:grid;grid-template-columns:minmax(180px, 1fr) 130px 105px 240px;gap:8px;align-items:center;padding:6px 12px;font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #1e293b;margin-bottom:6px;">
+
+
+
+
+
+
+
+            <div>Kênh YouTube</div>
+
+
+
+
+
+
+
+            <div style="text-align:center;">Chế Độ Đăng</div>
+
+
+
+
+
+
+
+            <div style="text-align:center;">Thao Tác Nhanh</div>
+
+
+
+
+
+
+
           </div>
 
-          <div>
-            <label class="block text-slate-400 font-semibold mb-1">Mô tả video (Description):</label>
-            <textarea id="inputYtDescription" rows="5" class="w-full bg-[#050811] border border-[#19243a] rounded-lg p-2.5 text-[11px] text-slate-200 font-mono focus:outline-none focus:border-red-500" placeholder="Mô tả video có timestamps..."></textarea>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <!-- Channel Cards List Container -->
+
+
+
+
+
+
+
+          <div id="ytChannelCardsContainer" style="display:flex;flex-direction:column;gap:6px;">
+
+
+
+
+
+
+
+            <!-- Rendered by JS -->
+
+
+
+
+
+
+
           </div>
 
-          <div>
-            <label class="block text-slate-400 font-semibold mb-1">Thẻ Tags (cách nhau dấu phẩy):</label>
-            <input id="inputYtTags" type="text" class="w-full bg-[#050811] border border-[#19243a] rounded-lg px-3 py-1.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-red-500" placeholder="review phim, tóm tắt phim, ...">
-          </div>
+
+
+
+
+
+
         </div>
 
-        <!-- 3. Hộp Trạng Thái Upload -->
-        <div id="boxUploadProgress" class="hidden p-3.5 rounded-xl bg-[#060c18] border border-red-500/50 space-y-2">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-red-400 flex items-center gap-1.5">
-              <span class="animate-spin">⚙️</span> <span id="txtUploadStatusMsg">Đang chuẩn bị tải video lên YouTube...</span>
-            </span>
-            <span id="txtUploadProgressPct" class="font-mono text-emerald-400 font-bold">0%</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- SECTION 2: CẤU HÌNH NÂNG CAO (MẶC ĐỊNH THU GỌN - CHỈ DÙNG KHI CẦN ĐỔI KHÓA HOẶC NHẬP TAY) -->
+
+
+
+
+
+
+
+        <div style="background:#090d16;border:1px solid #1e293b;border-radius:10px;padding:10px 14px;">
+
+
+
+
+
+
+
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleOAuthCredentialsBox()">
+
+
+
+
+
+
+
+            <div style="font-size:0.74rem;font-weight:600;color:#94a3b8;display:flex;align-items:center;gap:6px;">
+
+
+
+
+
+
+
+              <span>⚙️ Khóa Google OAuth App:</span>
+
+
+
+
+
+
+
+              <span class="badge" id="ytOAuthConfigBadge" style="background:#475569;color:#fff;font-size:0.65rem;">Chưa cấu hình</span>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+            <span style="font-size:0.72rem;color:#38bdf8;" id="ytToggleOAuthIcon">Đổi tệp khóa / Cấu hình nâng cao ▼</span>
+
+
+
+
+
+
+
           </div>
-          <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-            <div id="barUploadProgress" class="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          <div id="ytOAuthBox" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #1e293b;">
+
+
+
+
+
+
+
+            <div style="background:#0b1329;border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.72rem;line-height:1.5;color:#cbd5e1;">
+
+
+
+
+
+
+
+              <div>🌐 <strong>Authorized Redirect URI:</strong> <code style="background:#1e293b;color:#fca5a5;padding:2px 8px;border-radius:4px;user-select:all;font-weight:700;">http://127.0.0.1:8765/api/youtube/oauth_callback</code>
+
+
+
+
+
+
+
+                <button type="button" class="btn btn-secondary btn-xs" onclick="copyYouTubeRedirectUri()" style="margin-left:6px;font-size:0.68rem;padding:2px 6px;">📋 Copy Link</button>
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+
+
+
+
+
+
+
+              <div class="field-wrap">
+
+
+
+
+
+
+
+                <label style="font-size:0.7rem;color:#cbd5e1;font-weight:600;">Google OAuth Client ID</label>
+
+
+
+
+
+
+
+                <input type="text" id="inYtClientId" placeholder="Ví dụ: 123456789.apps.googleusercontent.com" style="font-size:0.73rem;background:#090d16;color:#f8fafc;border:1px solid #334155;border-radius:6px;padding:6px;">
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <div class="field-wrap">
+
+
+
+
+
+
+
+                <label style="font-size:0.7rem;color:#cbd5e1;font-weight:600;">Google OAuth Client Secret</label>
+
+
+
+
+
+
+
+                <input type="password" id="inYtClientSecret" placeholder="Ví dụ: GOCSPX-xxxxxxxxxxxxxxxx" style="font-size:0.73rem;background:#090d16;color:#f8fafc;border:1px solid #334155;border-radius:6px;padding:6px;">
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+
+
+
+
+
+
+
+              <label class="btn btn-secondary btn-xs" style="border-color:#a855f7;color:#d8b4fe;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+
+
+
+
+
+
+
+                📁 Nạp tệp JSON mới
+
+
+
+
+
+
+
+                <input type="file" accept=".json" style="display:none;" onchange="handleUnifiedSecretFile(this)">
+
+
+
+
+
+
+
+              </label>
+
+
+
+
+
+
+
+              <button type="button" class="btn btn-primary btn-xs" onclick="saveOAuthCredentials()" style="background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">
+
+
+
+
+
+
+
+                💾 Lưu Thủ Công
+
+
+
+
+
+
+
+              </button>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
           </div>
-          <div id="boxUploadResult" class="hidden pt-1">
-            <a id="linkYouTubeVideo" href="#" target="_blank" class="text-xs text-sky-400 hover:underline font-bold flex items-center gap-1">
-              <span>🎉</span> Xem video trên YouTube ➔
-            </a>
-          </div>
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <!-- SECTION 3: QUOTA & CHÍNH SÁCH BẢO MẬT API -->
+
+
+
+
+
+
+
+        <div style="background:#090d16;border:1px solid #1e293b;border-radius:10px;padding:12px;font-size:0.72rem;color:#94a3b8;line-height:1.5;">
+
+
+
+
+
+
+
+          💡 <strong>Giới hạn Quota YouTube API:</strong> Google cấp 10,000 units miễn phí mỗi ngày cho mỗi Project. Mỗi lượt đăng 1 video tốn 1,600 units (tương đương ~6 video/ngày). Mọi token xác thực được lưu trực tiếp an toàn tại máy tính cá nhân của bạn trong tệp <code>studio/youtube_channels.json</code>.
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
 
-      <!-- Footer -->
-      <div class="p-3 bg-[#0a0f1b] border-t border-[#1e2a42] flex justify-between items-center shrink-0">
-        <span class="text-[11px] text-slate-400">Video sẽ được tải lên theo tiêu chuẩn bảo mật Google OAuth 2.0.</span>
-        <div class="flex items-center gap-2">
-          <button id="btnStartUpload" onclick="startYouTubeUploadProcess()" class="h-8 px-5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs shadow-lg shadow-red-950/50 flex items-center gap-1.5 transition">
-            <span>🚀</span> Bắt Đầu Tải Lên Kênh
-          </button>
-          <button onclick="closeYouTubeModal()" class="h-8 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Đóng</button>
-        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <!-- FOOTER -->
+
+
+
+
+
+
+
+      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.08);background:#090d16;display:flex;justify-content:flex-end;">
+
+
+
+
+
+
+
+        <button type="button" class="btn btn-primary btn-sm modal-close" onclick="closeAllModals()">
+
+
+
+
+
+
+
+          Đóng
+
+
+
+
+
+
+
+        </button>
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
   </div>
 
-  <!-- JAVASCRIPT LOGIC -->
+  <!-- ======================================================== -->
+  <!-- STORYBOARD AI YOUTUBE STUDIO ADVANCED PUBLISHER (2-COL) -->
+  <!-- ======================================================== -->
+<div class="modal-overlay" id="modalYouTubeAdvancedPublish">
+
+    <div class="modal-dialog" style="max-width:1040px;width:96vw;max-height:92vh;padding:0;background:#1f1f1f;border:1px solid #383838;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.95);overflow:hidden;display:flex;flex-direction:column;font-family:Roboto,'Segoe UI',Arial,sans-serif;color:#f1f1f1;">
+
+      
+
+      <!-- TOP BAR CHUẨN YOUTUBE STUDIO (MỘT MỤC DUY NHẤT) -->
+
+      <div style="padding:14px 24px;border-bottom:1px solid #383838;background:#212121;display:flex;justify-content:space-between;align-items:center;">
+
+        <div style="display:flex;align-items:center;gap:12px;">
+
+          <span style="font-size:1.25rem;font-weight:500;color:#fff;">Chi tiết video</span>
+
+          <span id="advYtCurrentChannelTag" style="font-size:0.75rem;background:#282828;color:#aaa;border:1px solid #383838;padding:3px 10px;border-radius:12px;font-weight:500;">Kênh 1</span>
+
+            <span id="advYtEpisodeBadge" style="font-size:0.75rem;background:#1e293b;color:#38bdf8;border:1px solid #0284c7;padding:3px 10px;border-radius:12px;font-weight:600;">🎬 Đang nạp tập...</span>
+
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+
+          <button type="button" onclick="closeAllModals()" style="background:transparent;border:none;color:#aaa;font-size:0.88rem;font-weight:500;cursor:pointer;padding:6px 12px;border-radius:4px;">
+
+            Hủy thay đổi
+
+          </button>
+
+          <button type="button" onclick="saveCurrentChannelPublishSettings()" style="background:#282828;border:1px solid #383838;color:#e2e8f0;font-size:0.85rem;font-weight:600;padding:7px 14px;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+
+            💾 Lưu Cấu Hình
+
+          </button>
+
+          <button type="button" id="btnAdvModalSubmitUpload" onclick="triggerYouTubeUploadFromAdvancedModal()" style="background:#3ea6ff;color:#0f0f0f;border:none;font-size:0.88rem;font-weight:700;padding:8px 18px;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+
+            🚀 Đăng Video
+
+          </button>
+
+          <button class="modal-close" onclick="closeAllModals()" style="font-size:1.4rem;color:#aaa;background:transparent;border:none;cursor:pointer;line-height:1;padding:0 4px;" title="Đóng">&times;</button>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- BODY: 2 CỘT CHUẨN YOUTUBE STUDIO (KHÔNG CHIA TAB) -->
+
+      <div style="flex:1;overflow-y:auto;padding:22px 26px;background:#181818;display:grid;grid-template-columns:1fr 340px;gap:26px;">
+
+        
+
+        <!-- ============================================================== -->
+
+        <!-- CỘT TRÁI: FORM LIỀN MẠCH THEO THỨ TỰ YOUTUBE                    -->
+
+        <!-- ============================================================== -->
+
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+          
+
+          <!-- 0. KÊNH YOUTUBE ĐĂNG BÀI -->
+
+          <div style="background:#212121;border:1px solid #383838;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+
+            <div style="flex:1;">
+
+              <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:3px;">📺 Kênh YouTube Đăng Bài:</label>
+
+              <select id="advYtChannelSelect" onchange="syncSelectedYouTubeChannel(this.value)" style="color:#fff;font-weight:600;width:100%;padding:6px 10px;background:#121212;border:1px solid #484848;border-radius:4px;font-size:0.85rem;outline:none;">
+
+                <option value="">Đang tải danh sách kênh...</option>
+
+              </select>
+
+            </div>
+
+            <div>
+
+              <a id="advYtStudioEditorLink" href="https://studio.youtube.com" target="_blank" style="font-size:0.75rem;color:#3ea6ff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:6px 10px;background:#282828;border:1px solid #383838;border-radius:4px;" title="Mở YouTube Studio trên trình duyệt">
+
+                🔗 YouTube Studio ↗
+
+              </a>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- 1. TIÊU ĐỀ (BẮT BUỘC) -->
+
+          <div>
+
+            <div style="border:1px solid #606060;border-radius:4px;padding:10px 14px;background:#121212;display:flex;flex-direction:column;gap:4px;">
+
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+
+                <label style="font-size:0.75rem;color:#aaa;">Tiêu đề (bắt buộc)</label>
+
+                <span id="advYtTitleCount" style="font-size:0.75rem;color:#aaa;font-family:inherit;">0/100</span>
+
+              </div>
+
+              <input type="text" id="advYtTitle" maxlength="100" placeholder="Thêm tiêu đề mô tả video của bạn..." oninput="updateYtTitleCount(this.value)" style="background:transparent;border:none;color:#fff;font-size:0.92rem;font-weight:500;outline:none;width:100%;">
+
+            </div>
+
+            <div style="font-size:0.75rem;color:#888;margin-top:4px;">Tiêu đề kịch tính, ngắn gọn giúp tăng tỷ lệ nhấp chuột (CTR).</div>
+
+          </div>
+
+
+
+          <!-- 2. PHẦN MÔ TẢ -->
+
+          <div>
+
+            <div style="border:1px solid #606060;border-radius:4px;padding:10px 14px;background:#121212;display:flex;flex-direction:column;gap:4px;">
+
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+
+                <label style="font-size:0.75rem;color:#aaa;">Phần mô tả</label>
+
+                <span id="advYtDescCount" style="font-size:0.75rem;color:#aaa;font-family:inherit;">0/5000</span>
+
+              </div>
+
+              <textarea id="advYtDescription" maxlength="5000" rows="6" placeholder="Kể cho người xem biết về video của bạn..." oninput="updateYtDescCount(this.value)" style="background:transparent;border:none;color:#fff;font-size:0.88rem;outline:none;width:100%;resize:vertical;line-height:1.45;font-family:inherit;"></textarea>
+
+            </div>
+
+            <div style="font-size:0.75rem;color:#888;margin-top:4px;">Kể ngắn gọn cốt truyện, gắn mốc thời gian (00:00) và các thẻ hashtag chính.</div>
+
+          </div>
+
+
+
+          <!-- 3. HÌNH THU NHỎ (THUMBNAIL 16:9) -->
+
+          <div>
+
+            <div style="font-size:0.92rem;font-weight:500;color:#fff;margin-bottom:3px;">Hình thu nhỏ</div>
+
+            <div style="font-size:0.78rem;color:#aaa;line-height:1.4;margin-bottom:8px;">Chọn hoặc tải một hình ảnh lên để thể hiện nội dung trong video của bạn.</div>
+
+            <div style="display:flex;gap:12px;align-items:center;">
+
+              <div id="advYtThumbnailBox" style="width:140px;aspect-ratio:16/9;background:#181818;border:2px solid #3ea6ff;border-radius:4px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;">
+
+                <img id="advYtThumbnailPreview" style="width:100%;height:100%;object-fit:cover;display:none;">
+
+                <div id="advYtThumbnailPlaceholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#64748b;font-size:0.75rem;text-align:center;padding:6px;gap:4px;background:#181818;">
+                  <span style="font-size:1.3rem;">🖼️</span>
+                  <span>Đang tải ảnh...</span>
+                </div>
+
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px;">
+
+                <input type="file" id="inCustomThumbnailFile" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="handleCustomThumbnailUpload(this)">
+
+                <button type="button" class="btn btn-secondary btn-xs" onclick="const inEl=document.getElementById('inCustomThumbnailFile'); if(inEl) inEl.click();" style="padding:6px 12px;font-size:0.78rem;background:#282828;border:1px solid #484848;color:#e2e8f0;border-radius:4px;cursor:pointer;">
+
+                  📁 Đổi ảnh thu nhỏ...
+
+                </button>
+
+                <span id="advYtThumbnailRatioLabel" style="font-size:0.72rem;color:#888;">Tỷ lệ 16:9 (1280x720) định dạng JPG hoặc PNG.</span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- 4. DANH SÁCH PHÁT (PLAYLISTS) -->
+
+          <div>
+
+            <div style="font-size:0.92rem;font-weight:500;color:#fff;margin-bottom:3px;">Danh sách phát</div>
+
+            <div style="font-size:0.78rem;color:#aaa;line-height:1.4;margin-bottom:8px;">Thêm video của bạn vào một hoặc nhiều danh sách phát để người xem khám phá dễ dàng hơn.</div>
+
+            <div style="display:flex;gap:8px;">
+
+              <select id="advYtPlaylistSelect" onchange="syncPlaylistChoice(this.value)" style="flex:1;background:#121212;border:1px solid #606060;color:#fff;padding:8px 12px;border-radius:4px;font-size:0.88rem;outline:none;">
+
+                <option value="auto" selected>🔥 Tự động theo Series &amp; Chủ đề</option>
+
+                <option value="none">Không gán danh sách phát</option>
+
+                <option value="__new__">➕ Tạo danh sách phát mới trên YouTube...</option>
+
+              </select>
+
+              <button type="button" onclick="refreshYouTubePlaylistsFromModal()" title="Làm mới danh sách phát từ kênh" style="padding:0 12px;background:#282828;border:1px solid #484848;color:#aaa;border-radius:4px;cursor:pointer;">🔄</button>
+
+            </div>
+
+            <div id="advYtNewPlaylistWrap" style="display:none;width:100%;margin-top:6px;">
+
+              <input type="text" id="advYtNewPlaylistTitle" placeholder="Nhập tên danh sách phát mới muốn tạo trên YouTube..." style="width:100%;border:1px solid #3ea6ff;background:#121212;color:#3ea6ff;padding:8px 12px;border-radius:4px;font-size:0.85rem;outline:none;">
+
+            </div>
+
+          </div>
+
+
+
+          <!-- 5. ĐỐI TƯỢNG NGƯỜI XEM (COPPA) - DẤU CHẤM ĐẦU ĐŨA CHUẨN YOUTUBE -->
+
+          <div>
+
+            <div style="font-size:0.92rem;font-weight:500;color:#fff;margin-bottom:3px;">Đối tượng người xem</div>
+
+            <div style="font-size:0.78rem;color:#aaa;line-height:1.4;margin-bottom:8px;">Dù hoạt động ở quốc gia nào, bạn cũng có nghĩa vụ tuân thủ Đạo luật COPPA.</div>
+
+            
+
+            <div style="background:#242424;border-radius:4px;padding:8px 12px;font-size:0.78rem;color:#bbb;margin-bottom:10px;line-height:1.4;">
+
+              ℹ️ Các tính năng như quảng cáo được cá nhân hoá và thông báo sẽ không hoạt động trên video dành cho trẻ em.
+
+            </div>
+
+
+
+            <div style="display:flex;flex-direction:column;gap:8px;">
+
+              <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                <input type="radio" name="advYtMadeForKids" id="advYtKidsYes" value="1" style="width:16px;height:16px;accent-color:#3ea6ff;cursor:pointer;margin:0;">
+
+                <span>Có, nội dung này dành cho trẻ em</span>
+
+              </label>
+
+              <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                <input type="radio" name="advYtMadeForKids" id="advYtKidsNo" value="0" checked style="width:16px;height:16px;accent-color:#3ea6ff;cursor:pointer;margin:0;">
+
+                <span>Không, nội dung này không dành cho trẻ em</span>
+
+              </label>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- NÚT HIỆN THÊM (SHOW MORE CHUẨN YOUTUBE STUDIO) -->
+
+          <div>
+
+            <button type="button" id="btnAdvYtToggleMore" onclick="const ex=document.getElementById('advYtExtraSection'); const isHidden = (ex.style.display==='none' || !ex.style.display); ex.style.display=isHidden?'flex':'none'; this.innerHTML=isHidden?'ẨN BỚT ▲':'HIỆN THÊM (Nội dung AI, Thẻ Tags, Ngôn ngữ, Danh mục...) ▼';" style="background:transparent;border:none;color:#3ea6ff;font-size:0.85rem;font-weight:600;cursor:pointer;padding:6px 0;display:inline-flex;align-items:center;gap:6px;">
+
+              HIỆN THÊM (Nội dung AI, Thẻ Tags, Ngôn ngữ, Danh mục...) ▼
+
+            </button>
+
+          </div>
+
+
+
+          <!-- KHỐI MỞ RỘNG ĐƯỢC ẨN MẶC ĐỊNH (CHỈ HIỆN KHI BẤM HIỆN THÊM) -->
+
+          <div id="advYtExtraSection" style="display:none;flex-direction:column;gap:18px;border-top:1px solid #383838;padding-top:16px;">
+
+            <!-- NỘI DUNG TÀI TRỢ & TIẾT LỘ NỘI DUNG AI -->
+
+            <div>
+
+              <div style="font-size:0.92rem;font-weight:500;color:#fff;margin-bottom:3px;">Nội dung được trả tiền để quảng cáo &amp; Nội dung AI</div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+
+                <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                  <input type="checkbox" id="advYtContainsSyntheticMedia" checked style="width:16px;height:16px;accent-color:#3ea6ff;cursor:pointer;margin:0;">
+
+                  <span>Nội dung đã qua chỉnh sửa hoặc tạo bằng AI (Synthetic / Altered Media - Chuẩn YouTube 2024–2026)</span>
+
+                </label>
+
+                <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#aaa;cursor:pointer;">
+
+                  <input type="checkbox" id="advYtPaidPromotion" style="width:16px;height:16px;accent-color:#3ea6ff;cursor:pointer;margin:0;">
+
+                  <span>Video của tôi có chứa nội dung được trả tiền để quảng cáo</span>
+
+                </label>
+
+              </div>
+
+            </div>
+
+            
+
+            <!-- THẺ TỪ KHÓA (TAGS 0/500) -->
+
+            <div>
+
+              <div style="border:1px solid #606060;border-radius:4px;padding:10px 14px;background:#121212;display:flex;flex-direction:column;gap:4px;">
+
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+
+                  <label style="font-size:0.75rem;color:#aaa;">Thẻ từ khóa (Tags)</label>
+
+                  <span id="advYtTagsCount" style="font-size:0.75rem;color:#aaa;font-family:inherit;">0/500</span>
+
+                </div>
+
+                <textarea id="advYtTags" maxlength="500" rows="3" placeholder="Nhập các từ khóa phân cách bằng dấu phẩy..." oninput="updateYtTagsCount(this.value)" style="background:transparent;border:none;color:#fff;font-size:0.85rem;outline:none;width:100%;resize:vertical;line-height:1.4;font-family:inherit;"></textarea>
+
+              </div>
+
+              <div style="font-size:0.75rem;color:#888;margin-top:4px;">Thẻ từ khóa giúp người xem tìm thấy video khi họ gõ sai chính tả.</div>
+
+            </div>
+
+
+
+            <!-- NGÔN NGỮ VIDEO & ÂM THANH -->
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+              <div>
+
+                <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:3px;">Ngôn ngữ video &amp; phụ đề:</label>
+
+                <select id="advYtDefaultLang" onchange="onAdvVideoLangChange(this.value)" style="width:100%;background:#121212;border:1px solid #606060;color:#fff;padding:8px 10px;border-radius:4px;font-size:0.82rem;outline:none;">
+
+                  <option value="vi" selected>🇻🇳 vi (Tiếng Việt)</option>
+
+                  <option value="en-US">🇺🇸 en-US (Tiếng Anh Mỹ)</option>
+
+                  <option value="es">🇪🇸 es (Tiếng Tây Ban Nha)</option>
+
+                  <option value="pt-BR">🇧🇷 pt-BR (Tiếng Bồ Đào Nha)</option>
+
+                  <option value="ru">🇷🇺 ru (Tiếng Nga)</option>
+
+                  <option value="ja">🇯🇵 ja (Tiếng Nhật)</option>
+
+                  <option value="ko">🇰🇷 ko (Tiếng Hàn)</option>
+
+                  <option value="zh-CN">🇨🇳 zh-CN (Tiếng Trung)</option>
+
+                </select>
+
+              </div>
+
+              <div>
+
+                <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:3px;">Ngôn ngữ âm thanh (Audio Voice):</label>
+
+                <select id="advYtAudioLang" style="width:100%;background:#121212;border:1px solid #606060;color:#fff;padding:8px 10px;border-radius:4px;font-size:0.82rem;outline:none;">
+
+                  <option value="vi" selected>🎙️ vi (Tiếng Việt)</option>
+
+                  <option value="en-US">🎙️ en-US (Mỹ / American)</option>
+
+                  <option value="es">🎙️ es (Tây Ban Nha)</option>
+
+                  <option value="ru">🎙️ ru (Nga)</option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+
+            <!-- CHỨNG NHẬN PHỤ ĐỀ (CAPTION CERTIFICATION) -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:3px;">Chứng nhận phụ đề (Caption Certification):</label>
+              <select id="advYtCaptionCert" style="width:100%;background:#121212;border:1px solid #606060;color:#fff;padding:8px 10px;border-radius:4px;font-size:0.82rem;outline:none;">
+                <option value="none">Không có (None)</option>
+                <option value="never_aired_us" selected>Chưa từng phát sóng trên truyền hình tại Hoa Kỳ (FCC exempt - Khuyên dùng)</option>
+                <option value="only_aired_without_captions">Chỉ phát sóng trên truyền hình Mỹ không có phụ đề</option>
+                <option value="exempt_fcc">Miễn trừ theo quy định của FCC</option>
+              </select>
+              <div style="font-size:0.75rem;color:#888;margin-top:3px;">Quy chuẩn bắt buộc của YouTube Studio đối với video kỹ thuật số / AI.</div>
+            </div>
+
+            <!-- DANH MỤC & GIẤY PHÉP -->
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+              <div>
+
+                <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:3px;">Danh mục:</label>
+
+                <select id="advYtCategory" style="width:100%;background:#121212;border:1px solid #606060;color:#fff;padding:8px 10px;border-radius:4px;font-size:0.82rem;outline:none;">
+
+                  <option value="1" selected>🎬 Phim và Hoạt ảnh</option>
+
+                  <option value="24">🎭 Giải trí</option>
+
+                  <option value="27">🎓 Giáo dục</option>
+
+                  <option value="22">👥 Mọi người và Blog</option>
+
+                </select>
+
+              </div>
+
+              <div>
+
+                <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:3px;">Giấy phép:</label>
+
+                <select id="advYtLicense" style="width:100%;background:#121212;border:1px solid #606060;color:#fff;padding:8px 10px;border-radius:4px;font-size:0.82rem;outline:none;">
+
+                  <option value="youtube" selected>Giấy phép chuẩn của YouTube</option>
+
+                  <option value="creativeCommon">Creative Commons (Ghi nhận tác giả)</option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+
+            <!-- PHỐI LẠI SHORTS & QUYỀN NHÚNG -->
+
+            <div>
+
+              <label style="font-size:0.75rem;color:#aaa;display:block;margin-bottom:6px;">Phối lại Shorts &amp; Quyền nhúng:</label>
+
+              <div style="display:flex;gap:16px;align-items:center;font-size:0.82rem;">
+
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#f1f1f1;">
+
+                  <input type="radio" name="advYtShortsRemix" id="advYtRemixNone" value="none" checked style="width:15px;height:15px;accent-color:#3ea6ff;margin:0;">
+
+                  <span>Tắt phối lại (Chống reup)</span>
+
+                </label>
+
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#aaa;">
+
+                  <input type="radio" name="advYtShortsRemix" id="advYtRemixAudio" value="audio_only" style="width:15px;height:15px;accent-color:#3ea6ff;margin:0;">
+
+                  <span>Chỉ Audio</span>
+
+                </label>
+
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#aaa;">
+
+                  <input type="radio" name="advYtShortsRemix" id="advYtRemixAll" value="all" style="width:15px;height:15px;accent-color:#3ea6ff;margin:0;">
+
+                  <span>Cho phép tất cả</span>
+
+                </label>
+
+              </div>
+
+              <div style="margin-top:6px;padding:6px 10px;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:6px;font-size:0.73rem;color:#f9ca24;line-height:1.4;">
+                ℹ️ <strong>Lưu ý kỹ thuật YouTube:</strong> Google API v3 hiện chưa mở cổng bật/tắt quyền phối lại qua API. Để tắt mặc định: vào <strong>YouTube Studio &rarr; Cài đặt &rarr; Chế độ mặc định tải lên &rarr; Cài đặt nâng cao &rarr; Phối lại video và âm thanh &rarr; Chọn "Không cho phép phối lại"</strong> (chỉ cần làm 1 lần cho kênh).
+              </div>
+
+              <div style="display:flex;gap:20px;font-size:0.82rem;margin-top:8px;">
+
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#bbb;">
+
+                  <input type="checkbox" id="advYtEmbeddable" checked style="width:15px;height:15px;accent-color:#3ea6ff;margin:0;">
+
+                  <span>Cho phép nhúng video vào trang web bên ngoài</span>
+
+                </label>
+
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:#bbb;">
+
+                  <input type="checkbox" id="advYtPublishStats" checked style="width:15px;height:15px;accent-color:#3ea6ff;margin:0;">
+
+                  <span>Hiển thị số lượt thích</span>
+
+                </label>
+
+              </div>
+
+            </div>
+
+
+
+            <!-- BÌNH LUẬN GHIM TỰ ĐỘNG -->
+
+            <div>
+
+              <div style="border:1px solid #606060;border-radius:4px;padding:10px 14px;background:#121212;display:flex;flex-direction:column;gap:4px;">
+
+                <label style="font-size:0.75rem;color:#3ea6ff;font-weight:500;">📌 Bình luận ghim tự động (Auto Pinned Comment)</label>
+
+                <textarea id="advYtPinnedComment" rows="2" placeholder="Tự động đăng &amp; ghim lên đầu video ngay sau khi xuất bản..." style="background:transparent;border:none;color:#fff;font-size:0.85rem;outline:none;width:100%;resize:vertical;"></textarea>
+
+              </div>
+
+              <div style="font-size:0.75rem;color:#888;margin-top:4px;">Bình luận sẽ được tự động đăng và ghim lên đầu video ngay sau khi xuất bản.</div>
+
+            </div>
+
+
+
+            <!-- advYtCaptionCert relocated to main form above -->
+
+            <input type="text" id="advYtVideoLocation" style="display:none;">
+
+
+
+          </div>
+
+
+
+        </div>
+
+
+
+        <!-- ============================================================== -->
+
+        <!-- CỘT PHẢI: VIDEO CARD PREVIEW CỐ ĐỊNH & CHẾ ĐỘ HIỂN THỊ          -->
+
+        <!-- ============================================================== -->
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          
+
+          <!-- VIDEO PREVIEW CARD CHUẨN YOUTUBE -->
+
+          <div style="background:#282828;border-radius:4px;overflow:hidden;display:flex;flex-direction:column;">
+
+            <div id="advYtVideoPlayerContainer" style="width:100%;aspect-ratio:16/9;background:#000;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+
+              <video id="advYtVideoPreview" controls style="width:100%;height:100%;object-fit:contain;display:none;background:#000;"></video>
+
+              <div id="advYtVideoPosterPlaceholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#121212;position:relative;">
+
+                <img id="advYtVideoPosterImg" src="" alt="Poster" style="width:100%;height:100%;object-fit:cover;display:none;position:absolute;top:0;left:0;">
+
+                <div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;position:relative;z-index:2;">▶</div>
+
+                <span id="advYtVideoDurationBadge" style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.8);font-size:0.72rem;padding:1px 4px;border-radius:2px;font-weight:500;z-index:2;">--:--</span>
+
+              </div>
+
+            </div>
+
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+
+              <div style="display:flex;flex-direction:column;gap:2px;">
+
+                <span style="font-size:0.72rem;color:#aaa;">Đường liên kết của video:</span>
+
+                <span style="font-size:0.84rem;color:#3ea6ff;display:flex;align-items:center;justify-content:space-between;">
+
+                  <span id="advYtPreviewVideoUrl" style="word-break:break-all;">Chưa tải lên YouTube</span>
+
+                  <button type="button" id="btnAdvYtCopyLink" onclick="copyAdvVideoUrl()" style="background:transparent;border:none;color:#aaa;cursor:pointer;font-size:0.85rem;display:none;" title="Sao chép link">📋</button>
+
+                </span>
+
+                <span id="advYtUploadStatusBadge" style="font-size:0.72rem;color:#f59e0b;font-weight:500;margin-top:2px;">🟡 Sẵn sàng đăng (Sẽ có link sau khi đăng)</span>
+
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:2px;">
+
+                <span style="font-size:0.72rem;color:#aaa;">Tên tệp gốc:</span>
+
+                <span id="advYtOriginalFilename" style="font-size:0.82rem;color:#fff;">episode_final.mp4</span>
+
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:2px;">
+
+                <span style="font-size:0.72rem;color:#aaa;">Chất lượng & Định dạng:</span>
+
+                <span id="advYtQualityBadge" style="font-size:0.82rem;color:#2ba640;font-weight:500;">✓ 1080p Full HD (60fps)</span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- CHẾ ĐỘ HIỂN THỊ (GỘP LUÔN VÀO CỘT PHẢI) -->
+
+          <div style="background:#282828;border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+
+            <div style="font-size:0.88rem;font-weight:500;color:#fff;">Chế độ hiển thị</div>
+
+            
+
+            <div style="display:flex;flex-direction:column;gap:8px;">
+
+              <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                <input type="radio" name="ytStudioPublishMode" id="radioYtModePublic" value="public" onchange="onYtStudioModeChange('public')" style="width:16px;height:16px;accent-color:#3ea6ff;margin:0;">
+
+                <span>Công khai (Public)</span>
+
+              </label>
+
+              <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                <input type="radio" name="ytStudioPublishMode" id="radioYtModeUnlisted" value="unlisted" checked onchange="onYtStudioModeChange('unlisted')" style="width:16px;height:16px;accent-color:#3ea6ff;margin:0;">
+
+                <span>Không công khai (Unlisted)</span>
+
+              </label>
+
+              <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                <input type="radio" name="ytStudioPublishMode" id="radioYtModePrivate" value="private" onchange="onYtStudioModeChange('private')" style="width:16px;height:16px;accent-color:#3ea6ff;margin:0;">
+
+                <span>Riêng tư (Private)</span>
+
+              </label>
+
+              <label style="display:inline-flex;align-items:center;gap:10px;font-size:0.85rem;color:#f1f1f1;cursor:pointer;">
+
+                <input type="radio" name="ytStudioPublishMode" id="radioYtModeSchedule" value="schedule_seo" onchange="onYtStudioModeChange('schedule_seo')" style="width:16px;height:16px;accent-color:#3ea6ff;margin:0;">
+
+                <span>Lên lịch phát hành</span>
+
+              </label>
+
+            </div>
+
+
+
+            <!-- KHỐI LÊN LỊCH KHI CHỌN LÊN LỊCH -->
+
+            <div id="advYtScheduleWrap" style="display:none;padding:10px 12px;border:1px solid #383838;border-radius:4px;flex-direction:column;gap:8px;background:#181818;margin-top:4px;">
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+                <div>
+
+                  <label style="font-size:0.7rem;color:#aaa;display:block;margin-bottom:2px;">Ngày:</label>
+
+                  <select id="advYtScheduleDateSelect" onchange="onCustomScheduleChange()" style="width:100%;background:#121212;border:1px solid #484848;color:#fff;padding:6px;border-radius:4px;font-size:0.78rem;outline:none;"></select>
+
+                </div>
+
+                <div>
+
+                  <label style="font-size:0.7rem;color:#aaa;display:block;margin-bottom:2px;">Giờ:</label>
+
+                  <select id="advYtScheduleTimeSelect" onchange="onCustomScheduleChange()" style="width:100%;background:#121212;border:1px solid #484848;color:#fff;padding:6px;border-radius:4px;font-size:0.78rem;outline:none;">
+
+                    <option value="11:30">11:30 Trưa</option>
+
+                    <option value="18:00">18:00 Chiều</option>
+
+                    <option value="20:00" selected>20:00 Tối (Giờ vàng)</option>
+
+                    <option value="21:00">21:00 Tối</option>
+
+                  </select>
+
+                </div>
+
+              </div>
+
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;color:#bbb;margin-top:2px;">
+
+                <input type="checkbox" id="advYtSetPremiere" style="accent-color:#3ea6ff;width:14px;height:14px;margin:0;">
+
+                <span>Đặt làm buổi Công chiếu (Premiere)</span>
+
+              </label>
+
+              <div style="font-size:0.72rem;color:#3ea6ff;" id="advYtScheduleSummaryText">20:00 - Tối nay</div>
+
+            </div>
+
+
+
+          </div>
+
+
+
+          <!-- Compatibility Hidden Inputs -->
+
+          <select id="advYtPrivacySelect" onchange="syncPrivacyChoice(this.value)" style="display:none;">
+
+            <option value="unlisted">unlisted</option>
+
+            <option value="public">public</option>
+
+            <option value="schedule_seo">schedule_seo</option>
+
+            <option value="private">private</option>
+
+          </select>
+
+          <input type="radio" name="advYtScheduleRadio" id="advYtRadioNow" value="now" style="display:none;">
+
+          <input type="radio" name="advYtScheduleRadio" id="advYtRadioSchedule" value="schedule" style="display:none;">
+
+          <input type="datetime-local" id="advYtPublishAt" style="display:none;">
+
+
+
+        </div>
+
+
+
+      </div>
+
+
+
+    </div>
+
+  </div>
+
+<!-- JAVASCRIPT LOGIC -->
   <script>
     // 1. Ratio & 9:16 BG Mode
     let currentRatio = '16:9';
@@ -3707,402 +9520,21 @@
     }
 
     // ========================================================
-    // BỘ SEO YOUTUBE VIDIQ SUITE (JAVASCRIPT LOGIC)
+    // BỘ SEO YOUTUBE VIDIQ SUITE (STORYBOARD AI BRIDGE)
+    // Powered by /seo_youtube.js
     // ========================================================
-    let activeSeoVideoRel = "";
-    let activeSeoData = null;
-
-    function openSeoModal(targetVideoRel = "") {
-      const modal = document.getElementById('modalSeoPackage');
-      if (!modal) return;
-      modal.classList.remove('hidden');
-
-      // Nạp danh sách video vào dropdown
-      const sel = document.getElementById('selSeoVideoTarget');
-      if (sel) {
-        sel.innerHTML = "";
-        if (!currentExports || currentExports.length === 0) {
-          sel.innerHTML = '<option value="">-- Chưa có video nào trong thư viện --</option>';
-        } else {
-          currentExports.forEach((exp, idx) => {
-            const opt = document.createElement('option');
-            opt.value = exp.rel_path;
-            opt.innerText = `${idx === 0 ? '🌟 Mới: ' : ''}${exp.name} (${exp.size_mb} MB)`;
-            sel.appendChild(opt);
-          });
-        }
-      }
-
-      if (targetVideoRel) {
-        activeSeoVideoRel = targetVideoRel;
-        if (sel) sel.value = targetVideoRel;
-      } else if (currentExports && currentExports.length > 0) {
-        activeSeoVideoRel = currentExports[0].rel_path;
-        if (sel) sel.value = activeSeoVideoRel;
-      }
-
-      if (activeSeoVideoRel) {
-        loadSeoData(activeSeoVideoRel);
-      }
-    }
-
     function openSeoModalForVideo(relPath) {
-      const cleanPath = decodeURIComponent(relPath);
-      openSeoModal(cleanPath);
-    }
-
-    function closeSeoModal() {
-      document.getElementById('modalSeoPackage')?.classList.add('hidden');
-    }
-
-    function onSeoVideoChanged(val) {
-      if (!val) return;
-      activeSeoVideoRel = val;
-      loadSeoData(val);
-    }
-
-    async function loadSeoData(videoRelPath, forceRegen = false) {
-      const lblStatus = document.getElementById('lblSeoCacheStatus');
-      if (lblStatus) {
-        lblStatus.innerText = forceRegen ? "Đang tạo mới..." : "Đang tải...";
-        lblStatus.className = "text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-500/30 font-mono animate-pulse";
-      }
-
-      try {
-        const url = forceRegen
-          ? '/api/seo/generate'
-          : `/api/seo?video=${encodeURIComponent(videoRelPath)}`;
-        const opts = forceRegen
-          ? {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ video: videoRelPath, movie_title: document.getElementById('inputMovieTitle')?.value })
-            }
-          : { method: 'GET' };
-
-        const res = await fetch(url, opts);
-        const data = await res.json();
-        if (data.status === 'ok' && data.seo) {
-          activeSeoData = data.seo;
-          document.getElementById('txtSeoTitleA').value = data.seo.title_a || "";
-          document.getElementById('txtSeoTitleB').value = data.seo.title_b || "";
-          document.getElementById('txtSeoTags').value = Array.isArray(data.seo.tags) ? data.seo.tags.join(', ') : (data.seo.tags || "");
-          document.getElementById('txtSeoPinned').value = `${data.seo.pinned_comment || ""}\n\n${(data.seo.hashtags || []).join(' ')}`;
-          document.getElementById('txtSeoDescription').value = data.seo.description || "";
-
-          if (lblStatus) {
-            lblStatus.innerText = data.cached ? "⚡ Đã tối ưu sẵn" : "✨ Vừa tạo AI mới";
-            lblStatus.className = "text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 font-mono";
-          }
-        } else {
-          alert("Không thể nạp dữ liệu SEO: " + (data.message || "Lỗi không xác định"));
-          if (lblStatus) {
-            lblStatus.innerText = "Lỗi nạp SEO";
-            lblStatus.className = "text-[10px] px-2 py-0.5 rounded bg-rose-950/80 text-rose-400 border border-rose-500/30 font-mono";
-          }
-        }
-      } catch (err) {
-        alert("Lỗi kết nối khi nạp SEO: " + err.message);
-      }
-    }
-
-    async function regenerateActiveSeo() {
-      if (!activeSeoVideoRel) {
-        alert("Chưa chọn video để tạo SEO!");
-        return;
-      }
-      const btn = document.getElementById('btnRegenSeo');
-      const orig = btn ? btn.innerHTML : "🔄 Tạo Lại AI";
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = "⏳ Đang tạo...";
-      }
-      await loadSeoData(activeSeoVideoRel, true);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = orig;
-      }
-      showToast("Đã tạo mới bộ SEO YouTube chuẩn VidIQ!");
-    }
-
-    function copySeoField(fieldId) {
-      const el = document.getElementById(fieldId);
-      if (!el || !el.value) return;
-      navigator.clipboard.writeText(el.value).then(() => {
-        showToast("Đã copy nội dung vào clipboard!");
-      }).catch(err => {
-        el.select();
-        document.execCommand('copy');
-        showToast("Đã copy nội dung!");
-      });
-    }
-
-    function copyAllSeo() {
-      if (!activeSeoData) {
-        alert("Chưa có dữ liệu SEO để copy!");
-        return;
-      }
-      const fullText = [
-        "=== TIÊU ĐỀ A ===",
-        activeSeoData.title_a || "",
-        "",
-        "=== TIÊU ĐỀ B ===",
-        activeSeoData.title_b || "",
-        "",
-        "=== MÔ TẢ VIDEO (DESCRIPTIONS & CHAPTERS) ===",
-        activeSeoData.description || "",
-        "",
-        "=== 30 THẺ TAGS YOUTUBE ===",
-        Array.isArray(activeSeoData.tags) ? activeSeoData.tags.join(', ') : (activeSeoData.tags || ""),
-        "",
-        "=== BÌNH LUẬN GHIM (PINNED COMMENT) ===",
-        activeSeoData.pinned_comment || "",
-        "",
-        "=== HASHTAGS ===",
-        (activeSeoData.hashtags || []).join(' ')
-      ].join('\n');
-
-      navigator.clipboard.writeText(fullText).then(() => {
-        showToast("🎉 Đã sao chép TOÀN BỘ Bộ SEO (Tiêu đề, Mô tả, Tags, Comment)!");
-      }).catch(() => {
-        showToast("Đã sao chép bộ SEO!");
-      });
-    }
-
-    function handOffSeoToYouTube() {
-      closeSeoModal();
-      openYouTubeModal(activeSeoVideoRel);
-    }
-
-    // ========================================================
-    // YOUTUBE MULTI-CHANNEL HUB & 1-CLICK UPLOADER LOGIC
-    // ========================================================
-    let ytChannels = [];
-    let ytActiveChannelId = "";
-    let ytUploadPollInterval = null;
-
-    async function openYouTubeModal(targetVideoRel = "") {
-      const modal = document.getElementById('modalYouTubeManager');
-      if (!modal) return;
-      modal.classList.remove('hidden');
-
-      // 1. Nạp danh sách 5 kênh
-      await loadYouTubeChannels();
-
-      // 2. Nạp video vào dropdown
-      const selVid = document.getElementById('selYouTubeVideo');
-      if (selVid) {
-        selVid.innerHTML = "";
-        if (!currentExports || currentExports.length === 0) {
-          selVid.innerHTML = '<option value="">-- Chưa có video nào trong exports --</option>';
-        } else {
-          currentExports.forEach((exp, idx) => {
-            const opt = document.createElement('option');
-            opt.value = exp.rel_path;
-            opt.innerText = `${idx === 0 ? '🌟 Mới: ' : ''}${exp.name} (${exp.size_mb} MB)`;
-            selVid.appendChild(opt);
-          });
-        }
-      }
-
-      const chosenRel = targetVideoRel || (currentExports && currentExports[0]?.rel_path) || "";
-      if (chosenRel && selVid) {
-        selVid.value = chosenRel;
-        onYouTubeVideoSelected(chosenRel);
+      if (typeof window.openSeoModal === "function") {
+        window.openSeoModal();
       }
     }
 
     function openYouTubeModalForVideo(relPath) {
-      const cleanPath = decodeURIComponent(relPath);
-      openYouTubeModal(cleanPath);
-    }
-
-    function closeYouTubeModal() {
-      document.getElementById('modalYouTubeManager')?.classList.add('hidden');
-      if (ytUploadPollInterval) {
-        clearInterval(ytUploadPollInterval);
-        ytUploadPollInterval = null;
+      if (typeof window.openYouTubeModal === "function") {
+        window.openYouTubeModal();
       }
     }
-
-    async function loadYouTubeChannels() {
-      try {
-        const res = await fetch('/api/youtube/channels');
-        const data = await res.json();
-        if (data.status === 'ok') {
-          ytChannels = data.channels || [];
-          ytActiveChannelId = data.active_channel_id || (ytChannels[0]?.id || "");
-
-          const sel = document.getElementById('selYouTubeChannel');
-          if (sel) {
-            sel.innerHTML = "";
-            ytChannels.forEach((ch, idx) => {
-              const opt = document.createElement('option');
-              opt.value = ch.id;
-              const isAct = (ch.id === ytActiveChannelId);
-              opt.innerText = `${isAct ? '🌟 [KÊNH CHỌN] ' : ''}${ch.title || 'Kênh YouTube ' + (idx + 1)} (${ch.id}) • ${ch.subscribers || '0'} subs`;
-              if (isAct) opt.selected = true;
-              sel.appendChild(opt);
-            });
-          }
-
-          const lblStatus = document.getElementById('lblActiveChannelStatus');
-          if (lblStatus) {
-            lblStatus.innerText = `Đã kết nối ${ytChannels.length} kênh • Kênh active: ${ytActiveChannelId.substring(0, 10)}...`;
-          }
-        }
-      } catch (err) {
-        console.error("Lỗi nạp kênh YouTube:", err);
-      }
-    }
-
-    async function onYouTubeChannelChanged(val) {
-      if (!val) return;
-      ytActiveChannelId = val;
-      try {
-        await fetch('/api/youtube/active-channel', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ channel_id: val })
-        });
-        showToast(`Đã chuyển sang kênh: ${val}`);
-      } catch (err) {
-        console.error("Lỗi đổi kênh active:", err);
-      }
-    }
-
-    async function onYouTubeVideoSelected(relPath) {
-      if (!relPath) return;
-      // Tự động điền dữ liệu từ Bộ SEO nếu có
-      try {
-        const res = await fetch(`/api/seo?video=${encodeURIComponent(relPath)}`);
-        const data = await res.json();
-        if (data.status === 'ok' && data.seo) {
-          const s = data.seo;
-          document.getElementById('inputYtTitle').value = s.title_a || s.title_b || "";
-          document.getElementById('inputYtDescription').value = s.description || "";
-          document.getElementById('inputYtTags').value = Array.isArray(s.tags) ? s.tags.join(', ') : (s.tags || "");
-        }
-      } catch (e) {}
-    }
-
-    async function startYouTubeUploadProcess() {
-      const selVid = document.getElementById('selYouTubeVideo');
-      const videoRel = selVid ? selVid.value : "";
-      if (!videoRel) {
-        alert("Vui lòng chọn video cần đăng!");
-        return;
-      }
-      const title = (document.getElementById('inputYtTitle')?.value || "").trim();
-      if (!title) {
-        alert("Vui lòng nhập tiêu đề cho video YouTube!");
-        return;
-      }
-      const desc = document.getElementById('inputYtDescription')?.value || "";
-      const tags = (document.getElementById('inputYtTags')?.value || "").split(',').map(x => x.trim()).filter(Boolean);
-      const privacy = document.getElementById('selYouTubePrivacy')?.value || "private";
-
-      if (!confirm(`Xác nhận tải video lên kênh YouTube?\n\nKênh: ${ytActiveChannelId}\nTiêu đề: ${title}\nQuyền: ${privacy.toUpperCase()}`)) {
-        return;
-      }
-
-      const btn = document.getElementById('btnStartUpload');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = "⏳ Đang kết nối YouTube...";
-      }
-
-      const boxProgress = document.getElementById('boxUploadProgress');
-      if (boxProgress) boxProgress.classList.remove('hidden');
-
-      try {
-        const res = await fetch('/api/youtube/upload', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            video_rel_path: videoRel,
-            title: title,
-            description: desc,
-            tags: tags,
-            privacy: privacy,
-            channel_id: ytActiveChannelId
-          })
-        });
-        const data = await res.json();
-        if (data.status === 'ok') {
-          showToast("Đã khởi chạy tiến trình tải video lên YouTube!");
-          pollYouTubeUploadProgress();
-        } else {
-          alert("Lỗi tải video lên YouTube: " + (data.message || "Không xác định"));
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = "<span>🚀</span> Bắt Đầu Tải Lên Kênh";
-          }
-        }
-      } catch (err) {
-        alert("Lỗi kết nối YouTube Upload: " + err.message);
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = "<span>🚀</span> Bắt Đầu Tải Lên Kênh";
-        }
-      }
-    }
-
-    function pollYouTubeUploadProgress() {
-      if (ytUploadPollInterval) clearInterval(ytUploadPollInterval);
-
-      ytUploadPollInterval = setInterval(async () => {
-        try {
-          const res = await fetch('/api/youtube/upload-status');
-          const data = await res.json();
-          if (data.status === 'ok') {
-            const st = data.upload_status || {};
-            const pct = st.progress || 0;
-            const msg = st.status_message || (st.state === 'running' ? 'Đang tải lên YouTube API...' : 'Khởi tạo...');
-
-            const pctEl = document.getElementById('txtUploadProgressPct');
-            const barEl = document.getElementById('barUploadProgress');
-            const msgEl = document.getElementById('txtUploadStatusMsg');
-
-            if (pctEl) pctEl.innerText = `${pct}%`;
-            if (barEl) barEl.style.width = `${pct}%`;
-            if (msgEl) msgEl.innerText = msg;
-
-            if (st.state === 'done') {
-              clearInterval(ytUploadPollInterval);
-              ytUploadPollInterval = null;
-              if (msgEl) msgEl.innerText = "🎉 TẢI LÊN YOUTUBE THÀNH CÔNG!";
-              const resBox = document.getElementById('boxUploadResult');
-              const linkEl = document.getElementById('linkYouTubeVideo');
-              if (resBox && linkEl && st.video_id) {
-                resBox.classList.remove('hidden');
-                linkEl.href = `https://youtu.be/${st.video_id}`;
-                linkEl.innerText = `🎉 Xem video đã xuất bản trên YouTube: https://youtu.be/${st.video_id}`;
-              }
-              const btn = document.getElementById('btnStartUpload');
-              if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = "✅ ĐÃ TẢI LÊN THÀNH CÔNG";
-              }
-              showToast("🎉 Video đã tải lên YouTube thành công!");
-            } else if (st.state === 'error') {
-              clearInterval(ytUploadPollInterval);
-              ytUploadPollInterval = null;
-              if (msgEl) msgEl.innerText = "❌ Lỗi: " + (st.error || "Tải lên thất bại");
-              const btn = document.getElementById('btnStartUpload');
-              if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = "<span>🚀</span> Thử Tải Lại";
-              }
-              alert("Lỗi tải lên YouTube: " + (st.error || "Không xác định"));
-            }
-          }
-        } catch (err) {
-          console.error("Lỗi polling upload YouTube:", err);
-        }
-      }, 1500);
-    }
-
+    
     // Auto initialize on load
     window.addEventListener('DOMContentLoaded', async () => {
       // 1. Phục hồi ngay lập tức thời lượng & thể loại đã lưu của người dùng (Không bị nhấp nháy, không bị nhảy giá trị)
