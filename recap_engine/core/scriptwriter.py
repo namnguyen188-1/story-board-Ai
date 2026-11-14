@@ -195,3 +195,53 @@ YÊU CẦU CỐT TỬ:
                 attempt += 1
 
         raise RuntimeError(f"Không thể tạo kịch bản sau {attempt} lần thử: {last_error}")
+
+    def translate_script(self, script_text: str, target_lang: str = "en") -> str:
+        """
+        Translates movie recap script to target language (en, ko, ja, zh, es, vi)
+        using Google Gemini while maintaining high-tension cinematic storytelling pacing.
+        """
+        if not script_text or not script_text.strip():
+            return ""
+
+        lang_names = {
+            "en": "English (US viral cinematic recap)",
+            "ko": "Korean (한국어 - 영화 리뷰 스타일)",
+            "ja": "Japanese (日本語 - 映画解説スタイル)",
+            "zh": "Chinese (中文 - 电影解说口吻)",
+            "es": "Spanish (Español - estilo resumen de película)",
+            "vi": "Tiếng Việt (Văn phong review phim kịch tính)"
+        }
+        lang_label = lang_names.get(target_lang, target_lang)
+
+        prompt = f"""You are an elite movie recap scriptwriter for million-view YouTube channels.
+Translate the following movie recap script into {lang_label}.
+
+CRITICAL REQUIREMENTS:
+1. Maintain high-tension, fast-paced storytelling and punchy sentences.
+2. Keep sentences concise (10 - 22 words per sentence) to match quick video cuts.
+3. Natural slang and exciting narration suitable for viral movie recaps in {lang_label}.
+4. Output ONLY the translated script directly, without markdown or extra explanations.
+
+Original script:
+{script_text}"""
+
+        models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        for attempt in range(max(3, len(self.rotator.keys) * 2)):
+            key = self.rotator.get_key()
+            if not key:
+                break
+            cur_model = models[attempt % len(models)]
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=key)
+                m = genai.GenerativeModel(cur_model)
+                res = m.generate_content(prompt)
+                if res and res.text:
+                    self.rotator.record_success(key)
+                    return res.text.strip()
+            except Exception as e:
+                self.rotator.record_failure(key, str(e))
+                time.sleep(0.4)
+
+        return script_text

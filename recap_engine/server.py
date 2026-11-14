@@ -339,6 +339,59 @@ def find_video_file(path_str: str) -> Path:
     return p
 
 
+async def handle_upload_bgm(request):
+    """Handles uploading a custom background music (.mp3, .wav, .m4a) file."""
+    try:
+        reader = await request.multipart()
+        field = await reader.next()
+        if not field or field.name != "file":
+            return web.json_response({"ok": False, "error": "No file field found"}, status=400)
+        
+        filename = field.filename or "custom_bgm.mp3"
+        ext = Path(filename).suffix.lower()
+        if ext not in [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"]:
+            return web.json_response({"ok": False, "error": "Chỉ chấp nhận file âm thanh (.mp3, .wav, .m4a, .aac)"}, status=400)
+        
+        custom_bgm_dir = RECAP_ROOT / "web" / "assets" / "custom_bgm"
+        custom_bgm_dir.mkdir(parents=True, exist_ok=True)
+        
+        safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', filename)
+        save_path = custom_bgm_dir / safe_name
+        
+        with open(save_path, "wb") as f:
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                f.write(chunk)
+        
+        print(f"🎵 [SERVER] Uploaded custom BGM: {save_path.name} ({save_path.stat().st_size} bytes)")
+        return web.json_response({
+            "ok": True,
+            "bgm_path": str(save_path),
+            "bgm_name": filename,
+            "size_mb": round(save_path.stat().st_size / (1024 * 1024), 2)
+        })
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500)
+
+
+async def handle_translate_script(request):
+    """Translates movie recap script to another language via Gemini."""
+    try:
+        data = await request.json()
+        script_text = data.get("script_text", "").strip()
+        target_lang = data.get("target_lang", "en").strip()
+        if not script_text:
+            return web.json_response({"status": "error", "message": "Nội dung kịch bản trống"}, status=400, headers=cors_headers())
+
+        writer = RecapScriptwriter()
+        translated = writer.translate_script(script_text, target_lang=target_lang)
+        return web.json_response({"status": "ok", "translated_script": translated, "target_lang": target_lang}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"status": "error", "message": str(e)}, status=500, headers=cors_headers())
+
+
 async def handle_start_render(request):
     try:
         data = await request.json()
@@ -394,6 +447,10 @@ async def handle_start_render(request):
                     watermark_motion=data.get("watermark_motion", "floating"),
                     cta_overlay=bool(data.get("cta_overlay", True)),
                     cta_text=data.get("cta_text"),
+                    movie_audio_vol=float(data.get("movie_audio_vol", 0.10)),
+                    bgm_volume=float(data.get("bgm_volume", 0.15)),
+                    export_srt=bool(data.get("export_srt", True)),
+                    export_thumbnails=bool(data.get("export_thumbnails", True)),
                     language=data.get("language", "vi"),
                     progress_callback=update_progress
                 )
@@ -476,6 +533,22 @@ async def handle_get_exports(request):
                 stat = p.stat()
                 rel = p.relative_to(EXPORT_DIR).as_posix()
                 quoted_rel = urllib.parse.quote(rel)
+                
+                # Check companion files (.srt, .txt, thumbnails)
+                has_srt = p.with_suffix(".srt").is_file()
+                srt_rel = p.with_suffix(".srt").relative_to(EXPORT_DIR).as_posix() if has_srt else None
+                has_txt = p.with_suffix(".txt").is_file()
+                txt_rel = p.with_suffix(".txt").relative_to(EXPORT_DIR).as_posix() if has_txt else None
+                
+                # Find any generated thumbnails
+                thumbs = []
+                for th in sorted(p.parent.glob(f"{p.stem}_thumb_*.jpg")):
+                    try:
+                        th_rel = th.relative_to(EXPORT_DIR).as_posix()
+                        thumbs.append(f"/exports/{urllib.parse.quote(th_rel)}")
+                    except Exception:
+                        pass
+
                 files.append({
                     "name": p.name,
                     "rel_path": rel,
@@ -483,7 +556,12 @@ async def handle_get_exports(request):
                     "full_path": str(p),
                     "size_mb": round(stat.st_size / (1024 * 1024), 2),
                     "mtime": stat.st_mtime,
-                    "time_str": time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(stat.st_mtime))
+                    "time_str": time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(stat.st_mtime)),
+                    "has_srt": has_srt,
+                    "srt_url": f"/exports/{urllib.parse.quote(srt_rel)}" if srt_rel else None,
+                    "has_txt": has_txt,
+                    "txt_url": f"/exports/{urllib.parse.quote(txt_rel)}" if txt_rel else None,
+                    "thumbnails": thumbs
                 })
             except Exception:
                 pass
@@ -497,13 +575,19 @@ async def handle_open_folder(request):
     try:
         data = await request.json()
         target = data.get("path")
+        action = data.get("action", "select")
         folder = EXPORT_DIR
         if target:
             p = Path(target)
             if p.is_file():
-                # On Windows, open explorer and highlight the exact file
-                subprocess.Popen(["explorer", f"/select,{p}"], creationflags=WIN_NO_WINDOW)
-                return web.json_response({"status": "ok", "file": str(p)}, headers=cors_headers())
+                if action == "play":
+                    import os
+                    os.startfile(str(p))
+                    return web.json_response({"status": "ok", "action": "played", "file": str(p)}, headers=cors_headers())
+                else:
+                    # On Windows, open explorer and highlight the exact file
+                    subprocess.Popen(["explorer", f"/select,{p}"], creationflags=WIN_NO_WINDOW)
+                    return web.json_response({"status": "ok", "action": "selected", "file": str(p)}, headers=cors_headers())
             elif p.is_dir():
                 folder = p
         import os
@@ -605,6 +689,8 @@ def create_app():
     app.router.add_get("/api/scan-auto", handle_auto_scan)
     app.router.add_post("/api/scan-auto", handle_auto_scan)
     app.router.add_post("/api/script/generate", handle_generate_script)
+    app.router.add_post("/api/script/translate", handle_translate_script)
+    app.router.add_post("/api/bgm/upload", handle_upload_bgm)
     app.router.add_get("/api/script/current", handle_get_current_script)
     app.router.add_get("/api/movie/info", handle_get_movie_info)
     app.router.add_post("/api/voice/preview", handle_preview_voice)

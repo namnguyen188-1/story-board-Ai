@@ -197,8 +197,11 @@
           <div class="flex items-center justify-between text-[10px] pt-0.5">
             <span id="ideaCharCounter" class="text-slate-500 font-mono">0 chữ</span>
             <div class="flex items-center gap-1.5">
+              <button type="button" id="btnTranslateScript" onclick="openTranslateModal()" class="px-2 py-1 rounded-lg bg-sky-600/25 hover:bg-sky-600/40 text-sky-300 border border-sky-500/30 text-[10px] font-medium flex items-center gap-1 transition whitespace-nowrap shadow-xs" title="Dịch kịch bản sang ngôn ngữ khác bằng AI">
+                <span>🌐</span> Dịch Kịch Bản
+              </button>
               <button type="button" id="btnGenerateScript" onclick="generateAiScript()" class="px-2.5 py-1 rounded-lg bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 text-[10px] font-medium flex items-center gap-1 transition whitespace-nowrap shadow-xs" title="Bấm để AI viết lại kịch bản 3 hồi">
-                <span>✨</span> AI Viết Lại Kịch Bản
+                <span>✨</span> AI Viết Lại
               </button>
               <button type="button" onclick="openScriptModal()" class="px-2 py-1 rounded-lg bg-[#070a12] hover:bg-[#1e293b] text-slate-300 border border-[#1c2538] text-[10px] flex items-center gap-0.5 transition whitespace-nowrap" title="Xem danh sách từng cảnh">
                 <span>📜</span> (<span id="txtScriptSegmentsCount">0</span> đoạn)
@@ -234,7 +237,7 @@
           <div class="flex items-center justify-between text-slate-300 font-semibold text-xs">
             <span class="text-sky-400 font-bold flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-              4. Lồng Tiếng & Ngôn Ngữ
+              4. Lồng Tiếng & Hòa Âm Điện Ảnh
             </span>
             <div class="flex items-center gap-1.5 bg-[#070a12] px-2 py-0.5 rounded-lg border border-[#1c2538]">
               <span class="text-[10px] text-slate-400">Tốc độ:</span>
@@ -269,15 +272,42 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-1.5">
-            <select id="selBgm" class="bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1.5 text-[11px] text-slate-200 focus:outline-none">
-              <option selected>BGM Suspense Thriller</option>
-              <option>BGM Epic Cinematic</option>
-              <option>BGM Mystery Drama</option>
-            </select>
-            <div class="flex items-center justify-between bg-[#070a12] px-2.5 py-1 rounded-lg border border-[#1c2538] text-[11px]">
-              <span class="text-slate-400">Auto-Duck BGM:</span>
-              <span class="text-emerald-400 font-mono font-bold">-18dB</span>
+          <!-- Nhạc nền BGM & Chọn Nhạc Riêng -->
+          <div class="space-y-1">
+            <div class="flex items-center gap-1.5">
+              <select id="selBgm" class="flex-1 bg-[#070a12] border border-[#1c2538] rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none">
+                <option value="BGM Suspense Thriller" selected>🎵 BGM Suspense Thriller</option>
+                <option value="BGM Epic Cinematic">🎵 BGM Epic Cinematic</option>
+                <option value="BGM Mystery Drama">🎵 BGM Mystery Drama</option>
+              </select>
+              <button type="button" onclick="triggerCustomBgmUpload()" class="h-7 px-2.5 rounded-lg bg-[#070a12] hover:bg-[#192338] text-amber-300 border border-amber-500/30 text-[10px] font-medium flex items-center gap-1 shrink-0 transition" title="Tải lên file nhạc riêng (.mp3/.wav)">
+                <span>📁</span> Nhạc Riêng
+              </button>
+              <input type="file" id="inputCustomBgm" accept=".mp3,.wav,.m4a,.aac" class="hidden" onchange="onCustomBgmSelected(event)">
+            </div>
+            <div id="boxCustomBgmActive" class="hidden flex items-center justify-between bg-amber-950/40 border border-amber-500/30 px-2 py-1 rounded-lg text-[10px]">
+              <span class="text-amber-300 truncate flex items-center gap-1">
+                <span>🎵</span> <span id="txtCustomBgmName">Nhạc riêng</span>
+              </span>
+              <button type="button" onclick="removeCustomBgm()" class="text-rose-400 hover:text-rose-300 font-bold ml-2">✕ Xóa</button>
+            </div>
+          </div>
+
+          <!-- 2 Sliders: Tiếng phim gốc & Âm lượng BGM -->
+          <div class="grid grid-cols-2 gap-2 bg-[#070a12] p-2 rounded-lg border border-[#1c2538]">
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px]">
+                <span class="text-emerald-400 font-medium">🔊 Tiếng phim:</span>
+                <span id="lblMovieAudio" class="text-emerald-300 font-mono font-bold">10%</span>
+              </div>
+              <input id="sliderMovieAudio" type="range" min="0" max="30" value="10" step="1" oninput="updateMovieAudioVol(this.value)" class="w-full h-1 accent-emerald-500 cursor-pointer" title="Âm lượng phim gốc lồng dưới giọng đọc">
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px]">
+                <span class="text-sky-400 font-medium">🎵 Nhạc BGM:</span>
+                <span id="lblBgmVol" class="text-sky-300 font-mono font-bold">15%</span>
+              </div>
+              <input id="sliderBgmVolume" type="range" min="0" max="40" value="15" step="1" oninput="updateBgmVol(this.value)" class="w-full h-1 accent-sky-500 cursor-pointer" title="Âm lượng nhạc nền BGM">
             </div>
           </div>
         </div>
@@ -699,6 +729,78 @@
 
   </div>
 
+  <!-- MODAL DỊCH KỊCH BẢN BẰNG AI -->
+  <div id="translateModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0f172a] border border-[#2d3a52] rounded-xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-3.5 bg-[#131b2e] border-b border-[#2d3a52] flex justify-between items-center">
+        <span class="font-bold text-white text-xs flex items-center gap-2">
+          <span class="text-sky-400">🌐</span> <span>DỊCH KỊCH BẢN TỰ ĐỘNG BẰNG AI (6 NGÔN NGỮ)</span>
+        </span>
+        <button onclick="closeTranslateModal()" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">✕</button>
+      </div>
+
+      <div class="p-4 space-y-3 text-xs">
+        <p class="text-slate-300 text-[11px] leading-relaxed">
+          AI Gemini sẽ chuyển ngữ kịch bản phim, giữ trọn sắc thái giật gân, nhịp câu cuốn hút và từ vựng viral phù hợp với thị hiếu khán giả quốc tế.
+        </p>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-[#080d1a] border border-[#1d273c] hover:border-sky-500/50 cursor-pointer transition">
+            <input type="radio" name="radioTargetLang" value="en" checked class="accent-sky-500">
+            <div>
+              <p class="font-bold text-slate-100">🇺🇸 English (US/Global)</p>
+              <p class="text-[9px] text-slate-400">Tiếng Anh toàn cầu</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-[#080d1a] border border-[#1d273c] hover:border-sky-500/50 cursor-pointer transition">
+            <input type="radio" name="radioTargetLang" value="ko" class="accent-sky-500">
+            <div>
+              <p class="font-bold text-slate-100">🇰🇷 한국어 (Korean)</p>
+              <p class="text-[9px] text-slate-400">Tiếng Hàn Quốc</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-[#080d1a] border border-[#1d273c] hover:border-sky-500/50 cursor-pointer transition">
+            <input type="radio" name="radioTargetLang" value="ja" class="accent-sky-500">
+            <div>
+              <p class="font-bold text-slate-100">🇯🇵 日本語 (Japanese)</p>
+              <p class="text-[9px] text-slate-400">Tiếng Nhật Bản</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-[#080d1a] border border-[#1d273c] hover:border-sky-500/50 cursor-pointer transition">
+            <input type="radio" name="radioTargetLang" value="zh" class="accent-sky-500">
+            <div>
+              <p class="font-bold text-slate-100">🇨🇳 中文 (Chinese)</p>
+              <p class="text-[9px] text-slate-400">Tiếng Trung giản thể</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-[#080d1a] border border-[#1d273c] hover:border-sky-500/50 cursor-pointer transition">
+            <input type="radio" name="radioTargetLang" value="es" class="accent-sky-500">
+            <div>
+              <p class="font-bold text-slate-100">🇪🇸 Español (Spanish)</p>
+              <p class="text-[9px] text-slate-400">Tiếng Tây Ban Nha</p>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-lg bg-[#080d1a] border border-[#1d273c] hover:border-sky-500/50 cursor-pointer transition">
+            <input type="radio" name="radioTargetLang" value="vi" class="accent-sky-500">
+            <div>
+              <p class="font-bold text-slate-100">🇻🇳 Tiếng Việt</p>
+              <p class="text-[9px] text-slate-400">Bản tiếng Việt chuẩn</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="p-3 bg-[#131b2e] border-t border-[#2d3a52] flex justify-end items-center gap-2 text-xs">
+        <button onclick="closeTranslateModal()" class="px-3 py-1.5 rounded-lg bg-[#1e293b] hover:bg-slate-700 text-slate-300 font-medium transition">
+          Hủy
+        </button>
+        <button id="btnDoTranslate" onclick="executeTranslateScript()" class="px-4 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center gap-1.5 shadow-md transition">
+          <span>🚀</span> Bắt Đầu Dịch
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPT MODAL -->
   <div id="scriptModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-[#0f172a] border border-[#2d3a52] rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
@@ -847,11 +949,20 @@
             <button id="btnSendToMonitor2" onclick="sendActiveModalVideoToMonitor2()" class="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
               <span>🎬</span> Chiếu Lên Monitor 2 (Bản Thành Phẩm)
             </button>
+            <button id="btnModalPlayNative" onclick="playActiveVideoNative()" class="h-8 px-3 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 text-xs flex items-center gap-1.5 font-semibold transition" title="Mở trực tiếp bằng phần mềm xem phim của máy (VLC, Media Player)">
+              <span>📺</span> Mở Bằng Media Player
+            </button>
             <a id="btnModalDownload" href="#" download class="h-8 px-3 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1.5 font-medium transition">
               <span>⬇</span> Tải Video Này
             </a>
+            <a id="btnModalDownloadSrt" href="#" download class="hidden h-8 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-sky-300 border border-sky-500/30 text-xs flex items-center gap-1 font-medium transition" title="Tải file phụ đề rời .srt">
+              <span>📄</span> Tải SRT
+            </a>
+            <a id="btnModalDownloadTxt" href="#" download class="hidden h-8 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 font-medium transition" title="Tải kịch bản .txt">
+              <span>📜</span> Tải TXT
+            </a>
             <button id="btnModalOpenFile" onclick="openActiveVideoFileOnDisk()" class="h-8 px-3 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1.5 transition">
-              <span>📂</span> Mở File Trên Máy
+              <span>📂</span> Mở Thư Mục
             </button>
           </div>
         </div>
@@ -2185,6 +2296,29 @@
 
     let activeModalVideo = null;
 
+    function playActiveVideoNative() {
+      if (!activeModalVideo && currentExports && currentExports.length > 0) {
+        activeModalVideo = currentExports[0];
+      }
+      if (activeModalVideo && activeModalVideo.full_path) {
+        fetch('/api/open-folder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ path: activeModalVideo.full_path, action: 'play' })
+        });
+      }
+    }
+
+    function playNativeByIndex(idx) {
+      if (currentExports && currentExports[idx] && currentExports[idx].full_path) {
+        fetch('/api/open-folder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ path: currentExports[idx].full_path, action: 'play' })
+        });
+      }
+    }
+
     function previewInModal(idx, autoPlay = true) {
       if (!currentExports || !currentExports[idx]) return;
       const item = currentExports[idx];
@@ -2196,11 +2330,25 @@
       const meta = document.getElementById('modalVideoMeta');
       const pathEl = document.getElementById('modalVideoPath');
       const btnDl = document.getElementById('btnModalDownload');
+      const btnSrt = document.getElementById('btnModalDownloadSrt');
+      const btnTxt = document.getElementById('btnModalDownloadTxt');
 
       if (player) {
+        player.pause();
         player.src = item.url;
         player.muted = false;
         if (empty) empty.classList.add('hidden');
+        player.onerror = (e) => {
+          console.warn("HTML5 Player decode/play issue:", e);
+          if (empty) {
+            empty.classList.remove('hidden');
+            empty.innerHTML = `
+              <span class="text-3xl mb-1 text-amber-400">📺</span>
+              <p class="text-xs text-amber-200 font-bold">Trình duyệt không giải mã được codec này</p>
+              <p class="text-[10px] text-slate-400 mt-1">Bấm nút "📺 Mở Bằng Media Player" bên cạnh để xem ngay bằng Windows!</p>
+            `;
+          }
+        };
         if (autoPlay) {
           player.play().catch(e => console.warn("Player play error:", e));
         }
@@ -2211,6 +2359,24 @@
       if (btnDl) {
         btnDl.href = item.url;
         btnDl.download = item.name;
+      }
+      if (btnSrt) {
+        if (item.has_srt && item.srt_url) {
+          btnSrt.href = item.srt_url;
+          btnSrt.download = item.name.replace(/\.[^/.]+$/, "") + ".srt";
+          btnSrt.classList.remove('hidden');
+        } else {
+          btnSrt.classList.add('hidden');
+        }
+      }
+      if (btnTxt) {
+        if (item.has_txt && item.txt_url) {
+          btnTxt.href = item.txt_url;
+          btnTxt.download = item.name.replace(/\.[^/.]+$/, "") + "_kich_ban.txt";
+          btnTxt.classList.remove('hidden');
+        } else {
+          btnTxt.classList.add('hidden');
+        }
       }
     }
 
@@ -2294,34 +2460,65 @@
         return;
       }
       container.innerHTML = list.map((exp, idx) => `
-        <div class="p-3 rounded-xl bg-[#080d1a] border border-[#1d273c] hover:border-emerald-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all shadow-sm">
-          <div class="space-y-1 max-w-xl cursor-pointer" onclick="previewInModal(${idx})">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span class="text-emerald-400">🎬</span>
-                <span>${idx === 0 ? '🌟 MỚI NHẤT: ' : ''}${exp.name}</span>
-              </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono font-bold">${exp.size_mb} MB</span>
+        <div class="p-3.5 rounded-xl bg-[#080d1a] border border-[#1d273c] hover:border-emerald-500/50 flex flex-col gap-2.5 transition-all shadow-sm">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="space-y-1 max-w-xl cursor-pointer" onclick="previewInModal(${idx})">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span class="text-emerald-400">🎬</span>
+                  <span>${idx === 0 ? '🌟 MỚI NHẤT: ' : ''}${exp.name}</span>
+                </span>
+                <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono font-bold">${exp.size_mb} MB</span>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono">📅 Ngày xuất: ${exp.time_str} • Đường dẫn: ${exp.rel_path}</p>
             </div>
-            <p class="text-[10px] text-slate-400 font-mono">📅 Ngày xuất: ${exp.time_str} • Đường dẫn: ${exp.rel_path}</p>
+            <div class="flex items-center gap-1.5 shrink-0 flex-wrap self-end sm:self-auto">
+              <button onclick="previewInModal(${idx})" class="h-7 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition">
+                <span>▶</span> Xem Thử
+              </button>
+              <button onclick="playNativeByIndex(${idx})" class="h-7 px-2.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1 transition" title="Mở trực tiếp bằng phần mềm xem phim Windows (VLC, Media Player)">
+                <span>📺</span> Mở Máy
+              </button>
+              <button onclick="playIndexInMonitor2(${idx}); closeExportsModal();" class="h-7 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1 transition" title="Chiếu lên Monitor 2 ở màn hình chính">
+                <span>🎬</span> Monitor 2
+              </button>
+              <a href="${exp.url}" download="${exp.name}" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1 font-medium transition" title="Tải file video .mp4">
+                <span>⬇</span> Video
+              </a>
+              ${exp.has_srt && exp.srt_url ? `
+                <a href="${exp.srt_url}" download="${exp.name.replace(/\.[^/.]+$/, '')}.srt" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-sky-300 border border-sky-500/30 text-xs flex items-center gap-1 font-medium transition" title="Tải file phụ đề rời chuẩn YouTube SEO">
+                  <span>📄</span> SRT
+                </a>
+              ` : ''}
+              ${exp.has_txt && exp.txt_url ? `
+                <a href="${exp.txt_url}" download="${exp.name.replace(/\.[^/.]+$/, '')}_kich_ban.txt" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 font-medium transition" title="Tải kịch bản lời đọc .txt">
+                  <span>📜</span> TXT
+                </a>
+              ` : ''}
+              <button onclick="openExportsFolderByIndex(${idx})" title="Mở vị trí file trên máy tính" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 transition">
+                <span>📂</span>
+              </button>
+              <button onclick="deleteExportByIndex(${idx})" title="Xóa video và file phụ đi kèm khỏi thư viện" class="h-7 px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 text-xs flex items-center gap-1 transition">
+                <span>🗑️</span>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-            <button onclick="previewInModal(${idx})" class="h-7 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition">
-              <span>▶</span> Xem Thử
-            </button>
-            <button onclick="playIndexInMonitor2(${idx}); closeExportsModal();" class="h-7 px-2.5 rounded-lg bg-[#192338] hover:bg-[#22314e] text-emerald-300 border border-emerald-500/30 text-xs flex items-center gap-1 transition" title="Chiếu lên Monitor 2 ở màn hình chính">
-              <span>🎬</span> Monitor 2
-            </button>
-            <a href="${exp.url}" download="${exp.name}" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-slate-200 border border-[#2d3a52] text-xs flex items-center gap-1 font-medium transition">
-              <span>⬇</span> Tải
-            </a>
-            <button onclick="openExportsFolderByIndex(${idx})" title="Mở file trên máy tính" class="h-7 px-2 rounded-lg bg-[#192338] hover:bg-[#22314e] text-amber-300 border border-amber-500/30 text-xs flex items-center gap-1 transition">
-              <span>📂</span>
-            </button>
-            <button onclick="deleteExportByIndex(${idx})" title="Xóa video khỏi thư viện" class="h-7 px-2 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/30 text-xs flex items-center gap-1 transition">
-              <span>🗑️</span>
-            </button>
-          </div>
+
+          ${exp.thumbnails && exp.thumbnails.length > 0 ? `
+            <div class="pt-2 border-t border-[#1d273c]/50 flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] text-slate-400 font-mono font-medium flex items-center gap-1">
+                <span>📸</span> Ảnh Bìa Thumbnail HD:
+              </span>
+              <div class="flex items-center gap-2">
+                ${exp.thumbnails.map((th, tIdx) => `
+                  <a href="${th}" target="_blank" download="${exp.name.replace(/\.[^/.]+$/, '')}_thumb_${tIdx+1}.jpg" title="Nhấp để xem/tải ảnh bìa HD #${tIdx+1} làm thumbnail YouTube" class="group relative rounded-lg overflow-hidden border border-[#2d3a52] hover:border-amber-400 transition-all shadow-sm">
+                    <img src="${th}" alt="Thumbnail #${tIdx+1}" class="w-20 h-11 object-cover group-hover:scale-105 transition-transform">
+                    <span class="absolute bottom-0 right-0 bg-black/80 text-[9px] text-amber-300 font-mono px-1 rounded-tl">#${tIdx+1}</span>
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
         </div>
       `).join('');
     }
@@ -2823,6 +3020,141 @@
       });
     }
 
+    // Toast helper
+    function showToast(msg, duration = 3000) {
+      let toast = document.getElementById('studioToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'studioToast';
+        toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-slate-900/90 text-emerald-300 border border-emerald-500/40 shadow-2xl backdrop-blur-md text-xs font-semibold flex items-center gap-2 transition-all transform duration-300 opacity-0 translate-y-3 pointer-events-none';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<span>✨</span> <span>${msg}</span>`;
+      toast.classList.remove('opacity-0', 'translate-y-3', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-3', 'pointer-events-none');
+      }, duration);
+    }
+
+    // Audio mixing & Custom BGM helpers
+    let customBgmPath = null;
+
+    function updateMovieAudioVol(val) {
+      const lbl = document.getElementById('lblMovieAudio');
+      if (lbl) lbl.innerText = val + '%';
+    }
+
+    function updateBgmVol(val) {
+      const lbl = document.getElementById('lblBgmVol');
+      if (lbl) lbl.innerText = val + '%';
+    }
+
+    function triggerCustomBgmUpload() {
+      const fileInput = document.getElementById('inputCustomBgm');
+      if (fileInput) fileInput.click();
+    }
+
+    async function onCustomBgmSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/bgm/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.ok) {
+          customBgmPath = data.bgm_path;
+          const box = document.getElementById('boxCustomBgmActive');
+          const nameEl = document.getElementById('txtCustomBgmName');
+          if (box) box.classList.remove('hidden');
+          if (nameEl) nameEl.innerText = `${data.bgm_name} (${data.size_mb} MB)`;
+          showToast(`Đã nạp nhạc riêng: ${data.bgm_name}`);
+        } else {
+          alert("Lỗi tải nhạc: " + (data.error || "Không xác định"));
+        }
+      } catch (err) {
+        alert("Lỗi kết nối khi tải nhạc: " + err.message);
+      }
+    }
+
+    function removeCustomBgm() {
+      customBgmPath = null;
+      const box = document.getElementById('boxCustomBgmActive');
+      if (box) box.classList.add('hidden');
+      const fileInput = document.getElementById('inputCustomBgm');
+      if (fileInput) fileInput.value = '';
+      showToast("Đã chuyển về nhạc nền mặc định");
+    }
+
+    // AI Script Translation Helpers
+    function openTranslateModal() {
+      const text = (document.getElementById('inputStoryIdea')?.value || "").trim();
+      if (!text) {
+        alert("Chưa có kịch bản hoặc ý tưởng để dịch! Vui lòng nạp video hoặc gõ ý tưởng trước.");
+        return;
+      }
+      document.getElementById('translateModal').classList.remove('hidden');
+    }
+
+    function closeTranslateModal() {
+      document.getElementById('translateModal').classList.add('hidden');
+    }
+
+    async function executeTranslateScript() {
+      const text = (document.getElementById('inputStoryIdea')?.value || "").trim();
+      if (!text) {
+        closeTranslateModal();
+        return;
+      }
+      const targetLang = document.querySelector('input[name="radioTargetLang"]:checked')?.value || "en";
+      const btn = document.getElementById('btnDoTranslate');
+      const origBtnText = btn ? btn.innerHTML : "🚀 Bắt Đầu Dịch";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Đang dịch AI...";
+      }
+
+      try {
+        const res = await fetch('/api/script/translate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            script_text: text,
+            target_lang: targetLang
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          const txtArea = document.getElementById('inputStoryIdea');
+          if (txtArea) {
+            txtArea.value = data.translated_text;
+            onStoryIdeaChanged(data.translated_text);
+          }
+          const selLang = document.getElementById('selLanguage');
+          if (selLang && [...selLang.options].some(o => o.value === targetLang)) {
+            selLang.value = targetLang;
+            changeLanguage(targetLang);
+          }
+          closeTranslateModal();
+          showToast(`Đã dịch kịch bản sang ${targetLang.toUpperCase()} thành công!`);
+        } else {
+          alert("Lỗi dịch kịch bản: " + (data.message || "Không xác định"));
+        }
+      } catch (err) {
+        alert("Lỗi kết nối khi dịch: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origBtnText;
+        }
+      }
+    }
+
     // 14. Start Production
     let renderInterval = null;
     async function startProduction(e) {
@@ -2886,6 +3218,11 @@
           watermark_motion: document.getElementById('selWatermarkMotion')?.value || "floating",
           cta_overlay: document.getElementById('chkCtaOverlay') ? document.getElementById('chkCtaOverlay').checked : true,
           cta_text: (document.getElementById('inputCtaText')?.value || "").trim(),
+          movie_audio_vol: parseFloat(document.getElementById('sliderMovieAudio')?.value || "10") / 100.0,
+          bgm_volume: parseFloat(document.getElementById('sliderBgmVolume')?.value || "15") / 100.0,
+          bgm_file: customBgmPath || document.getElementById('selBgm')?.value,
+          export_srt: true,
+          export_thumbnails: true,
           language: document.getElementById('selLanguage')?.value || "vi",
           subtitle_config: {
             pos_x_pct: posX,

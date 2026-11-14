@@ -57,6 +57,10 @@ class RecapRenderer:
         watermark_motion: str = "floating",
         cta_overlay: bool = True,
         cta_text: Optional[str] = None,
+        movie_audio_vol: float = 0.10,
+        bgm_volume: float = 0.15,
+        export_srt: bool = True,
+        export_thumbnails: bool = True,
         progress_callback: Optional[Callable[[str, float], None]] = None
     ) -> str:
         """
@@ -108,6 +112,20 @@ class RecapRenderer:
 
                 slice_v_filter = f"{v_filter},fps=30" if "fps=30" not in v_filter else v_filter
 
+                # Cấu hình âm thanh gốc của phim (Ambience):
+                if movie_audio_vol > 0.001:
+                    a_filters = ["aresample=48000"]
+                    if abs(speed_factor - 1.0) > 0.001:
+                        a_filters.append(f"atempo={speed_factor:.4f}")
+                    audio_slice_args = [
+                        "-af", ",".join(a_filters),
+                        "-c:a", "aac",
+                        "-b:a", "128k",
+                        "-ac", "2"
+                    ]
+                else:
+                    audio_slice_args = ["-an"]
+
                 cmd_slice = [
                     self.ffmpeg, "-y",
                     "-ss", str(cut["source_start"]),
@@ -117,8 +135,8 @@ class RecapRenderer:
                     "-frames:v", str(exact_frames),
                     "-c:v", v_codec,
                     "-pix_fmt", "yuv420p",
-                    "-r", "30",
-                    "-an",  # Strip original audio from individual video slices
+                    "-r", "30"
+                ] + audio_slice_args + [
                     str(slice_path)
                 ]
 
@@ -291,12 +309,42 @@ class RecapRenderer:
                 fc_parts.extend(cta_clauses)
                 curr_v = out_v_tag
 
-            # Step 5C: Audio Mixing (Voice + BGM auto-ducking)
+            # Step 5C: Audio Mixing (Voice 100% + Movie Ambience + BGM + CTA SFX)
+            has_movie_audio = (movie_audio_vol > 0.001)
+            a_inputs_list = []
+
+            # Voice is always index 1
+            fc_parts.append("[1:a]volume=1.0[v_voice]")
+            a_inputs_list.append("[v_voice]")
+
+            # Movie original ambience
+            if has_movie_audio:
+                fc_parts.append(f"[0:a]volume={movie_audio_vol:.2f}[v_movie]")
+                a_inputs_list.append("[v_movie]")
+
+            # Background music
             if bgm_input_idx is not None:
+                fc_parts.append(f"[{bgm_input_idx}:a]volume={bgm_volume:.2f}[v_bgm]")
+                a_inputs_list.append("[v_bgm]")
+
+            # CTA Sound Effects (Whoosh, Pop, Bell Chime)
+            if cta_input_idx is not None and cta_times:
+                try:
+                    if len(cta_times) == 1:
+                        fc_parts.append(f"[{cta_input_idx}:a]adelay={int(cta_times[0]*1000)}|{int(cta_times[0]*1000)},volume=0.85[cta_a_0]")
+                        a_inputs_list.append("[cta_a_0]")
+                    elif len(cta_times) > 1:
+                        asplit_tags = "".join([f"[cta_as_{k}]" for k in range(len(cta_times))])
+                        fc_parts.append(f"[{cta_input_idx}:a]asplit={len(cta_times)}{asplit_tags}")
+                        for k, t_sec in enumerate(cta_times):
+                            fc_parts.append(f"[cta_as_{k}]adelay={int(t_sec*1000)}|{int(t_sec*1000)},volume=0.85[cta_a_{k}]")
+                            a_inputs_list.append(f"[cta_a_{k}]")
+                except Exception as _cta_err:
+                    logger.warning(f"Could not add CTA SFX audio: {_cta_err}")
+
+            if len(a_inputs_list) > 1:
                 fc_parts.append(
-                    f"[1:a]volume=1.0[v_voice];"
-                    f"[{bgm_input_idx}:a]volume=0.15[v_bgm];"
-                    f"[v_voice][v_bgm]amix=inputs=2:duration=first:dropout_transition=2[a_out]"
+                    f"{''.join(a_inputs_list)}amix=inputs={len(a_inputs_list)}:duration=first:dropout_transition=2[a_out]"
                 )
                 audio_map_tag = "[a_out]"
             else:
@@ -336,6 +384,45 @@ class RecapRenderer:
 
                 if res_final.returncode != 0:
                     raise RuntimeError(f"Lỗi xuất video hoàn thiện: {res_final.stderr.decode('utf-8', errors='replace')}")
+
+            # Step 6: Tự động xuất file phụ đề rời .SRT & .ASS (Tính năng 4)
+            if export_srt and subtitle_ass_file and Path(subtitle_ass_file).is_file():
+                try:
+                    target_ass = out_path.with_suffix(".ass")
+                    shutil.copy2(subtitle_ass_file, target_ass)
+                    target_srt = out_path.with_suffix(".srt")
+                    cmd_conv_srt = [
+                        self.ffmpeg, "-y",
+                        "-i", str(subtitle_ass_file),
+                        str(target_srt)
+                    ]
+                    subprocess.run(cmd_conv_srt, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=WIN_NO_WINDOW)
+                except Exception as e:
+                    print(f"[RECAP_RENDERER_WARN] Export SRT error: {e}", flush=True)
+
+            # Step 7: Tự động trích xuất 3 ảnh Thumbnail HD (Tính năng 7)
+            if export_thumbnails:
+                try:
+                    dur_for_thumb = max(10.0, total_dur)
+                    thumb_points = [
+                        round(dur_for_thumb * 0.25, 2),
+                        round(dur_for_thumb * 0.55, 2),
+                        round(dur_for_thumb * 0.85, 2)
+                    ]
+                    for idx_th, th_time in enumerate(thumb_points, 1):
+                        thumb_file = out_path.parent / f"{out_path.stem}_thumb_{idx_th}.jpg"
+                        cmd_thumb = [
+                            self.ffmpeg, "-y",
+                            "-ss", str(th_time),
+                            "-i", str(raw_video_path),
+                            "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,eq=contrast=1.12:saturation=1.15",
+                            "-vframes", "1",
+                            "-q:v", "2",
+                            str(thumb_file)
+                        ]
+                        subprocess.run(cmd_thumb, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=WIN_NO_WINDOW)
+                except Exception as e:
+                    print(f"[RECAP_RENDERER_WARN] Export Thumbnail error: {e}", flush=True)
 
             if progress_callback:
                 progress_callback("Hoàn thành xuất video!", 100.0)

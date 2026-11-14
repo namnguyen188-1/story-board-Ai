@@ -58,6 +58,10 @@ class MovieRecapPipeline:
         watermark_motion: str = "floating",
         cta_overlay: bool = True,
         cta_text: Optional[str] = None,
+        movie_audio_vol: float = 0.10,
+        bgm_volume: float = 0.15,
+        export_srt: bool = True,
+        export_thumbnails: bool = True,
         language: str = "vi",
         output_filename: Optional[str] = None,
         progress_callback: Optional[Callable[[str, float], None]] = None
@@ -253,8 +257,40 @@ class MovieRecapPipeline:
             watermark_motion=watermark_motion,
             cta_overlay=cta_overlay,
             cta_text=cta_text,
+            movie_audio_vol=movie_audio_vol,
+            bgm_volume=bgm_volume,
+            export_srt=export_srt,
+            export_thumbnails=export_thumbnails,
             progress_callback=render_progress
         )
+
+        # Lưu file kịch bản lời thoại sạch .TXT đi kèm video
+        try:
+            txt_path = final_output_path.with_suffix(".txt")
+            txt_lines = [
+                f"TIÊU ĐỀ: {movie_title}",
+                f"THỜI LƯỢNG: {total_voice_duration:.1f}s ({len(timeline_cuts)} phân cảnh)",
+                "=" * 50,
+                ""
+            ]
+            for s in script_data.get("segments", []):
+                txt_lines.append(f"[{s.get('id', '')}] {s.get('text', '')}")
+            txt_path.write_text("\n".join(txt_lines), encoding="utf-8")
+        except Exception:
+            pass
+
+        # Sao chép trực tiếp ra thư mục exports gốc để xuất hiện ngay trên Thư viện
+        try:
+            import shutil
+            root_export_vid = export_dir / final_filename
+            if root_export_vid.resolve() != final_output_path.resolve():
+                shutil.copy2(final_output_path, root_export_vid)
+                if final_output_path.with_suffix(".srt").is_file():
+                    shutil.copy2(final_output_path.with_suffix(".srt"), root_export_vid.with_suffix(".srt"))
+                if final_output_path.with_suffix(".txt").is_file():
+                    shutil.copy2(final_output_path.with_suffix(".txt"), root_export_vid.with_suffix(".txt"))
+        except Exception:
+            pass
 
         total_time = round(time.time() - t0, 1)
         report(f"🎉 Xuất video review thành công trong {total_time}s!", 100.0)
