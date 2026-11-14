@@ -347,7 +347,7 @@ BẮT BUỘC TRẢ VỀ ĐỊNH DẠNG JSON DUY NHẤT:
   "movie_title": "Tiêu đề review giật gân, cuốn hút khớp 100% nội dung hình ảnh",
   "genre": "Thể loại phim thực tế xác định qua hình ảnh (ví dụ: Viễn tưởng / Hành động / Sinh tồn)",
   "characters": [
-    {{"orig": "Nhận diện nhân vật qua ngoại hình/vai vế", "alias": "Biệt danh review dí dỏm, cuốn hút"}}
+    {{"orig": "Tên riêng nhân vật (ví dụ: Jack, Sarah, Victor, David... hoặc tên gốc trong phim)", "alias": "Danh xưng / Biệt danh review cuốn hút (ví dụ: Chàng Kỹ Sư Jack, Cô Nàng Sarah, Gã Trùm Victor)"}}
   ],
   "visual_timeline": [
     {{
@@ -531,13 +531,45 @@ BẮT BUỘC xuất đủ {len(keyframes)} phần tử trong visual_timeline tư
                                 char_counts[w] = (char_counts.get(w, (0, f"Nhân Vật {w}"))[0] + 1, f"Nhân Vật {w}")
 
             if not char_counts:
-                first_w = suggested_title.split()[0] if suggested_title else "Chính"
-                char_counts = {
-                    f"Nhân Vật {first_w}": (10, f"Nhân Vật Chính ({first_w})"),
-                    "Kẻ Đối Đầu": (7, "Kẻ Đối Đầu Nguy Hiểm"),
-                    "Người Đồng Hành": (5, "Người Đồng Đội Tin Cậy"),
-                    "Nhân Vật Bí Ẩn": (3, "Kẻ Giấu Mặt")
-                }
+                genre_lower = suggested_genre.lower()
+                title_lower = suggested_title.lower()
+                is_vn = any(k in title_lower for k in ["phim", "nguoi", "tinh", "anh", "em", "chuyen", "dem", "ngay", "nam", "viet"])
+                if is_vn:
+                    char_counts = {
+                        "Nam (Nam Chính)": (10, "Chàng Trai Nam"),
+                        "Mai (Nữ Chính)": (8, "Cô Nàng Mai"),
+                        "Hùng (Kẻ Phản Diện)": (6, "Gã Trùm Hùng"),
+                        "Phong (Bạn Thân)": (4, "Cậu Bạn Phong")
+                    }
+                elif "hài" in genre_lower or "comedy" in genre_lower:
+                    char_counts = {
+                        "Alex (Chàng Ngố)": (10, "Anh Chàng Alex"),
+                        "Leo (Bạn Thân)": (8, "Quân Sư Leo"),
+                        "Emma (Nàng Thơ)": (6, "Cô Nàng Emma"),
+                        "Ông Bob (Hàng Xóm)": (4, "Lão Hàng Xóm Bob")
+                    }
+                elif "kinh dị" in genre_lower or "horror" in genre_lower or "ghost" in genre_lower:
+                    char_counts = {
+                        "Ethan (Nam Chính)": (10, "Chàng Trai Ethan"),
+                        "Mia (Nữ Chính)": (8, "Cô Gái Mia"),
+                        "Lucas (Kẻ Truy Sát)": (6, "Gã Sát Nhân Lucas"),
+                        "Bác Sĩ Kane": (4, "Bác Sĩ Kane Quái Dị")
+                    }
+                elif "tình cảm" in genre_lower or "drama" in genre_lower or "romance" in genre_lower:
+                    char_counts = {
+                        "Arthur (Nam Chính)": (10, "Chàng Lãng Tử Arthur"),
+                        "Elena (Nữ Chính)": (8, "Tiểu Thư Elena"),
+                        "Marcus (Kình Địch)": (6, "Thiếu Gia Marcus"),
+                        "Chloe (Bạn Thân)": (4, "Cô Bạn Thân Chloe")
+                    }
+                else:
+                    # Action / Thriller default
+                    char_counts = {
+                        "Jack (Nam Chính)": (10, "Chàng Đặc Nhiệm Jack"),
+                        "Victor (Trùm Phản Diện)": (8, "Gã Sát Thủ Victor"),
+                        "Sarah (Nữ Chính)": (6, "Cô Nàng Sarah"),
+                        "David (Cảnh Sát)": (4, "Thanh Tra David")
+                    }
 
             sorted_chars = sorted(
                 char_counts.items(),

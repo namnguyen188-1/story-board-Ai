@@ -209,24 +209,37 @@
             </div>
           </div>
 
-          <!-- THU GỌN BIỆT DANH NHÂN VẬT GỌN GÀNG -->
-          <details id="detailsAliases" class="group bg-[#070a12] border border-[#1c2538] rounded-lg p-2 text-[11px]">
+          <!-- ĐỔI TÊN & BIỆT DANH NHÂN VẬT -->
+          <details id="detailsAliases" open class="group bg-[#070a12] border border-[#1c2538] rounded-lg p-2 text-[11px]">
             <summary class="cursor-pointer flex items-center justify-between text-slate-400 hover:text-amber-300 font-medium select-none text-[10px]">
               <span class="flex items-center gap-1.5">
                 <span>🏷️</span>
-                <span>Đổi tên & Biệt danh nhân vật</span>
-                <span id="badgeAliasCount" class="text-[9px] text-amber-400 font-mono bg-amber-950/60 px-1.5 py-0.2 rounded-md border border-amber-500/20">Tự động</span>
+                <span>Tên nhân vật & Biệt danh review</span>
+                <span id="badgeAliasCount" class="text-[9px] text-amber-400 font-mono bg-amber-950/60 px-1.5 py-0.2 rounded-md border border-amber-500/20">3 nhân vật</span>
               </span>
               <span class="text-[9px] text-slate-500 group-open:rotate-180 transition-transform">▼</span>
             </summary>
             <div class="pt-2 space-y-1.5 border-t border-[#1c2538]/60 mt-1.5">
               <div id="characterAliasesList" class="space-y-1 text-[11px]">
-                <div class="text-[10px] text-slate-500 py-0.5 italic">
-                  AI sẽ tự động diễn xuất và đặt tên nhân vật phù hợp.
+                <div class="flex items-center gap-1.5 bg-[#0b101a] p-1.5 rounded-lg border border-[#1e293b]">
+                  <input type="text" id="aliasOrig1" value="Jack (Nam Chính)" placeholder="Tên nhân vật" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-slate-200 font-semibold focus:outline-none text-[10px]">
+                  <span class="text-amber-400 font-bold text-[10px]">➔</span>
+                  <input type="text" id="aliasTarget1" value="Chàng Đặc Nhiệm Jack" placeholder="Biệt danh review" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-amber-500/30 rounded px-2 py-1 text-amber-300 font-bold focus:outline-none text-[10px]">
+                </div>
+                <div class="flex items-center gap-1.5 bg-[#0b101a] p-1.5 rounded-lg border border-[#1e293b]">
+                  <input type="text" id="aliasOrig2" value="Victor (Phản Diện)" placeholder="Tên nhân vật" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-slate-200 font-semibold focus:outline-none text-[10px]">
+                  <span class="text-amber-400 font-bold text-[10px]">➔</span>
+                  <input type="text" id="aliasTarget2" value="Gã Sát Thủ Victor" placeholder="Biệt danh review" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-amber-500/30 rounded px-2 py-1 text-amber-300 font-bold focus:outline-none text-[10px]">
+                </div>
+                <div class="flex items-center gap-1.5 bg-[#0b101a] p-1.5 rounded-lg border border-[#1e293b]">
+                  <input type="text" id="aliasOrig3" value="Sarah (Nữ Chính)" placeholder="Tên nhân vật" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-slate-200 font-semibold focus:outline-none text-[10px]">
+                  <span class="text-amber-400 font-bold text-[10px]">➔</span>
+                  <input type="text" id="aliasTarget3" value="Cô Nàng Sarah" placeholder="Biệt danh review" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-amber-500/30 rounded px-2 py-1 text-amber-300 font-bold focus:outline-none text-[10px]">
                 </div>
               </div>
-              <div class="flex justify-end pt-0.5">
-                <button type="button" onclick="addCharacterRow()" class="text-[10px] text-amber-400 hover:underline">+ Thêm nhân vật</button>
+              <div class="flex justify-between items-center pt-0.5 text-[10px]">
+                <span class="text-slate-500 italic">AI gọi đích danh tên nhân vật trong kịch bản</span>
+                <button type="button" onclick="addCharacterRow()" class="text-amber-400 hover:underline font-semibold">+ Thêm nhân vật</button>
               </div>
             </div>
           </details>
@@ -1763,20 +1776,27 @@
 
       const chars = data.detected_characters || [];
       const badgeAlias = document.getElementById('badgeAliasCount');
+      const detailsEl = document.getElementById('detailsAliases');
       if (badgeAlias) {
-        badgeAlias.innerText = chars.length > 0 ? `${chars.length} nhân vật` : "Tự động";
+        if (chars.length > 0) {
+          const namesPreview = chars.slice(0, 3).map(c => c.orig.split(' ')[0]).join(', ');
+          badgeAlias.innerText = `${chars.length} nhân vật: ${namesPreview}`;
+        } else {
+          badgeAlias.innerText = "Tự động";
+        }
       }
 
       const charContainer = document.getElementById('characterAliasesList');
       if (charContainer) {
         if (chars.length > 0) {
           charContainer.innerHTML = chars.map((c, i) => `
-            <div class="flex items-center gap-1.5 bg-[#0b101a] p-1 rounded border border-[#1e293b]">
-              <input type="text" id="aliasOrig${i+1}" value="${c.orig}" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-1.5 py-0.5 text-slate-300 focus:outline-none text-[10px]">
-              <span class="text-slate-500 text-[10px]">➔</span>
-              <input type="text" id="aliasTarget${i+1}" value="${c.alias}" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-1.5 py-0.5 text-amber-300 font-semibold focus:outline-none text-[10px]">
+            <div class="flex items-center gap-1.5 bg-[#0b101a] p-1.5 rounded-lg border border-[#1e293b]">
+              <input type="text" id="aliasOrig${i+1}" value="${c.orig}" placeholder="Tên nhân vật" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-slate-200 font-semibold focus:outline-none text-[10px]">
+              <span class="text-amber-400 font-bold text-[10px]">➔</span>
+              <input type="text" id="aliasTarget${i+1}" value="${c.alias}" placeholder="Biệt danh review" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-amber-500/30 rounded px-2 py-1 text-amber-300 font-bold focus:outline-none text-[10px]">
             </div>
           `).join('');
+          if (detailsEl) detailsEl.open = true;
         } else {
           charContainer.innerHTML = `
             <div class="text-[10px] text-slate-500 py-1 italic">
@@ -2061,6 +2081,33 @@
         const subInp = document.getElementById('inputSubText');
         if (subInp) subInp.value = activeScript.segments[0].text;
         updateSubText(activeScript.segments[0].text);
+      }
+
+      // Cập nhật danh sách nhân vật có tên cụ thể từ kịch bản AI
+      const charContainer = document.getElementById('characterAliasesList');
+      const badgeAlias = document.getElementById('badgeAliasCount');
+      const detailsEl = document.getElementById('detailsAliases');
+      let chars = [];
+      if (activeScript.character_aliases) {
+        if (Array.isArray(activeScript.character_aliases)) {
+          chars = activeScript.character_aliases;
+        } else if (typeof activeScript.character_aliases === 'object') {
+          chars = Object.entries(activeScript.character_aliases).map(([k, v]) => ({ orig: k, alias: v }));
+        }
+      }
+      if (charContainer && chars.length > 0) {
+        if (badgeAlias) {
+          const namesPreview = chars.slice(0, 3).map(c => c.orig.split(' ')[0]).join(', ');
+          badgeAlias.innerText = `${chars.length} nhân vật: ${namesPreview}`;
+        }
+        charContainer.innerHTML = chars.map((c, i) => `
+          <div class="flex items-center gap-1.5 bg-[#0b101a] p-1.5 rounded-lg border border-[#1e293b]">
+            <input type="text" id="aliasOrig${i+1}" value="${c.orig}" placeholder="Tên nhân vật" class="w-1/2 bg-[#080c14] border border-[#1e293b] rounded px-2 py-1 text-slate-200 font-semibold focus:outline-none text-[10px]">
+            <span class="text-amber-400 font-bold text-[10px]">➔</span>
+            <input type="text" id="aliasTarget${i+1}" value="${c.alias}" placeholder="Biệt danh review" oninput="updateAliasInPreview()" class="w-1/2 bg-[#080c14] border border-amber-500/30 rounded px-2 py-1 text-amber-300 font-bold focus:outline-none text-[10px]">
+          </div>
+        `).join('');
+        if (detailsEl) detailsEl.open = true;
       }
     }
 

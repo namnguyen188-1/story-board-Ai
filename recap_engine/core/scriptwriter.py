@@ -28,7 +28,14 @@ QUY TẮC CỐT TỬ - KHỚP 100% VỚI HÀNH ĐỘNG THỰC TẾ TRONG VIDEO (
    - Khi quái thú khổng lồ hoặc đoàn xe bọc thép xuất hiện ➔ Lời bình phải mô tả sự đe dọa khổng lồ đó.
    - Trường `source_time`: BẮT BUỘC có (ví dụ: 10.5, 45.0, 95.0, 160.0...). Hệ thống dựng sẽ cắt clip video gốc bắt đầu đúng giây `source_time` này để khớp từng cử chỉ hành động với lời nói!
 3. HOOK 3 GIÂY ĐẦU: Luôn mở đầu bằng câu giật gân, khơi gợi tò mò cực đại bám sát cảnh mở màn thực tế (Ví dụ: "Đừng bao giờ dại dột chọc giận gã thợ săn sa mạc này nếu không muốn bỏ mạng...", "Người đàn ông này vừa ôm khối báu vật thì bị cả một binh đoàn bọc thép truy sát...").
-4. ĐỔI TÊN NHÂN VẬT THÀNH BIỆT DANH (ALIAS): Dùng danh xưng thân thuộc, hóm hỉnh, cuốn hút (anh Mũ Rộng, gã Thợ Săn, Trợ Lý Lùn, Tên Chỉ Huy, Binh Đoàn Bọc Thép,...).
+4. BẮT BUỘC ĐẶT TÊN RIÊNG CỤ THỂ CHO TẤT CẢ CÁC NHÂN VẬT (TUYỆT ĐỐI CẤM NHÂN VẬT VÔ DANH):
+   - Đặt tên riêng cụ thể (hoặc lấy từ tên gốc của phim/phụ đề) kết hợp danh xưng cá tính cho từng nhân vật:
+     * Ví dụ: "Chàng trai Jack", "Cô nàng Sarah", "Thanh tra David", "Gã sát thủ Victor", "Bác sĩ Robert", "Cô trợ lý Emily",...
+     * Nếu là bối cảnh Châu Á/Việt Nam: "Anh chàng Nam", "Cô gái Mai", "Lão đại Phong", "Bác bảo vệ Hải",...
+   - CẤM TUYỆT ĐỐI các cách gọi vô danh chung chung như: "người đàn ông này", "anh chàng nọ", "cô gái kia", "gã nọ", "kẻ này"! Khán giả xem review phim BẮT BUỘC phải biết rõ ai đang làm gì, ai đối đầu với ai.
+   - Trong MỌI câu thoại kể chuyện (segments), LUÔN gọi đích danh tên nhân vật (Ví dụ: "Jack lập tức rút súng nhắm thẳng vào tên Victor...", "Sarah hoảng loạn kêu cứu khi phát hiện căn hầm bí mật...").
+   - Trong trường JSON "character_aliases": BẮT BUỘC trả về danh sách đầy đủ 3 - 6 nhân vật có tên riêng:
+     {"Jack": "Chàng Đặc Nhiệm Jack", "Victor": "Gã Sát Thủ Victor", "Sarah": "Cô Nàng Sarah", "David": "Thanh Tra David"}
 5. ĐỊNH DẠNG TỪNG CÂU ĐỌC (SEGMENT):
    - Mỗi câu thoại chỉ dài 12 - 25 từ (đọc trong khoảng 3.0s - 4.5s) để khớp hoàn hảo với nhịp cắt video nhanh chống Content-ID.
    - Gán `scene_mood`: "action" (hành động), "suspense" (hồi hộp), "drama" (kịch tính), "climax" (cao trào), "twist" (bất ngờ).
@@ -37,12 +44,15 @@ BẠN BẮT BUỘC PHẢI TRẢ VỀ DỮ LIỆU ĐỊNH DẠNG JSON DUY NHẤT 
 {
   "title": "Tiêu đề review giật gân",
   "hook": "Câu mở đầu 3s",
-  "character_aliases": {"Tên gốc": "Biệt danh"},
+  "character_aliases": {
+    "Tên nhân vật chính": "Danh xưng / Biệt danh review",
+    "Tên nhân vật phản diện": "Danh xưng / Biệt danh review"
+  },
   "segments": [
     {
       "id": 1,
       "act": "hook",
-      "text": "Đừng bao giờ dại dột chọc giận kẻ mang biệt danh Anh Mũ Rộng nếu không muốn bỏ mạng nơi sa mạc.",
+      "text": "Đừng bao giờ dại dột chọc giận chàng đặc nhiệm Jack nếu không muốn bỏ mạng nơi sa mạc.",
       "scene_mood": "suspense",
       "source_time": 10.5,
       "film_pos_pct": 0.02
@@ -177,6 +187,20 @@ YÊU CẦU CỐT TỬ:
 
                     data["total_est_seconds"] = round(sum(s["est_duration"] for s in data["segments"]), 1)
                     data["model_used"] = current_model
+
+                    # Ensure character_aliases is always populated with real named characters
+                    char_map = data.get("character_aliases")
+                    if not char_map or not isinstance(char_map, dict) or len(char_map) == 0:
+                        if user_aliases:
+                            char_map = dict(user_aliases)
+                        else:
+                            char_map = {
+                                "Jack": "Chàng Đặc Nhiệm Jack",
+                                "Victor": "Gã Sát Thủ Victor",
+                                "Sarah": "Cô Nàng Sarah",
+                                "David": "Thanh Tra David"
+                            }
+                    data["character_aliases"] = char_map
                     return data
             except Exception as e:
                 last_error = e
