@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "channel_title": "GRANDEZA ESTOICA",
+  "channel_id": "UCtmUF0-aif28tNmhEAkNktQ",
+  "channel_url": "https://www.youtube.com/channel/UCtmUF0-aif28tNmhEAkNktQ",
+  "total": 2,
+  "processed_count": 0,
+  "unprocessed_count": 2,
+  "scanned_at": "2026-11-13 16:20:16",
+  "videos": [
+    {
+      "idx": 1,
+      "id": "UCtmUF0-aif28tNmhEAkNktQ",
+      "url": "https://www.youtube.com/watch?v=UCtmUF0-aif28tNmhEAkNktQ",
+      "title": "GRANDEZA ESTOICA - Videos",
+      "duration": null,
+      "duration_str": "--:--",
+      "views": null,
+      "views_str": "--",
+      "thumbnail": "https://i.ytimg.com/vi/UCtmUF0-aif28tNmhEAkNktQ/hqdefault.jpg",
+      "is_processed": false,
+      "status_note": "Chưa làm"
+    },
+    {
+      "idx": 2,
+      "id": "UCtmUF0-aif28tNmhEAkNktQ",
+      "url": "https://www.youtube.com/watch?v=UCtmUF0-aif28tNmhEAkNktQ",
+      "title": "GRANDEZA ESTOICA - Shorts",
+      "duration": null,
+      "duration_str": "--:--",
+      "views": null,
+      "views_str": "--",
+      "thumbnail": "https://i.ytimg.com/vi/UCtmUF0-aif28tNmhEAkNktQ/hqdefault.jpg",
+      "is_processed": false,
+      "status_note": "Chưa làm"
+    }
+  ]
+}

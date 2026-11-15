@@ -20,7 +20,11 @@ Dedicated branch for high-CTR 50/50 Split YouTube Thumbnails:
 
 from __future__ import annotations
 
+import json
 import math
+import time
+import urllib.request
+import uuid
 
 import os
 
@@ -1085,57 +1089,119 @@ def render_pro_50_50_thumbnail(
 
 
 
+
+def _super_resolve_hero(hero: Image.Image, target_hero_w: int, target_h: int) -> Image.Image:
+    """Super-resolves and restores high-frequency facial and costume details on the hero.
+
+    Dual-engine strategy:
+    1. Primary: ComfyUI GPU RealESRGAN_x4plus (restores authentic skin pores, sharp iris, fine hair).
+    2. Fallback: High-pass UnsharpMask + Adaptive Contrast + Edge Sharpness pyramid enhancement.
+    """
+    try:
+        comfy_input_dir = r"D:\ComfyUI\input"
+        if os.path.isdir(comfy_input_dir):
+            unique_name = f"hero_sr_{uuid.uuid4().hex[:8]}.png"
+            in_path = os.path.join(comfy_input_dir, unique_name)
+            hero.save(in_path)
+
+            prompt_wf = {
+                "1": {"class_type": "LoadImage", "inputs": {"image": unique_name}},
+                "2": {"class_type": "UpscaleModelLoader", "inputs": {"model_name": "RealESRGAN_x4plus.pth"}},
+                "3": {"class_type": "ImageUpscaleWithModel", "inputs": {"upscale_model": ["2", 0], "image": ["1", 0]}},
+                "4": {"class_type": "SaveImage", "inputs": {"filename_prefix": "hero_sr_out", "images": ["3", 0]}},
+            }
+            req_data = json.dumps({"prompt": prompt_wf}).encode("utf-8")
+            req = urllib.request.Request(
+                "http://127.0.0.1:8188/prompt",
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
+            prompt_id = res.get("prompt_id")
+            if prompt_id:
+                for _ in range(25):
+                    time.sleep(0.3)
+                    hist_req = urllib.request.urlopen(
+                        f"http://127.0.0.1:8188/history/{prompt_id}", timeout=2
+                    )
+                    hist = json.loads(hist_req.read().decode("utf-8"))
+                    if prompt_id in hist:
+                        imgs = hist[prompt_id]["outputs"]["4"]["images"]
+                        out_fn = imgs[0]["filename"]
+                        out_p = os.path.join(r"D:\ComfyUI\output", out_fn)
+                        if os.path.exists(out_p):
+                            sr_im = Image.open(out_p).convert("RGB")
+                            try:
+                                os.remove(in_path)
+                            except Exception:
+                                pass
+                            return sr_im
+    except Exception:
+        pass
+
+    # Strategy 2: Photographic Edge & Contrast Super-Resolution Fallback
+    scale = max(target_h / float(hero.height), target_hero_w / float(hero.width))
+    scaled_w = int(hero.width * scale)
+    scaled_h = int(hero.height * scale)
+    hero_scaled = hero.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+    hero_scaled = hero_scaled.filter(ImageFilter.UnsharpMask(radius=2.2, percent=190, threshold=2))
+    hero_scaled = ImageEnhance.Sharpness(hero_scaled).enhance(1.4)
+    hero_scaled = ImageEnhance.Contrast(hero_scaled).enhance(1.12)
+    return hero_scaled
+
+
 def _smart_bust_crop_and_fit(
-
     im: Image.Image,
-
     target_w: int,
-
     target_h: int,
-
     subject_on_left: bool,
-
     face_boxes: List[Tuple[int, int, int, int]],
-
 ) -> Image.Image:
-
-    """Ensures the character is framed as a massive bust shot (chest-up) taking 45-50% width."""
-
+    """Ensures the character is framed as a massive bust shot (chest-up) taking 45-50% width with 4K-sharp facial details."""
     w, h = im.size
-
     aspect = w / float(h)
-
     target_aspect = target_w / float(target_h)
-
-
 
     # If faces are detected, crop to emphasize the upper body as a colossal heroic bust
     if face_boxes:
         largest_face = max(face_boxes, key=lambda b: b[2] * b[3])
         fx, fy, fw, fh = largest_face
 
-        # Colossal Heroic Bust Crop: from just above head down to mid-pectoral chest
-        top_y = max(0, int(fy - fh * 0.20))
-        bot_y = min(h, int(fy + fh * 1.85))
+        # Adaptive Heroic Bust Crop:
+        # If the face is small in source (fh < 180), capture broad shoulders and chest armor
+        # so camera resolution is preserved without extreme digital magnification.
+        bust_down_mult = 3.4 if fh < 180 else 2.5
+        shoulder_mult_left = 2.2 if fh < 180 else 1.5
+        shoulder_mult_right = 2.4 if fh < 180 else 1.7
+        top_mult = 0.30 if fh < 180 else 0.20
+
+        top_y = max(0, int(fy - fh * top_mult))
+        bot_y = min(h, int(fy + fh * bust_down_mult))
         crop_h = bot_y - top_y
 
-        left_x = max(0, int(fx - fw * 1.20))
-        right_x = min(w, int(fx + fw * 1.60))
+        left_x = max(0, int(fx - fw * shoulder_mult_left))
+        right_x = min(w, int(fx + fw * shoulder_mult_right))
         crop_w = right_x - left_x
 
-        if crop_h > 100 and crop_w > 100:
+        if crop_h > 80 and crop_w > 80:
             hero = im.crop((left_x, top_y, right_x, bot_y))
 
-            # Colossal Hero Scaling:
-            # Scale so the hero's broad shoulders and chest occupy 52-55% width and 100% height!
+            # Colossal Hero Scaling with AI / Photographic Super-Resolution
             target_hero_w = int(target_w * 0.54)
-            scale_h = target_h / float(hero.height)
-            scale_w = target_hero_w / float(hero.width)
+            hero_sr = _super_resolve_hero(hero, target_hero_w=target_hero_w, target_h=target_h)
+
+            scale_h = target_h / float(hero_sr.height)
+            scale_w = target_hero_w / float(hero_sr.width)
             scale = max(scale_h, scale_w)
 
-            scaled_w = int(hero.width * scale)
-            scaled_h = int(hero.height * scale)
-            hero_scaled = hero.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+            scaled_w = int(hero_sr.width * scale)
+            scaled_h = int(hero_sr.height * scale)
+            hero_scaled = hero_sr.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+
+            # High-definition detail polish
+            hero_scaled = hero_scaled.filter(ImageFilter.UnsharpMask(radius=1.2, percent=140, threshold=2))
+            hero_scaled = ImageEnhance.Sharpness(hero_scaled).enhance(1.15)
 
             # Crop excess vertical height from bottom
             if hero_scaled.height > target_h:
@@ -1150,60 +1216,26 @@ def _smart_bust_crop_and_fit(
                     hero_scaled = hero_scaled.crop((hero_scaled.width - max_allowed_w, 0, hero_scaled.width, target_h))
             scaled_w = hero_scaled.width
 
-
-
-            # Create full canvas with clean, deep obsidian dark atmospheric backdrop
-            canvas = Image.new("RGB", (target_w, target_h), (4, 6, 12))
-            # Background behind hero gets soft atmospheric texture (no sharp ghost statues)
-            bg_ambient = im.resize((target_w, target_h), Image.Resampling.BILINEAR).filter(ImageFilter.GaussianBlur(30))
-            bg_ambient = ImageEnhance.Brightness(bg_ambient).enhance(0.45)
-            
-            # Mask so ambient only appears softly on hero side, leaving text side 100% pitch dark
-            bg_mask = Image.new("L", (target_w, target_h), 0)
-            d_bg_mask = ImageDraw.Draw(bg_mask)
-            span_bg = int(target_w * 0.55)
-            if subject_on_left:
-                for x in range(span_bg):
-                    d_bg_mask.line([(x, 0), (x, target_h)], fill=int(255 * (1.0 - (x / span_bg)**1.4)))
-            else:
-                for x in range(target_w - span_bg, target_w):
-                    d_bg_mask.line([(x, 0), (x, target_h)], fill=int(255 * (((x - (target_w - span_bg)) / span_bg)**1.4)))
-            canvas.paste(bg_ambient, (0, 0), bg_mask)
+            # Base canvas preserves the full original scene background across 100% of the canvas
+            canvas = im.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
             # Feather the seam edge of the hero
             hero_rgba = hero_scaled.convert("RGBA")
-
             hero_arr = np.array(hero_rgba, dtype=np.float32)
-
             feather_px = min(80, scaled_w // 4)
-
             if subject_on_left:
-
                 for f_idx in range(feather_px):
-
                     alpha_factor = 1.0 - (f_idx / float(feather_px))
-
                     hero_arr[:, scaled_w - feather_px + f_idx, 3] *= alpha_factor
-
             else:
-
                 for f_idx in range(feather_px):
-
                     alpha_factor = f_idx / float(feather_px)
-
                     hero_arr[:, f_idx, 3] *= alpha_factor
 
-
-
             hero_feathered = Image.fromarray(np.clip(hero_arr, 0, 255).astype(np.uint8))
-
             hero_x = 0 if subject_on_left else (target_w - scaled_w)
-
             canvas.paste(hero_feathered, (hero_x, 0), hero_feathered)
-
             return canvas
-
-
 
     # Standard fallback crop
 
@@ -1261,21 +1293,21 @@ def _apply_ambient_text_backdrop(
 
 
 
-    # Strict 45% span prevents text backdrop from ever crossing into or shading the hero's face (which starts at x >= 50%)
-    span = int(target_w * 0.45)
-    max_alpha = 248  # Deep obsidian black negative space, eliminates ghost statues and background noise behind typography
+    # Gentle cinematic translucent vignette: keeps movie background 100% visible while ensuring 3D text pops
+    span = int(target_w * 0.50)
+    max_alpha = 110  # Translucent scrim (~43% max opacity at far edge, fading to 0%)
 
     if text_on_left:
         for x in range(0, span, 4):
             prog = x / float(span)
-            alpha = int(max_alpha * ((1.0 - prog) ** 1.35))
-            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(4, 6, 12, alpha))
+            alpha = int(max_alpha * ((1.0 - prog) ** 1.25))
+            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(4, 6, 14, alpha))
     else:
         start_x = target_w - span
         for x in range(start_x, target_w, 4):
             prog = (x - start_x) / float(span)
-            alpha = int(max_alpha * (prog ** 1.35))
-            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(4, 6, 12, alpha))
+            alpha = int(max_alpha * (prog ** 1.25))
+            ov_draw.rectangle([(x, 0), (x + 4, target_h)], fill=(4, 6, 14, alpha))
 
 
 

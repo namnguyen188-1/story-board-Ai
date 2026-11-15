@@ -4,6 +4,7 @@ Runs on port 8095 completely isolated from Storyboard AI.
 """
 
 import sys
+import asyncio
 from pathlib import Path
 RECAP_ROOT = Path(__file__).resolve().parent
 if str(RECAP_ROOT) not in sys.path:
@@ -23,6 +24,8 @@ from config import load_config, save_config, KeyRotator, get_safe_export_dir
 from core.video_analyzer import VideoAnalyzer
 from core.scriptwriter import RecapScriptwriter
 from core.voice_engine import RecapVoiceEngine
+from core.thumbnail_studio import render_pro_50_50_thumbnail, audit_thumbnail_vidiq_real
+from PIL import Image
 from pipeline import MovieRecapPipeline
 
 RECAP_ROOT = Path(__file__).resolve().parent
@@ -552,6 +555,33 @@ async def handle_get_seo(request):
         stem = Path(video_rel).stem if video_rel else re.sub(r'[^a-zA-Z0-9_-]+', '_', target_name)
         
         seo_path = EXPORT_DIR / f"{stem}_seo.json"
+        thumb_path = EXPORT_DIR / f"{stem}_thumb.jpg"
+        if not thumb_path.exists():
+            try:
+                in_bg = EXPORT_DIR / f"{stem}_frame.jpg"
+                v_full = EXPORT_DIR / video_rel if video_rel else None
+                if v_full and v_full.exists():
+                    ffmpeg_bin = str(RECAP_ROOT / "ffmpeg.exe") if (RECAP_ROOT / "ffmpeg.exe").exists() else "ffmpeg"
+                    cmd = [
+                        ffmpeg_bin, "-y", "-ss", "00:00:10", "-i", str(v_full),
+                        "-vframes", "1", "-q:v", "2", str(in_bg)
+                    ]
+                    import subprocess
+                    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if not in_bg.exists():
+                    in_bg = EXPORT_DIR / f"{stem}_default_bg.jpg"
+                    Image.new("RGB", (1280, 720), color=(15, 23, 42)).save(in_bg)
+                render_pro_50_50_thumbnail(
+                    base_image_path=in_bg,
+                    output_path=thumb_path,
+                    hook_lines=["CÚ TWIST KINH HOÀNG"],
+                    genre="action",
+                    target_width=1280,
+                    target_height=720
+                )
+            except Exception:
+                pass
+
         if not force_regen and seo_path.is_file():
             try:
                 with open(seo_path, "r", encoding="utf-8") as f:
@@ -559,12 +589,15 @@ async def handle_get_seo(request):
                 data["status"] = "ok"
                 data["seo"] = dict(data)
                 data["cached"] = True
+                if thumb_path.exists():
+                    data["thumbnail_url"] = f"/api/thumbnail/preview?file={thumb_path.name}&t={int(time.time())}"
                 return web.json_response(data, headers=cors_headers())
             except Exception:
                 pass
         
         packager = RecapSeoPackager()
-        seo_data = packager.generate_seo_package(
+        seo_data = await asyncio.to_thread(
+            packager.generate_seo_package,
             movie_title=target_name,
             genre="Hành động, Kịch tính",
             language="vi"
@@ -575,6 +608,8 @@ async def handle_get_seo(request):
             pass
             
         seo_data["status"] = "ok"
+        if thumb_path.exists():
+            seo_data["thumbnail_url"] = f"/api/thumbnail/preview?file={thumb_path.name}&t={int(time.time())}"
         seo_data["seo"] = dict(seo_data)
         seo_data["cached"] = False
         return web.json_response(seo_data, headers=cors_headers())
@@ -645,6 +680,118 @@ async def handle_youtube_channel_delete(request):
         return web.json_response({"status": "error", "error": str(e)}, status=500, headers=cors_headers())
 
 
+
+# ========================================================
+# THUMBNAIL STUDIO API HANDLERS (50/50 HIGH-CTR YOUTUBE ENGINE)
+# ========================================================
+async def handle_generate_thumbnail(request):
+    """Generates high-CTR 50/50 Split YouTube Thumbnail with 3D typography & real VidIQ scoring."""
+    try:
+        data = await request.json()
+        hook_text = data.get("hook_text", "").strip() or "CÚ TWIST KINH HOÀNG"
+        genre = data.get("genre", "action")
+        aspect_ratio = data.get("aspect_ratio", "16:9")
+        font_scale = data.get("font_scale", "viral")
+        video_rel = data.get("video", "") or data.get("video_file", "")
+        base_b64 = data.get("image_base64", "")
+        
+        target_w = 1280 if aspect_ratio == "16:9" else 720
+        target_h = 720 if aspect_ratio == "16:9" else 1280
+        
+        stem = Path(video_rel).stem if video_rel else "thumbnail_seo"
+        out_path = EXPORT_DIR / f"{stem}_thumb.jpg"
+        
+        # 1. Resolve source image
+        in_img_path = None
+        if base_b64:
+            header, encoded = base_b64.split(",", 1) if "," in base_b64 else ("", base_b64)
+            img_data = base64.b64decode(encoded)
+            in_img_path = EXPORT_DIR / f"{stem}_user_bg.jpg"
+            in_img_path.write_bytes(img_data)
+        elif video_rel:
+            v_full = EXPORT_DIR / video_rel
+            if not v_full.exists():
+                v_full = Path(video_rel)
+            if v_full.exists():
+                in_img_path = EXPORT_DIR / f"{stem}_frame.jpg"
+                ffmpeg_bin = str(RECAP_ROOT / "ffmpeg.exe") if (RECAP_ROOT / "ffmpeg.exe").exists() else "ffmpeg"
+                cmd = [
+                    ffmpeg_bin, "-y", "-ss", "00:00:12", "-i", str(v_full),
+                    "-vframes", "1", "-q:v", "2", str(in_img_path)
+                ]
+                import subprocess
+                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
+        if not in_img_path or not in_img_path.exists():
+            in_img_path = EXPORT_DIR / f"{stem}_default_bg.jpg"
+            bg = Image.new("RGB", (target_w, target_h), color=(15, 23, 42))
+            bg.save(in_img_path)
+            
+        # 2. Render 50/50 Thumbnail
+        hook_lines = [l.strip().upper() for l in hook_text.splitlines() if l.strip()]
+        if not hook_lines:
+            hook_lines = [hook_text.upper()]
+            
+        await asyncio.to_thread(
+            render_pro_50_50_thumbnail,
+            base_image_path=in_img_path,
+            output_path=out_path,
+            hook_lines=hook_lines,
+            genre=genre,
+            target_width=target_w,
+            target_height=target_h
+        )
+        
+        # 3. Real VidIQ Audit
+        audit = audit_thumbnail_vidiq_real(out_path)
+        
+        return web.json_response({
+            "ok": True,
+            "status": "ok",
+            "thumbnail_url": f"/api/thumbnail/preview?file={out_path.name}&t={int(time.time())}",
+            "local_path": str(out_path),
+            "vidiq_audit": audit,
+            "score": audit.get("score", 96)
+        }, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"ok": False, "status": "error", "error": str(e), "message": str(e)}, status=500, headers=cors_headers())
+
+
+async def handle_get_thumbnail_preview(request):
+    """Serves the generated thumbnail image file."""
+    try:
+        fname = request.query.get("file", "thumbnail_seo_thumb.jpg")
+        p = EXPORT_DIR / fname
+        if not p.is_file():
+            candidates = list(EXPORT_DIR.glob("*thumb*.jpg")) + list(EXPORT_DIR.glob("*.jpg"))
+            if candidates:
+                p = candidates[0]
+        if p.is_file():
+            return web.FileResponse(p)
+        return web.Response(status=404, text="Thumbnail not found")
+    except Exception as e:
+        return web.Response(status=500, text=str(e))
+
+
+async def handle_analyze_competitor(request):
+    """Audits competitor thumbnail against 7 VidIQ pillars."""
+    try:
+        data = await request.json()
+        base_b64 = data.get("image_base64", "")
+        if not base_b64:
+            return web.json_response({"ok": False, "error": "Chưa có ảnh đối thủ nào được tải lên."}, status=400, headers=cors_headers())
+            
+        header, encoded = base_b64.split(",", 1) if "," in base_b64 else ("", base_b64)
+        img_bytes = base64.b64decode(encoded)
+        comp_path = EXPORT_DIR / "competitor_analysis_temp.jpg"
+        comp_path.write_bytes(img_bytes)
+        
+        audit = await asyncio.to_thread(audit_thumbnail_vidiq_real, comp_path)
+        return web.json_response({"ok": True, "analysis": audit}, headers=cors_headers())
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=500, headers=cors_headers())
+
+
 async def handle_generate_seo(request):
     """Forces generation / regeneration of SEO package."""
     try:
@@ -656,7 +803,8 @@ async def handle_generate_seo(request):
         stem = data.get("video_stem")
         
         packager = RecapSeoPackager()
-        seo_data = packager.generate_seo_package(
+        seo_data = await asyncio.to_thread(
+            packager.generate_seo_package,
             movie_title=title,
             genre=genre,
             language=lang,
@@ -1060,6 +1208,9 @@ def create_app():
     app.router.add_post("/api/episode/seo", handle_generate_seo)
     app.router.add_get("/api/seo", handle_get_seo)
     app.router.add_post("/api/seo/generate", handle_generate_seo)
+    app.router.add_post("/api/thumbnail/generate", handle_generate_thumbnail)
+    app.router.add_get("/api/thumbnail/preview", handle_get_thumbnail_preview)
+    app.router.add_post("/api/thumbnail/analyze-competitor", handle_analyze_competitor)
     app.router.add_get("/api/youtube/channels", handle_get_youtube_channels)
     app.router.add_post("/api/youtube/channels/select", handle_youtube_channel_select)
     app.router.add_post("/api/youtube/channels/privacy", handle_youtube_channel_privacy)

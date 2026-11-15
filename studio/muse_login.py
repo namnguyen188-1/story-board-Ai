@@ -23,9 +23,8 @@ if _MUSE_SITE.is_dir() and str(_MUSE_SITE) not in sys.path:
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
-# Root currently enters Meta cross-service session probing and may end on Instagram.
-# This official Muse entry exposes the phone/email sign-in form directly.
-LOGIN_ENTRY_URL = "https://muse.ai/business"
+# Official Muse entry exposes the phone/email sign-in form directly.
+LOGIN_ENTRY_URL = "https://muse.ai/"
 VERIFY_TIMEOUT_SECONDS = 35
 
 
@@ -186,9 +185,13 @@ def export_session(port, productions_dir, account_id=None):
     header = "; ".join(c["name"] + "=" + c["value"] for c in jar)
     try:
         vm_id = _verify_candidate(header)
-    except Exception:
-        return {"ok": True, "ready": False, "status": "WAITING_FOR_LOGIN",
-                "message": "Phiên trên cửa sổ Muse chưa xác minh được. Hoàn tất đăng nhập rồi thử kết nối lại."}
+    except Exception as exc:
+        err_msg = str(exc)
+        if "MUSE_VM_DISABLED" in err_msg:
+            return {"ok": False, "ready": False, "status": "VM_DISABLED",
+                    "message": f"Tài khoản Meta này bị tạm khóa/hết hạn ngạch máy ảo (MUSE_VM_DISABLED). Vui lòng đăng nhập bằng tài khoản Meta khác trên màn hình Chrome."}
+        return {"ok": False, "ready": False, "status": "VERIFY_FAILED",
+                "message": f"Không thể xác minh phiên Muse: {err_msg}. Vui lòng thử lại hoặc đăng nhập tài khoản khác."}
 
     lines = ["# Netscape HTTP Cookie File"]
     for c in jar:

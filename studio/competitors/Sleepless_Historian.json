@@ -1,0 +1,77 @@
+{
+  "success": true,
+  "channel_title": "Sleepless Historian",
+  "channel_id": "UCy3Hgwj12x3fDQUcutNm2DA",
+  "channel_url": "https://www.youtube.com/channel/UCy3Hgwj12x3fDQUcutNm2DA",
+  "total": 5,
+  "processed_count": 2,
+  "unprocessed_count": 3,
+  "scanned_at": "2026-11-10 17:28:06",
+  "videos": [
+    {
+      "idx": 1,
+      "id": "qAyatJHVw0M",
+      "url": "https://www.youtube.com/watch?v=qAyatJHVw0M",
+      "title": "Every God from NORSE Mythology Explained | BEST Norse Myths for Sleep",
+      "duration": 7318,
+      "duration_str": "02:01:58",
+      "views": 18000,
+      "views_str": "18.0K",
+      "thumbnail": "https://i.ytimg.com/vi/qAyatJHVw0M/hqdefault.jpg",
+      "is_processed": false,
+      "status_note": "Chưa làm"
+    },
+    {
+      "idx": 2,
+      "id": "b_KS-tD1dJQ",
+      "url": "https://www.youtube.com/watch?v=b_KS-tD1dJQ",
+      "title": "The Mystery of The Village That Beat the Black Death",
+      "duration": 8155,
+      "duration_str": "02:15:55",
+      "views": 17000,
+      "views_str": "17.0K",
+      "thumbnail": "https://i.ytimg.com/vi/b_KS-tD1dJQ/hqdefault.jpg",
+      "is_processed": false,
+      "status_note": "Chưa làm"
+    },
+    {
+      "idx": 3,
+      "id": "QC3Sofj1lyo",
+      "url": "https://www.youtube.com/watch?v=QC3Sofj1lyo",
+      "title": "15 Strange Things Archaeologists Found Inside Ancient Egyptian Tombs",
+      "duration": 7885,
+      "duration_str": "02:11:25",
+      "views": 15000,
+      "views_str": "15.0K",
+      "thumbnail": "https://i.ytimg.com/vi/QC3Sofj1lyo/hqdefault.jpg",
+      "is_processed": true,
+      "status_note": "Đã clone kịch bản / nhân vật"
+    },
+    {
+      "idx": 4,
+      "id": "f_YHBzPFpOs",
+      "url": "https://www.youtube.com/watch?v=f_YHBzPFpOs",
+      "title": "Unexpected Discoveries That Confirm the Bible",
+      "duration": 7945,
+      "duration_str": "02:12:25",
+      "views": 12000,
+      "views_str": "12.0K",
+      "thumbnail": "https://i.ytimg.com/vi/f_YHBzPFpOs/hqdefault.jpg",
+      "is_processed": true,
+      "status_note": "Đã clone kịch bản / nhân vật"
+    },
+    {
+      "idx": 5,
+      "id": "VEWanMZmPso",
+      "url": "https://www.youtube.com/watch?v=VEWanMZmPso",
+      "title": "Why Medieval Paris Was A Ranked Lobby For K1llers",
+      "duration": 8093,
+      "duration_str": "02:14:53",
+      "views": 11000,
+      "views_str": "11.0K",
+      "thumbnail": "https://i.ytimg.com/vi/VEWanMZmPso/hqdefault.jpg",
+      "is_processed": false,
+      "status_note": "Chưa làm"
+    }
+  ]
+}

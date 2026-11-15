@@ -324,6 +324,41 @@ class MovieRecapPipeline:
         except Exception as _seo_err:
             print(f"⚠️ [SEO] Auto-generate warning: {_seo_err}", flush=True)
 
+        # Tự động kết xuất ảnh Thumbnail 50/50 chuẩn VidIQ triệu view
+        try:
+            from core.thumbnail_studio import render_pro_50_50_thumbnail
+            from PIL import Image
+            import subprocess
+            
+            temp_frame = final_output_path.with_name(f"{final_output_path.stem}_frame.jpg")
+            thumb_path = final_output_path.with_name(f"{final_output_path.stem}_thumb.jpg")
+            ffmpeg_bin = getattr(self.renderer, "ffmpeg", "ffmpeg") or "ffmpeg"
+            cmd = [
+                str(ffmpeg_bin), "-y", "-ss", "00:00:10", "-i", str(final_output_path),
+                "-vframes", "1", "-q:v", "2", str(temp_frame)
+            ]
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if not temp_frame.exists():
+                temp_frame = final_output_path.with_name(f"{final_output_path.stem}_default_bg.jpg")
+                Image.new("RGB", (1280, 720), color=(15, 23, 42)).save(temp_frame)
+            
+            hook_text = "CÚ TWIST KINH HOÀNG"
+            render_pro_50_50_thumbnail(
+                base_image_path=temp_frame,
+                output_path=thumb_path,
+                hook_lines=[hook_text],
+                genre=genre,
+                target_width=1280 if aspect_ratio == "16:9" else 720,
+                target_height=720 if aspect_ratio == "16:9" else 1280
+            )
+            root_thumb = export_dir / f"{final_output_path.stem}_thumb.jpg"
+            if root_thumb.resolve() != thumb_path.resolve():
+                import shutil
+                shutil.copy2(thumb_path, root_thumb)
+            print(f"✅ [THUMBNAIL] Auto-generated high-CTR 50/50 thumbnail: {thumb_path.name}", flush=True)
+        except Exception as _thumb_err:
+            print(f"⚠️ [THUMBNAIL] Auto-generate warning: {_thumb_err}", flush=True)
+
         total_time = round(time.time() - t0, 1)
         report(f"🎉 Xuất video review thành công trong {total_time}s!", 100.0)
 
