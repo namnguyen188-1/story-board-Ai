@@ -1,34 +1,26 @@
 {
-  "version": "1.3.19",
-  "app_name": "Storyboard AI Studio Pro",
-  "release_date": "2026-11-05",
-  "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.19/Storyboard_AI_Studio_Pro_v1.3.19.zip",
-  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.19/Storyboard_AI_Studio_Pro_v1.3.19.zip",
-  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.3.19/Storyboard_AI_Studio_Pro_v1.3.19.zip",
+  "version": "1.4.0",
+  "release_name": "Storyboard_AI_Studio_Pro_v1.4.0",
+  "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip",
+  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip",
+  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip",
   "fallback_urls": [
-    "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.3.19/Storyboard_AI_Studio_Pro_v1.3.19.zip"
+    "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip"
   ],
-  "sha256": "7bfdfd69ce1e3930199459b4840dc86cc3930b76f8658ecb75032a075f517d1d",
-  "size_bytes": 286705468,
-  "bytes": 286705468,
+  "bytes": 287361684,
+  "size_bytes": 287361684,
+  "sha256": "D2862C410047C6859AE9C97916BB177E62C781BA5F19DF8F579C2EEE7DFE18D5",
   "release_notes": [
-    "Tich hop Bo Kiem Soat Tin Hieu Am Thanh (audio_signal_guard.py): Chong clip vo thanh (-91 dBFS), bat buoc do am luong truoc khi xuat ban.",
-    "Khu triet de hien tuong ep tuong La Ma Marcus Aurelius vao phim Lich su va Tai lieu trong mcp_v2_batch.py.",
-    "Bao ve dong thoi nhieu nhan vat trong Drama: Khong con bi ep 'single solitary subject' khi nhan vat co mo ta ngoai hinh.",
-    "Bao toan net ve minh hoa Hoat hinh 3D va Bang trang: Khong bi chen photorealistic 8k khi prompt chi dinh visual_style.",
-    "Sua loi phu de Karaoke: Hien thi tung tu dong bo theo giong noi thuc te, khong con bi lo tu truong truoc khi doc.",
-    "Khoa bao toan kich ban nguoi dung (Locked Script): Nhan dien SCENE_001 chuan, bao toan 100% cau thoai trong ngoac kep.",
-    "Bo sung the goi y kich tinh Drama va Auto tren Web UI.",
-    "Kiem thu toan dien: 13/13 bai test hoi quy dat chuan PASS 100%."
+    "Tro Ly AI Kich Ban Da Ngon Ngu: Viet kich ban dai 5-15 phut bang Tieng Viet, Nhat, Han, Anh, Trung, Phap, Duc, Nga, Thai, Indonesia.",
+    "Ho tro viet tiep nhieu phan lien mach (Phan 1 -> Phan 2...) va ghep tat ca vao mot du an video.",
+    "Chat AI phat hien tu dong yeu cau kich ban dai, tu dong dong bo thoi luong (phut) vao Studio.",
+    "Ngan ngua AI tro loi bang sai ngon ngu khi da chon ngon ngu cu the trong dropdown.",
+    "Max context len 24 tin nhan, 24.000 ky tu/tin, max_tokens=8192 cho bai dai.",
+    "Quick chip: Kich ban dai (5-10p), Japanese idea, Korean idea.",
+    "Nut Viet tiep dai them va Ghep N phan & Tao Video trong chat bubble.",
+    "Kiem thu toan dien: 7/7 test chat long script PASS 100%."
   ],
   "changelog": [
-    "Tích hợp Bộ Kiểm Soát Tín Hiệu Âm Thanh (audio_signal_guard.py): Chống clip vô thanh (-91 dBFS), bắt buộc đo âm lượng trước khi xuất bản.",
-    "Khử triệt để hiện tượng ép tượng La Mã Marcus Aurelius vào phim Lịch sử và Tài liệu trong mcp_v2_batch.py.",
-    "Bảo vệ đồng thời nhiều nhân vật trong Drama: Không còn bị ép 'single solitary subject' khi nhân vật có mô tả ngoại hình.",
-    "Bảo toàn nét vẽ minh họa Hoạt hình 3D và Bảng trắng: Không bị chèn photorealistic 8k khi prompt chỉ định visual_style.",
-    "Sửa lỗi phụ đề Karaoke: Hiển thị từng từ đồng bộ theo giọng nói thực tế, không còn bị lộ từ trước khi đọc.",
-    "Khóa bảo toàn kịch bản người dùng (Locked Script): Nhận diện SCENE_001 chuẩn, bảo toàn 100% câu thoại trong ngoặc kép.",
-    "Bổ sung thẻ gợi ý kịch tính Drama và Auto trên Web UI.",
-    "Kiểm thử toàn diện: 13/13 bài test hồi quy đạt chuẩn PASS 100%."
+    "v1.4.0 - 2026-11-27: Chat AI Co-Pilot nâng cấp toàn diện đa ngôn ngữ + kịch bản dài."
   ]
 }
