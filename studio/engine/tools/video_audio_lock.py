@@ -59,7 +59,7 @@ def lock_video_to_audio_duration(
     video_path: str,
     audio_path: str,
     output_path: str,
-    cushion_seconds: float = 0.15,
+    cushion_seconds: float = 0.05,
     fps: int = 30,
     preset: str = "fast",
     crf: int = 20,

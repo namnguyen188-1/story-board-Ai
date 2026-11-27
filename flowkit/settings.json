@@ -1,0 +1,12 @@
+{
+  "api_host": "127.0.0.1",
+  "api_port": 18110,
+  "flow_url": "http://127.0.0.1:18100",
+  "flow_project_id": "d8ad9523-0b70-4604-aeb4-4887cac3320c",
+  "flow_webtool_url": "https://flow.google.com/project/d8ad9523-0b70-4604-aeb4-4887cac3320c/tool/69da86fb-6c79-43d2-a387-ef47b0fda4db",
+  "flow_hidden_webtool_url": "https://flow.google.com/project/d8ad9523-0b70-4604-aeb4-4887cac3320c/tool/69da86fb-6c79-43d2-a387-ef47b0fda4db",
+  "job_timeout_seconds": 1500,
+  "browser_mode": "on_demand",
+  "browser_idle_close_seconds": 90,
+  "flow_webtool_concurrency": 3
+}

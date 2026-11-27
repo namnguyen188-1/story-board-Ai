@@ -100,7 +100,9 @@ def copy_application_files():
         print("  + Clean portable Python runtime (no developer profiles)")
 
     # 2.5 Copy FlowKit Engine (All-In-One Distribution)
-    flowkit_src = Path("D:/FLOWKIT")
+    flowkit_src = SOURCE_DIR / "flowkit"
+    if not flowkit_src.is_dir():
+        flowkit_src = Path("D:/FLOWKIT")
     if flowkit_src.is_dir():
         flowkit_dst = TARGET_DIR / "FLOWKIT"
         shutil.copytree(flowkit_src, flowkit_dst, dirs_exist_ok=True,

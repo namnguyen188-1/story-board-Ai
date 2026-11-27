@@ -19,7 +19,7 @@ STYLES = {"auto","color_cinematic","color_animation","whiteboard","hand_color","
 REGIONS = {"auto","AUTO","VN","ES","MX","US","GB","FR","BR","JP","CN","KR","TH","ID","MY","PH","IN","DE","RU","IT","NL","PL","TR","SE","GR","SA"}
 ART = {
  "drama":"Photorealistic contemporary cinematic drama, rich natural skin tones and believable atmospheric interiors.",
- "stoic":"Cinematic Greco-Roman historical drama (16:9 widescreen). Depicts the living historical Roman philosopher emperor Marcus Aurelius and Stoic masters as dignified, powerful living human figures. Majestic mature Roman man with weathered sun-kissed Mediterranean bronze skin, expressive dark eyes filled with calm philosophical resolve, salt-and-pepper curly hair, and well-groomed beard. Draped in authentic royal crimson and cream-white draped linen toga (chlamys) over one shoulder with antique golden brooch. Complete human anatomy with 100% intact arms and natural hands with five fingers, authentic human skin pores and organic facial expressions. Set in atmospheric ancient Rome: sunlit temple colonnades, candlelit imperial libraries with parchment scrolls, marble palatial courtyards at golden hour, glowing twilight fires, and dramatic chiaroscuro cinema lighting. Photorealistic 8k live-action historical cinema, authentic living human actors, NEVER a stone statue, NEVER a marble bust, NEVER a pedestal, NEVER severed limbs, NEVER headless, NEVER amputated hands.",
+ "stoic":"Cinematic Greco-Roman classical antiquity (16:9 widescreen). Depicts the Stoic philosopher emperor Marcus Aurelius as a monumental heroic carved Carrara marble statue amidst ancient Roman architectural ruins. Noble chiseled stone features, intricately sculpted curly marble hair and textured beard, wise contemplative stone gaze (carved stone eyes without biological pupils), broad sculpted stone shoulders draped in an authentic Roman stone toga cascading across one shoulder with a circular imperial brooch medallion. Dramatic golden chiaroscuro rim lighting outlining the cold white marble contours, warm volumetric god rays, atmospheric ancient Roman colonnades and distant Acropolis ruins at golden hour with floating embers. Masterpiece 8k classical fine art sculpture, completely inanimate solid Carrara marble stone, NEVER living human flesh, NEVER real human skin pores, NEVER flesh tones, NEVER modern human actors, NEVER bodybuilder cosplay.",
  "family_drama":"Photorealistic contemporary family drama, rich natural skin tones and realistic clothing textures, consistent adult character facial identities, cinematic three-point lighting, natural color grading, believable interiors.",
  "mafia_thriller":"Cinematic dark crime thriller atmosphere (16:9 widescreen). Gritty noir aesthetics, rain-slicked neon-lit urban streets, shadowy back alleys, smoke-filled poker tables and mob meeting rooms. High-contrast low-key chiaroscuro lighting, tense realistic character expressions, sharp depth of field, authentic tailored suits and leather coats.",
  "psychological_horror":"Cinematic psychological horror and mystery (16:9 widescreen). Atmospheric dread, haunting shadows, dim candlelit or flickering fluorescent interiors, cold desaturated color palette with unsettling warm accents, subtle creeping tension, lifelike human expressions of paranoia and dread, natural skin tones with realistic fine details.",
@@ -33,6 +33,28 @@ ART = {
  "colored_marker":"Vibrant colored whiteboard marker illustration in the signature style of After Skool (16:9 widescreen). Clean pure white whiteboard backdrop, hand-drawn with expressive multicolored chisel-tip marker pens (deep crimson red, royal blue, warm amber yellow, emerald green, and bold ink black contours). Energetic sketchy marker cross-hatching, conceptual philosophical visual metaphors, expressive caricature character designs, crisp marker lines with authentic dry-erase texture. No photorealism, no 3D render, no messy borders, pure whiteboard marker art.",
  "auto":"Cinematic full-color scene based on narrative, realistic lighting and textures with consistent art direction.",
 }
+
+try:
+    from east_asia_hook import get_ea_bridge as _get_ea_bridge
+    _ea = _get_ea_bridge()
+    if _ea is not None:
+        _ea.register_east_asia_modes(GENRES, ART)
+except Exception:
+    _get_ea_bridge = lambda: None
+import re
+
+def is_vietnamese_lang(language: str) -> bool:
+    l = str(language or "").lower().strip()
+    if not l:
+        return False
+    return bool(re.search(r"(?:^|[\s_\-/,(])(?:vi|vi-[a-z]{2}|vie|vn|viet|vietnamese|tiếng việt|tieng viet)(?:$|[\s_\-/,)])", l)) or ("tiếng việt" in l) or ("vietnam" in l)
+
+def is_spanish_lang(language: str) -> bool:
+    l = str(language or "").lower().strip()
+    if not l or is_vietnamese_lang(l):
+        return False
+    return bool(re.search(r"(?:^|[\s_\-/,(])(?:es|es-[a-z]{2}|esp|spa|spanish|español|espanol|tây ban nha|tay ban nha)(?:$|[\s_\-/,)])", l))
+
 def detect_language(text):
     import re
     t = str(text or "").strip()
@@ -94,6 +116,10 @@ def detect_genre(text):
       ("animation",("minecraft","stickman","hoạt hình","cartoon","mèo mập","anime")),
       ("action",("action film","phim hành động","chase scene","cuộc truy đuổi")),
       ("whiteboard",("whiteboard","vẽ bảng trắng","hand drawn board")),
+      ("jp_zen_story",("禅","沈黙","メンタルケア","自己啓発","手描き","人生哲学")),
+      ("jp_edo_sleepless",("江戸","侍","睡眠用","聞き流し","日本史")),
+      ("kr_yadam_joseon",("조선야담","야담","선비","한옥")),
+      ("kr_sayeon_drama",("사연","가족갈등","인생사연","시댁","2chスカッと")),
     ]
     score=[(sum(t.count(x) for x in terms),category) for category,terms in triggers]
     score.sort(reverse=True)
@@ -115,6 +141,14 @@ def voice_for(language,genre,region="auto",requested="auto"):
     from studio_voices import validate_voice
     if requested!="auto":
         return validate_voice(requested)
+    try:
+        ea = _get_ea_bridge()
+        if ea is not None:
+            ea_voice = ea.resolve_voice(language=language, genre=genre, region=region)
+            if ea_voice:
+                return ea_voice
+    except Exception:
+        pass
     reg=str(region or "auto").upper()
     lang=str(language or "").lower()
 
@@ -132,12 +166,11 @@ def voice_for(language,genre,region="auto",requested="auto"):
         if genre in ("family_drama","romance_melodrama"):return "Aoede"
         return "Orus"
     if reg=="VN" or lang=="vietnamese":
-        if genre in ("stoic","history","documentary"):return "Charon"
+        if genre in ("stoic","history","psychological_horror"):return "Charon"
         if genre in ("action","western","mafia_thriller"):return "Fenrir"
-        if genre=="psychological_horror":return "Charon"
         if genre=="animation":return "Puck"
         if genre in ("family_drama","healing","romance","romance_melodrama"):return "Aoede"
-        return "Charon"
+        return "Orus"
     if reg in ("FR","IT"):
         return "Algieba" if genre in ("family_drama","romance_melodrama") else "Charon"
     if reg in ("JP","KR"):
@@ -231,28 +264,46 @@ def tts_style(language,genre,region="auto",pacing="slow"):
         dialect = locale.get(reg_upper, language)
 
     pace_desc = {
-        "slow": "very slow, calm, deeply contemplative pacing (~115 words per minute) with unhurried pauses between clauses",
-        "normal": "natural measured storytelling pacing (~140 words per minute)",
-        "fast": "brisk, engaging pacing (~165 words per minute)"
-    }.get(pacing, "very slow, contemplative pacing (~115 words per minute) with unhurried pauses")
+        "slow": "measured, deeply engaging narrative pacing (~125 words per minute) with expressive dramatic breaths between thoughts",
+        "normal": "fluent, compelling storytelling pacing (~148 words per minute) with smooth natural phrasing",
+        "fast": "energetic, gripping pacing (~168 words per minute)"
+    }.get(pacing, "fluent, engaging storytelling pacing (~140 words per minute)")
 
     delivery={
-      "stoic":"very slow, calm, reflective philosophical narration with deep contemplative pauses, dignified and unhurried tone",
-      "family_drama":"restrained, emotionally expressive human storytelling, clear dialogue rhythm",
-      "mafia_thriller":"tense, suspenseful, deep authoritative delivery with calculating pauses and sharp dramatic weight",
-      "psychological_horror":"eerie, quiet, deliberate suspenseful pacing with breathless tension and chilling atmospheric restraint",
-      "romance_melodrama":"tender, deeply heartfelt and emotionally expressive storytelling with delicate pauses",
+      "stoic":"calm, reflective philosophical narration with dignified warmth and deliberate pauses",
+      "family_drama":"vivid, emotionally expressive human storytelling with authentic tension and shifting intonation between narrative and sharp dialogue",
+      "mafia_thriller":"tense, gripping noir delivery with calculating pauses, sharp weight, and dramatic intensity",
+      "psychological_horror":"eerie, intimate, suspenseful delivery with hushed dread and atmospheric tension",
+      "romance_melodrama":"tender, deeply heartfelt and emotionally resonant storytelling with warm expressive inflection",
       "western":"warm cinematic frontier storytelling, natural tension, confident pronunciation",
-      "action":"energetic yet articulate suspenseful narration, natural pacing",
-      "documentary":"measured, professional immersive storytelling, clear explanations and natural variation",
-      "history":"authoritative, dignified historical narration with measured cadence",
-      "animation":"lively natural narration, dynamic but never rushed",
-      "whiteboard":"friendly educational narration, clearly enunciated"
-    }.get(genre,"expressive, clear storytelling")
+      "action":"energetic yet articulate suspenseful narration, dynamic pacing",
+      "documentary":"vivid, captivating storyteller narration with rich emotional inflection, warm presence, and dramatic intrigue (never dry or robotic)",
+      "history":"authoritative, cinematic epic narration with dramatic cadence and human warmth",
+      "animation":"lively expressive storytelling, vivid vocal character",
+      "whiteboard":"engaging, witty conversational narration, clearly articulated"
+    }.get(genre,"vivid, expressive storytelling")
+    try:
+        ea = _get_ea_bridge()
+        if ea is not None:
+            ea_del = ea.resolve_tts_delivery(genre)
+            if ea_del:
+                delivery = ea_del
+    except Exception:
+        pass
     return "Read the supplied transcript exactly, in "+language+". Pronunciation and accent: "+dialect+". Delivery: "+delivery+". Pace: "+pace_desc+". Keep speaker identity steady throughout this segment; no singing, no additional words."
 def image_instruction(genre,style):
+    try:
+        ea = _get_ea_bridge()
+        if ea is not None:
+            ea_art = ea.resolve_image_instruction(genre=genre, style=style)
+            if ea_art:
+                if style == "hand_color":
+                    return ea_art + " Full-color completed artwork across the entire scene. No artist, hand, pen or brush in the source artwork."
+                return ea_art
+    except Exception:
+        pass
     if style=="hand_color":
-        art=ART["animation"] if genre=="whiteboard" else ART[genre]
+        art=ART["animation"] if genre=="whiteboard" else ART.get(genre, ART["auto"])
         return art+" Full-color completed artwork across the entire scene. Rich but natural colors on subjects and background. No monochrome-only line art; no artist, hand, pen or brush in the source artwork."
     if style=="flow_video":
         art=ART["animation"] if genre=="animation" else ART.get(genre, ART["auto"])
@@ -260,5 +311,5 @@ def image_instruction(genre,style):
     if style=="colored_marker":return ART["colored_marker"]
     if style=="whiteboard":return ART["whiteboard"]
     if style=="color_animation":return ART["animation"]
-    return ART[genre]
+    return ART.get(genre, ART["auto"])
 

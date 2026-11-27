@@ -117,7 +117,7 @@ def build_model_contents(batch:list,target_language:str,genre:str):
             "Describe the protagonist faithfully as a MONUMENTAL HEROIC CLASSICAL CARRARA MARBLE STATUE of Marcus Aurelius in medium shot torso framing. "
             "Describe deeply chiseled hyper-muscular anatomy, massive broad shoulders, sculpted chest pecs, thick curly stone beard, signature royal crimson draped toga cascading over one shoulder, and COMPLETE UNBROKEN FULLY INTACT ARMS. "
             "Describe dramatic golden chiaroscuro lighting, ancient Roman colonnade ruins, and glowing torch embers. "
-            "NEVER describe or prompt living human flesh, real skin, severed arms, amputated limbs, floating busts, or tabletop pedestals! "
+            "NEVER describe or prompt living human flesh, real skin, cropped limbs, floating busts, or tabletop pedestals! "
             "2. CINEMATOGRAPHY & ANTI-STAGNATION DIVERSITY MANDATE: Alternate diverse angles: medium wide shots, intimate close-ups, macro symbolic inserts (hourglass with falling sand, bronze oil lamp, classical scrolls), ancient Roman courtyards, sun-dappled olive groves, Pantheon interior with sunlight oculus, and river frontier campfires. "
         )
     else:
@@ -237,9 +237,9 @@ def validate_model_batch(batch:list,raw:str,genre:str="stoic")->list[dict]:
     return result
 
 def create_storyboard_batch(batch:list,*,genre:str,target_language:str,
-                            client,model:str="gemini-3.5-flash")->list[dict]:
+                            client,model:str="gemini-flash-lite-latest")->list[dict]:
     contents=build_model_contents(batch,target_language,genre)
-    models_to_try = [model, "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]
+    models_to_try = [model or "gemini-flash-lite-latest", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-3.5-flash"]
     last_err = None
     for cand_model in dict.fromkeys(models_to_try):
         try:
@@ -332,7 +332,7 @@ def build_source_storyboard(url:str,lines:list,*,video_path:Path,
                 return recover(part[:mid])+recover(part[mid:])
             # Only malformed/low-confidence model content is retried;
             # network/quota failures bubble up without extra paid requests.
-            for fallback in ("gemini-3.1-flash-lite","gemini-3.5-flash-lite","gemini-3.8-flash"):
+            for fallback in ("gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-3.5-flash"):
                 try:
                     corrected=create_storyboard_batch(part,genre=genre,
                         target_language=target_language,client=client,model=fallback)
@@ -349,33 +349,75 @@ def build_source_storyboard(url:str,lines:list,*,video_path:Path,
                 f"CLONE_SCENE_REVIEW_REQUIRED_{ids[0]:04d}: "
                 "AI did not return verifiable scene data after bounded attempts") from exc
 
-    for index in range(0,len(windows),batch_size):
-        batch=windows[index:index+batch_size]
-        ids=[w["scene_number"] for w in batch]
-        dest=cache_dir/f"evidence_batch_{index//batch_size+1:03d}.json"
-        content=read_verified(dest,batch)
+    import concurrent.futures
+    import threading
+
+    def process_one_batch(b_info):
+        b_idx, batch = b_info
+        ids = [w["scene_number"] for w in batch]
+        dest = cache_dir / f"evidence_batch_{b_idx//batch_size+1:03d}.json"
+        content = read_verified(dest, batch)
         if content is not None:
-            print(f"[CLONE_BATCH_CACHE_HIT] scenes={ids}",flush=True)
+            print(f"[CLONE_BATCH_CACHE_HIT] scenes={ids}", flush=True)
+            return b_idx, content
+        content = []
+        pending = []
+        for window in batch:
+            part = read_verified(
+                cache_dir / f"evidence_scene_{window['scene_number']:04d}.json",
+                [window])
+            if part is None:
+                pending.append(window)
+            else:
+                content.extend(part)
+        if pending:
+            content.extend(recover(pending))
+        by_id = {entry["scene_number"]: entry for entry in content}
+        if len(by_id) != len(batch) or any(k not in by_id for k in ids):
+            raise CloneEvidenceError("CLONE_BATCH_PARTIAL_RESULTS_INVALID")
+        content = [by_id[k] for k in ids]
+        save_verified(dest, batch, content)
+        return b_idx, content
+
+    batch_tasks = [(idx, windows[idx:idx+batch_size]) for idx in range(0, len(windows), batch_size)]
+    batch_results = {}
+    progress_lock = threading.Lock()
+    completed_count = 0
+
+    # Fast check: Read any existing cached batches first
+    uncached_tasks = []
+    for b_info in batch_tasks:
+        idx, batch = b_info
+        dest = cache_dir / f"evidence_batch_{idx//batch_size+1:03d}.json"
+        c = read_verified(dest, batch)
+        if c is not None:
+            print(f"[CLONE_BATCH_CACHE_HIT] scenes={[w['scene_number'] for w in batch]}", flush=True)
+            batch_results[idx] = c
+            completed_count += len(c)
         else:
-            content=[]
-            pending=[]
-            for window in batch:
-                part=read_verified(
-                    cache_dir/f"evidence_scene_{window['scene_number']:04d}.json",
-                    [window])
-                if part is None:
-                    pending.append(window)
-                else:
-                    content.extend(part)
-            if pending:
-                content.extend(recover(pending))
-            by_id={entry["scene_number"]:entry for entry in content}
-            if len(by_id)!=len(batch) or any(k not in by_id for k in ids):
-                raise CloneEvidenceError("CLONE_BATCH_PARTIAL_RESULTS_INVALID")
-            content=[by_id[k] for k in ids]
-            save_verified(dest,batch,content)
-        scenes.extend(content)
-        print(f"[SOURCE_ALIGNED_STORYBOARD] {len(scenes)}/{len(windows)} "
-              "scenes complete",flush=True)
-    validate_timed_scenes(scenes,lines,duration_seconds)
+            uncached_tasks.append(b_info)
+
+    if uncached_tasks:
+        max_workers = min(4, len(uncached_tasks))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_batch = {executor.submit(process_one_batch, b): b[0] for b in uncached_tasks}
+            for future in concurrent.futures.as_completed(future_to_batch):
+                idx, content = future.result()
+                batch_results[idx] = content
+                with progress_lock:
+                    completed_count += len(content)
+                    print(f"[SOURCE_ALIGNED_STORYBOARD] {completed_count}/{len(windows)} scenes complete", flush=True)
+    elif completed_count > 0:
+        print(f"[SOURCE_ALIGNED_STORYBOARD] {completed_count}/{len(windows)} scenes complete", flush=True)
+
+    for idx, _ in batch_tasks:
+        scenes.extend(batch_results[idx])
+
+    try:
+        from series_studio import inject_spoken_cta_into_scenes
+        scenes = inject_spoken_cta_into_scenes(scenes, language=target_language, genre=genre)
+    except Exception as _cta_e:
+        print(f"[CTA_INJECT_WARNING] {_cta_e}", flush=True)
+
+    validate_timed_scenes(scenes, lines, duration_seconds)
     return scenes

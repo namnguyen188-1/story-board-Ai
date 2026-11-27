@@ -91,30 +91,41 @@ def beat_guidance(first: int, count: int, total: int, genre: str, premise: str =
     """Generates authoritative narrative instructions injected into AI story generation prompts."""
     hint = str(premise or "").lower()
     g_clean = str(genre or "documentary").strip().lower()
-    plot_driven = g_clean in DYNAMIC_GENRES or (
+    is_stoic = g_clean in ("stoic", "philosophy") or any(k in hint for k in ("stoic", "marcus", "seneca", "epictetus", "aurelius", "triet ly", "khac ky"))
+    plot_driven = not is_stoic and (g_clean in DYNAMIC_GENRES or (
         g_clean == "documentary" and any(k in hint for k in (
             "hoa", "neighbor", "neighbour", "ranch", "confrontation", "dispute", "court", "injustice", "landowner"
         ))
-    )
+    ))
 
-    if plot_driven:
+    if is_stoic:
+        # Stoic Philosophy & Ancient Wisdom (Daily Stoic / Ryan Holiday / Valor Estoico standard)
         theme = (
-            "HIGH-STAKES DRAMA FRAMEWORK (VIRAL RETENTION MANDATE): "
-            "1. THE TICKING CLOCK: Establish an urgent countdown or narrowing window of survival/remedy (before nightfall, before the blizzard strikes, before the auction/deadline). Characters feel time running out in every scene. "
+            "VIRAL PRACTICAL STOICISM MASTERCLASS FRAMEWORK (DAILY STOIC / RYAN HOLIDAY STANDARD): "
+            "1. MODERN PSYCHOLOGICAL PAIN HOOK (0-15s): Scene 1 MUST strike a raw, painful modern struggle (dealing with toxic disrespect, overthinking, social anxiety, fear of failure, loneliness). Contrast this immediately with how Emperor Marcus Aurelius, Seneca, or Epictetus conquered it. "
+            "2. PRACTICAL STEP-BY-STEP PROGRESSION (NO ABSTRACT EXPOSITION): Divide the film into progressive, actionable disciplines (Dichotomy of Control, Amor Fati, Premeditatio Malorum, Voluntary Discomfort, Silence as Power). Every scene must introduce a NEW actionable mental weapon. "
+            "3. STRICT ANTI-PARAPHRASING MANDATE: NEVER repeat the same historical quote, marble statue description, or moral platitude across scenes. If a concept was taught in beat N, beat N+1 MUST advance to the next tactical life application. "
+            "4. SENSORY & ATMOSPHERIC ANCHORS: Ground the wisdom in cinematic Chiaroscuro reality (flickering oil lamps, cold Roman stone, rain against iron gates, deep breaths in solitude, hands opening a worn leather journal). "
+            "5. GOLDEN AXIOM CLOSURES: Every beat ends with a punchy, unforgettable one-line rule for living."
+        )
+    elif plot_driven:
+        theme = (
+            "HIGH-STAKES DRAMA & MORAL CONFLICT FRAMEWORK (NETFLIX / POCKET FM VIRAL RETENTION MANDATE): "
+            "1. THE TICKING CLOCK & COLD OPEN INJUSTICE: Scene 1 plunges directly into an intolerable moral violation, legal theft, or urgent betrayal (eviction notice served, bulldozers at the gate, secret will forged). Characters feel time running out in every scene. "
             "2. SHOW, DON'T TELL (SENSORY GROUNDING): Forbid abstract emotional labels ('he was scared', 'she felt sad'). Ground all emotion in physical actions, somatic reactions, and sensory reality (trembling fingers, smelling the cold air, protective body posture, a blackened injury, labored breathing). "
-            "3. IMPOSSIBLE MORAL DILEMMAS: Force characters into agonizing choices with severe consequences (sacrifice self vs save children; preserve pride vs beg for life). "
-            "4. PUNCHY DIALOGUE: Spoken lines must be concise, authentic, and fraught with subtext ('Not without you', 'Take the boys and go'). "
-            "5. ESCALATING OBSTACLES: Every beat must reveal a new complication that raises the stakes higher. No flat scenes."
+            "3. ESCALATING MORAL DILEMMAS & SHIFTING POWER: Force characters into agonizing choices with severe consequences (sacrifice self vs save family; preserve pride vs beg for life). Antagonists press their advantage ruthlessly. "
+            "4. PUNCHY SUBTEXT-RICH DIALOGUE: Spoken lines must be concise, authentic, and fraught with subtext ('Not without you', 'Take the boys and go'). "
+            "5. CATHARTIC MIDPOINT & JUSTICE REVERSAL: Near the climax, a concealed truth, hidden deed, or brilliant counter-move flips the power dynamic completely, delivering immense emotional satisfaction."
         )
     else:
-        # Documentary / Mystery / History / Philosophy (Lemmino / Fern / Netflix standard)
+        # Documentary / Mystery / History (Lemmino / Fern / Fall of Civilizations / Netflix standard)
         theme = (
-            "VIRAL DOCUMENTARY & HISTORICAL MYSTERY FRAMEWORK (LEMMINO / FERN / NETFLIX STANDARD): "
+            "VIRAL 4-ACT DOCUMENTARY EPIC & MYSTERY FRAMEWORK (LEMMINO / FERN / NETFLIX STANDARD): "
             "1. THE 3-SECOND COLD OPEN PARADOX: Scene 1 MUST open in medias res with an arresting anomaly, an impossible contradiction, or a suppressed discovery that defies modern understanding. Zero greetings, zero pleasantries ('Xin chao', 'Welcome', 'Today we will' are strictly forbidden). "
-            "2. INTERLOCKING CURIOSITY GAPS (NESTED OPEN LOOPS): Open an intriguing question before revealing an answer. When clue A is discovered, immediately reveal an unsettling contradiction B that deepens the mystery. "
-            "3. SENSORY & VISCERAL GROUNDING: Forbid dry textbook exposition. Anchor every historical fact in tangible physical details (the scorch marks on 2,000-year-old granite, the smell of burning pitch and cedar, the deafening thud of an 8-ton flywheel, grease-stained blueprints in trembling hands). "
-            "4. MIDPOINT PARADIGM SHIFT: At the 50% mark, overturn the surface-level explanation. Prove the accepted theory wrong or unveil a hidden motive that resets the investigation. "
-            "5. CLIMAX REVELATION & PHILOSOPHICAL MIRROR: Deliver a monumental breakthrough in the final fifth, followed by a haunting insight into human ambition, pride, or destiny that mirrors our modern world. "
+            "2. 4-ACT CHRONOLOGICAL PROGRESSION (NO LOOPING): Act 1 (The Discovery Shock) -> Act 2 (The Impossible Engineering Feat) -> Act 3 (The Siege, Invasion, or Crisis) -> Act 4 (The Unresolved Frontier). "
+            "3. STRICT ANTI-PARAPHRASING MANDATE: Strictly forbid repeating the exact same statistics, shaft counts, population numbers, or door descriptions across scenes. Every beat must reveal a FRESH piece of archaeological evidence, tactical layout, or historical testimony. "
+            "4. SENSORY & VISCERAL GROUNDING: Forbid dry textbook exposition. Anchor every historical fact in tangible physical details (scorch marks on ancient stone, sound of massive stone wheels locking, smell of sulfur and damp rock, blueprints in trembling hands). "
+            "5. MIDPOINT PARADIGM SHIFT: At the 50% mark, overturn the surface-level explanation. Prove the accepted theory wrong or unveil a hidden motive that resets the investigation. "
             "6. INFINITE CLIFFHANGER OUTRO: The final beat must leave a lingering unanswered question or open a thrilling new frontier, compelling viewers to watch the next episode."
         )
 
@@ -161,9 +172,19 @@ def audit_plan(scenes: list[dict], genre: str, locked: bool = False) -> dict:
     if len(descriptions) > 1 and len(set(descriptions)) < len(descriptions) * 0.85:
         warnings.append("repeated_visual_descriptions")
 
+    # 4. Narrative Paraphrasing Loop & Factual Overuse Detection
+    narrations = [re.sub(r"\s+", " ", str(s.get("narration", "")).strip().lower()) for s in scenes if isinstance(s, dict)]
+    if len(narrations) >= 8:
+        from collections import Counter
+        keywords = re.findall(r"\b(?:[a-z]+teen|[a-z]+ty|\d+|thousand|hundred|shafts?|doors?|stables?|statues?|breathe?s?|whispers?)\b", " ".join(narrations))
+        k_counts = Counter(keywords)
+        overused = [k for k, c in k_counts.items() if c > max(3, round(len(scenes) * 0.12))]
+        if overused:
+            warnings.append("overused_factual_terms:" + ",".join(overused[:4]))
+
     roles = [target_beat(i, len(scenes)) for i in range(1, len(scenes) + 1)]
 
-    # 4. Retention Scoring (0-100)
+    # 5. Retention Scoring (0-100)
     score = 100
     if "generic_greeting_hook" in warnings:
         score -= 25
@@ -174,6 +195,8 @@ def audit_plan(scenes: list[dict], genre: str, locked: bool = False) -> dict:
     if any(w.startswith("premature_conclusion") for w in warnings):
         score -= 20
     if "repeated_visual_descriptions" in warnings:
+        score -= 15
+    if any(w.startswith("overused_factual_terms") for w in warnings):
         score -= 15
 
     score = max(20, min(100, score))

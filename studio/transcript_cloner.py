@@ -174,6 +174,18 @@ def fetch_youtube_transcript(canonical_url: str, preferred_lang: str = "") -> di
         return {"ok": False, "error": str(exc)}
 
 
+def _sanitize_scene_safety(sc: dict):
+    for fld in ("description", "image_prompt", "summary"):
+        val = sc.get(fld, "")
+        if val:
+            val = re.sub(r"(?i)\b(bare torso|bare chest|shirtless|unclothed|half-naked|topless)\b", "wearing a buttoned rugged shirt", val)
+            val = re.sub(r"(?i)\b(unbuttoned vest|open vest|open shirt)\b", "wearing a closed vest over a sturdy shirt", val)
+            val = re.sub(r"(?i)\b(undressed|undressing|nude|naked)\b", "fully clothed in respectable period attire", val)
+            val = re.sub(r"(?i)\b(bath towel|towel wrap)\b", "warm woolen shawl and long dress", val)
+            val = re.sub(r"(?i)\b(low-cut|deep cleavage|cleavage|revealing dress)\b", "modest high-collared dress", val)
+            sc[fld] = val
+
+
 def _generate_scenes_for_slice(
     slice_speech: str,
     start_scene: int,
@@ -202,6 +214,7 @@ CRITICAL MANDATES:
    - {genre_rule}
    - {aspect_rule}
    - SINGLE SUBJECT MANDATE: Describe a single solitary subject. NEVER describe mirrored, symmetrical, twin, or split-screen figures. Ignore all post-production video editing artifacts.
+   - STRICT CONTENT SAFETY & WARDROBE MANDATE: All characters MUST be depicted fully clothed in respectable, period-accurate attire (e.g. buttoned shirt, rugged duster coat, long modest dress). NEVER describe any character as shirtless, bare torso, bare chest, unclothed, unbuttoned, wearing a bath towel, or in revealing clothing. Strictly zero nudity under all circumstances.
 
 3. SCENE VISUAL VARIETY MANDATE (PREVENT STATIC MONOTONY):
    - Every scene MUST depict a unique, visually captivating composition directly connected to the specific spoken narration.
@@ -230,7 +243,7 @@ Return JSON ONLY with this exact structure:
 }}
 """
 
-    for model_name in ("gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"):
+    for model_name in ("gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"):
         try:
             resp = client.models.generate_content(
                 model=model_name,

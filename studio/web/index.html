@@ -62,7 +62,7 @@
 
 
 
-  <link rel="stylesheet" href="style.css?v=20261023_fast_direct">
+  <link rel="stylesheet" href="style.css?v=20261127_chat_lang">
 
 
 
@@ -2558,7 +2558,7 @@
 
 
 
-        <span class="text-dim">Dự án:</span>
+        <span class="text-dim header-project-label">Dự án:</span>
 
 
 
@@ -2616,19 +2616,10 @@
 
       <button id="btnSnap1024x648" onclick="snapWindow1400x850()" style="display:none;" aria-hidden="true"></button>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+      <button class="btn btn-header-action" id="btnHeaderChat" onclick="window.openAssistantChat && window.openAssistantChat()" style="border-color:rgba(99,102,241,0.65);background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(14,165,233,0.12));color:#e0e7ff;" title="Mở Chatbot AI viết kịch bản & đẩy sang làm video">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Chat AI
+      </button>
 
       <button class="btn btn-header-action" id="btnOpenPreflight" title="Kiểm tra kết nối và môi trường toàn hệ thống">
 
@@ -2766,7 +2757,7 @@
 
 
 
-        ⭐ vidIQ SEO
+        vidIQ SEO
 
 
 
@@ -2806,7 +2797,7 @@
 
 
 
-        📺 Kênh YouTube
+        Kênh YouTube
 
 
 
@@ -2846,7 +2837,7 @@
 
 
 
-        🎬 Muse AI
+        Muse AI
 
 
 
@@ -3254,126 +3245,22 @@
 
 
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-
-
-
-
-
-
-
-              <span style="font-size:0.75rem; font-weight:600; color:#cbd5e1; text-transform:uppercase; letter-spacing:0.5px;">Định Dạng Phim</span>
-
-
-
-
-
-
-
-              <span id="prodModeBadge" class="badge badge-indigo" style="font-size:0.62rem; padding:1px 6px;" title="Cảnh 1 tự động dùng Video Muse AI, các cảnh sau chạy ảnh bình thường">1 Giọng Đọc • Auto Hook Video</span>
-
-
-
-
-
-
-
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+              <span style="font-size:0.72rem; font-weight:600; color:#cbd5e1; text-transform:uppercase; letter-spacing:0.5px;">Định Dạng Phim</span>
+              <span id="prodModeBadge" class="badge badge-indigo" style="font-size:0.6rem; padding:1px 6px;" title="Cảnh 1 tự động dùng Video Muse AI, các cảnh sau chạy ảnh bình thường">1 Giọng Đọc • Hook Video 30s</span>
             </div>
 
-
-
-
-
-
-
-            <div class="mode-toggle-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-
-
-
-
-
-
-
+            <div class="mode-toggle-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: rgba(15, 23, 42, 0.65); padding: 3px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08);">
               <button type="button" id="btnModeNarrative" class="mode-toggle-btn active" data-mode="narrative" value="narrative"
-
-
-
-
-
-
-
-                style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; border: 1px solid #6366f1; background: rgba(99, 102, 241, 0.2); color: #818cf8; cursor: pointer; transition: all 0.2s ease;">
-
-
-
-
-
-
-
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-
-
-
-
-
-
-
+                style="display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px; padding: 2px 6px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.6); background: rgba(99, 102, 241, 0.22); color: #a5b4fc; cursor: pointer; transition: all 0.15s ease;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
                 <span>Thuyết Minh</span>
-
-
-
-
-
-
-
               </button>
-
-
-
-
-
-
-
               <button type="button" id="btnModeDrama" class="mode-toggle-btn" data-mode="cinematic_drama" value="cinematic_drama"
-
-
-
-
-
-
-
-                style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px; font-size: 0.78rem; font-weight: 500; border-radius: 6px; border: 1px solid #334155; background: #0b1120; color: #94a3b8; cursor: pointer; transition: all 0.2s ease;">
-
-
-
-
-
-
-
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 8 7 4-7 4Z"/></svg>
-
-
-
-
-
-
-
+                style="display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px; padding: 2px 6px; font-size: 0.72rem; font-weight: 500; white-space: nowrap; border-radius: 4px; border: 1px solid transparent; background: transparent; color: #94a3b8; cursor: pointer; transition: all 0.15s ease;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 8 7 4-7 4Z"/></svg>
                 <span>Phim Kịch Đa Vai</span>
-
-
-
-
-
-
-
               </button>
-
-
-
-
-
-
-
             </div>
 
 
@@ -3728,11 +3615,12 @@
 
                 <option value="whiteboard">🎨 Vẽ màu & Bảng trắng (After Skool)</option>
 
-
-
-
-
-
+                <optgroup label="🇯🇵🇰🇷 Nhật Bản & Hàn Quốc">
+                  <option value="jp_zen_story">🇯🇵 Triết lý & Tâm lý Nhật (Vẽ tay After Skool)</option>
+                  <option value="jp_edo_sleepless">🏯 Lịch sử Edo & Samurai Nghe Đêm (Sleepless Nhật)</option>
+                  <option value="kr_yadam_joseon">🏮 Dã sử Yadam Triều Tiên (조선야담)</option>
+                  <option value="kr_sayeon_drama">🎬 Drama Đời Thực Hàn / Nhật (사연 · 2chスカッと)</option>
+                </optgroup>
 
               </select>
 
@@ -3823,12 +3711,6 @@
 
 
                 <option value="whiteboard">🎨 Vẽ màu & Bảng trắng (After Skool)</option>
-
-
-
-
-
-
 
               </select>
 
@@ -4646,7 +4528,10 @@
 
 
 
-            <span class="prompt-tip" id="promptTip">Chọn mẫu nhanh:</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button type="button" id="btnOpenAssistantChat" class="btn-assistant-inline" onclick="window.openAssistantChat && window.openAssistantChat()" title="Mở Chat AI (9router :20128) gợi ý ý tưởng & sửa kịch bản">💬 Chat AI</button>
+              <span class="prompt-tip" id="promptTip">Chọn mẫu nhanh:</span>
+            </div>
 
 
 
@@ -4846,96 +4731,15 @@
 
 
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-
-
-
-
-
-
-
-              <label for="inPrompt" id="inPromptLabel">Nội Dung</label>
-
-
-
-
-
-
-
-              <div style="display:flex;gap:5px;align-items:center;">
-
-
-
-
-
-
-
-                <button type="button" class="btn btn-secondary btn-xs" id="btnImportScript" style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;font-size:0.68rem;color:#38bdf8;border-color:rgba(56,189,248,0.4);cursor:pointer;" title="Tải file kịch bản TXT từ máy tính">
-
-
-
-
-
-
-
-                  📁 Nhập file .txt
-
-
-
-
-
-
-
-                </button>
-
-
-
-
-
-
-
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:3px;">
+              <label for="inPrompt" id="inPromptLabel" style="margin-bottom:0;font-size:0.75rem;font-weight:600;color:#cbd5e1;">Nội Dung</label>
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary btn-xs" id="btnImportScript" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;font-size:0.65rem;color:#38bdf8;border-color:rgba(56,189,248,0.4);cursor:pointer;white-space:nowrap;flex-shrink:0;" title="Tải file kịch bản TXT từ máy tính">📁 File .txt</button>
                 <input type="file" id="fileScriptInput" accept=".txt,.json,.md" style="display:none;" />
-
-
-
-
-
-
-
-                <button type="button" class="btn btn-secondary btn-xs" id="btnSuggestIdea" style="display:inline-flex;padding:2px 7px;font-size:0.66rem;color:#f59e0b;border-color:rgba(245,158,11,0.4);" title="Gợi ý cốt truyện triệu view chuẩn thể loại">✨ Gợi Ý Ý Tưởng</button>
-                <button type="button" class="btn btn-secondary btn-xs" id="btnOpenCompetitorModal" onclick="openCompetitorModal()" style="display:inline-flex;padding:2px 7px;font-size:0.66rem;color:#38bdf8;border-color:rgba(56,189,248,0.4);" title="Quét toàn bộ video đối thủ & chọn tập">🎯 Kênh Đối Thủ</button>
-                <button type="button" class="btn btn-secondary btn-xs" id="btnAnalyzeLink" style="display:none;padding:2px 7px;font-size:0.66rem;color:#818cf8;border-color:rgba(99,102,241,0.4);" title="Quét video YouTube">
-
-
-
-
-
-
-
-                  ⚡ Quét Link
-
-
-
-
-
-
-
-                </button>
-
-
-
-
-
-
-
+                <button type="button" class="btn btn-secondary btn-xs" id="btnSuggestIdea" style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;font-size:0.65rem;color:#f59e0b;border-color:rgba(245,158,11,0.4);cursor:pointer;white-space:nowrap;flex-shrink:0;" title="Gợi ý cốt truyện triệu view chuẩn thể loại">✨ Gợi ý</button>
+                <button type="button" class="btn btn-secondary btn-xs" id="btnOpenCompetitorModal" onclick="openCompetitorModal()" style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;font-size:0.65rem;color:#38bdf8;border-color:rgba(56,189,248,0.4);cursor:pointer;white-space:nowrap;flex-shrink:0;" title="Quét toàn bộ video đối thủ & chọn tập">🎯 Đối thủ</button>
+                <button type="button" class="btn btn-secondary btn-xs" id="btnAnalyzeLink" style="display:none;padding:2px 6px;font-size:0.65rem;color:#818cf8;border-color:rgba(99,102,241,0.4);white-space:nowrap;flex-shrink:0;" title="Quét video YouTube">⚡ Quét Link</button>
               </div>
-
-
-
-
-
-
-
             </div>
 
 
@@ -5096,7 +4900,7 @@
 
 
 
-                <option value="mcp_v2">Google Flow · MCP V2</option>
+                <option value="flowkit">⚡ Google Flow · FlowKit Engine</option>
 
 
 
@@ -6641,7 +6445,7 @@
 
 
 
-            <button class="btn btn-primary btn-produce" id="btnLive" disabled aria-disabled="true" title="Đang kiểm tra trạng thái sản xuất">
+            <button class="btn btn-primary btn-produce" id="btnLive" title="Bắt đầu sản xuất tập phim">
 
 
 
@@ -6657,7 +6461,7 @@
 
 
 
-              <span id="btnLiveLabel">Đang kiểm tra trạng thái...</span>
+              <span id="btnLiveLabel">Sản Xuất Bằng AI</span>
 
 
 
@@ -7373,70 +7177,10 @@
 
 
 
-          <button type="button" class="view-mode-btn active" id="btnViewGrid" onclick="setStoryboardViewMode('grid')" title="Dạng Thẻ Thoáng Đãng (Mặc định)">
-
-
-
-
-
-
-
-            🎴 Thẻ Thoáng
-
-
-
-
-
-
-
-          </button>
-
-
-
-
-
-
-
-          <button type="button" class="view-mode-btn" id="btnViewCinema" onclick="setStoryboardViewMode('cinema')" title="Dạng Thẻ Lớn Điện Ảnh">
-
-
-
-
-
-
-
-            🎬 Thẻ Lớn
-
-
-
-
-
-
-
-          </button>
-
-
-
-
-
-
-
-          <button type="button" class="view-mode-btn" id="btnViewList" onclick="setStoryboardViewMode('list')" title="Dạng Danh Sách Dòng Ngang Cho 60+ Cảnh">
-
-
-
-
-
-
-
+          <button type="button" class="view-mode-btn" id="btnViewGrid" onclick="setStoryboardViewMode('list')" style="display:none;" aria-hidden="true">Thẻ Thoáng</button>
+          <button type="button" class="view-mode-btn" id="btnViewCinema" onclick="setStoryboardViewMode('list')" style="display:none;" aria-hidden="true">Thẻ Lớn</button>
+          <button type="button" class="view-mode-btn active" id="btnViewList" onclick="setStoryboardViewMode('list')" title="Hiển thị Danh Sách phân cảnh">
             📑 Danh Sách
-
-
-
-
-
-
-
           </button>
 
 
@@ -7485,7 +7229,7 @@
 
 
 
-      <div class="scenes-viewport" id="scenesContainer">
+      <div class="scenes-viewport view-list" id="scenesContainer">
 
 
 
@@ -7855,11 +7599,7 @@
 
             <button class="mode-pill" id="modeBtnScene" title="Xem clip riêng của cảnh đang chọn">🎞️ Cảnh</button>
 
-
-
-
-
-
+            <button type="button" class="btn btn-secondary btn-xs" id="btnOpenExternalPlayer" title="Mở video bằng VLC / Windows Media Player ngoài" onclick="window.openCurrentVideoInExternalPlayer()" style="font-size:0.75rem;padding:3px 8px;margin-left:6px;display:inline-flex;align-items:center;gap:4px;border-radius:6px;cursor:pointer;">↗️ Mở Ngoài</button>
 
           </div>
 
@@ -8744,33 +8484,16 @@
       
 
         <!-- CÁC THAO TÁC CẢNH NHANH (TẠO LẠI / BỎ QUA / GHÉP TẬP NGAY) -->
-
-        <div class="inspector-scene-actions" id="inspectorSceneActions" style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;display:flex;flex-direction:column;gap:8px;">
-
-          <div style="font-size:0.75rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.04em;">Thao tác phân cảnh:</div>
-
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-
-            <button type="button" class="btn btn-secondary btn-sm" id="btnRetrySelectedScene" onclick="window.retrySelectedScene()" title="Chạy lại riêng cảnh này với prompt an toàn">
-
-              🔄 Tạo Lại Cảnh Này
-
-            </button>
-
-            <button type="button" class="btn btn-secondary btn-sm" id="btnSkipSelectedScene" onclick="window.skipSelectedScene()" title="Bỏ qua cảnh này và chèn chuyển cảnh an toàn để không nghẽn cả tập">
-
-              ⏭️ Bỏ Qua Cảnh
-
-            </button>
-
-            <button type="button" class="btn btn-primary btn-sm" id="btnAssembleEpisodeDirect" onclick="window.assembleEpisodeDirect()" title="Ghép các cảnh đã xong thành tập phim hoàn chỉnh ngay">
-
-              🎬 Ghép Tập Phim Ngay
-
-            </button>
-
-          </div>
-
+        <div class="inspector-scene-actions" id="inspectorSceneActions" style="margin-top:6px;padding:6px;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:6px;">
+          <button type="button" class="btn btn-secondary btn-xs" id="btnRetrySelectedScene" onclick="window.retrySelectedScene()" title="Chạy lại riêng cảnh này với prompt an toàn" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:26px;padding:0 6px;font-size:0.7rem;font-weight:600;white-space:nowrap;border-radius:4px;">
+            🔄 Tạo lại
+          </button>
+          <button type="button" class="btn btn-secondary btn-xs" id="btnSkipSelectedScene" onclick="window.skipSelectedScene()" title="Bỏ qua cảnh này và chèn chuyển cảnh an toàn để không nghẽn cả tập" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:26px;padding:0 6px;font-size:0.7rem;font-weight:600;white-space:nowrap;border-radius:4px;">
+            ⏭️ Bỏ qua
+          </button>
+          <button type="button" class="btn btn-primary btn-xs" id="btnAssembleEpisodeDirect" onclick="window.assembleEpisodeDirect()" title="Ghép các cảnh đã xong thành tập phim hoàn chỉnh ngay" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:26px;padding:0 6px;font-size:0.7rem;font-weight:600;white-space:nowrap;border-radius:4px;background:linear-gradient(135deg, #6366f1, #8b5cf6);">
+            🎬 Ghép phim
+          </button>
         </div>
 
 
@@ -8977,15 +8700,9 @@
 
 
 
-    <div class="modal-dialog" style="max-width:580px;max-height:85vh;overflow-y:auto;padding:20px;">
+    <div class="modal-dialog" style="max-width:650px;max-height:92vh;overflow-y:auto;padding:14px 16px;">
 
-
-
-
-
-
-
-      <div class="modal-header" style="border-bottom:1px solid #1e293b;padding-bottom:12px;margin-bottom:14px;">
+      <div class="modal-header" style="border-bottom:1px solid #1e293b;padding-bottom:8px;margin-bottom:10px;">
 
 
 
@@ -9049,151 +8766,37 @@
 
 
 
-      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;margin-bottom:14px;">
-
-
-
-
-
-
-
-        <div style="padding:7px 10px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
-
-
-
-
-
-
-
-          <span style="font-size:0.75rem;color:#94a3b8;">🚀 Cloud AI Pro</span>
-
-
-
-
-
-
-
-          <span id="statusV2" style="font-size:0.74rem;font-weight:600;color:#10b981;">Sẵn sàng</span>
-
-
-
-
-
-
-
+      <!-- STATUS MATRIX (COMPACT 6 CHIPS - 2 ROWS X 3 COLS) -->
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:5px;margin-bottom:8px;">
+        <div style="padding:4px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.71rem;color:#94a3b8;">🚀 Cloud AI Pro</span>
+          <span id="statusV2" style="font-size:0.71rem;font-weight:600;color:#10b981;">Sẵn sàng</span>
         </div>
-
-
-
-
-
-
-
-        <div style="padding:7px 10px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
-
-
-
-
-
-
-
-          <span style="font-size:0.75rem;color:#94a3b8;">⚡ GPU Render</span>
-
-
-
-
-
-
-
-          <span id="statusComfyUI" style="font-size:0.74rem;font-weight:600;color:#10b981;">Tự động</span>
-
-
-
-
-
-
-
+        <div style="padding:4px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.71rem;color:#94a3b8;">🧠 Gemini API</span>
+          <span id="statusGemini" style="font-size:0.71rem;font-weight:600;color:#10b981;">Sẵn sàng</span>
         </div>
-
-
-
-
-
-
-
-        <div style="padding:7px 10px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
-
-
-
-
-
-
-
-          <span style="font-size:0.75rem;color:#94a3b8;">🧠 Google Gemini</span>
-
-
-
-
-
-
-
-          <span id="statusGemini" style="font-size:0.74rem;font-weight:600;color:#10b981;">Sẵn sàng</span>
-
-
-
-
-
-
-
+        <div style="padding:4px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.71rem;color:#94a3b8;">⚡ GPU Render</span>
+          <span id="statusComfyUI" style="font-size:0.71rem;font-weight:600;color:#10b981;">Hoạt động</span>
         </div>
-
-
-
-
-
-
-
+        <div style="padding:4px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.71rem;color:#94a3b8;">⚡ Google Flow</span>
+          <span id="statusFlowKit" style="font-size:0.71rem;font-weight:600;color:#10b981;">Online</span>
+        </div>
+        <div style="padding:4px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.71rem;color:#94a3b8;">🤖 ChatGPT Web</span>
+          <span id="statusChatGptTop" style="font-size:0.71rem;font-weight:600;color:#10b981;">Sẵn sàng</span>
+        </div>
+        <div style="padding:4px 8px;background:#0f172a;border:1px solid #1e293b;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.71rem;color:#94a3b8;">🎬 Muse AI</span>
+          <span id="statusMuseTop" style="font-size:0.71rem;font-weight:600;color:#f43f5e;">1 Sẵn sàng</span>
+        </div>
         <div style="display:none;"><span id="statusMcp"></span></div>
-
-        <div class="system-status-item" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.06);border-radius:6px;">
-
-          <span style="font-size:0.75rem;color:#94a3b8;">⚡ Google Flow · MCP V2</span>
-
-          <span id="statusFlowKit" style="font-size:0.74rem;font-weight:600;color:#10b981;">🟢 MCP V2 · đang kiểm tra</span>
-
-        </div>
-
-
-
-
-
-
-
       </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       <!-- SECTION 1: CLOUD AI PRO ENGINE (3RD-PARTY GATEWAY) -->
-
-
-
-
-
-
-
-      <div id="gatewayCard" style="padding:12px;background:#0b1329;border:1px solid #1e293b;border-radius:8px;margin-bottom:12px;">
+      <div id="gatewayCard" style="padding:8px 11px;background:#0b1329;border:1px solid #1e293b;border-radius:8px;margin-bottom:7px;">
 
 
 
@@ -9561,7 +9164,7 @@
 
 
 
-      <div id="geminiCard" style="padding:12px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:12px;">
+      <div id="geminiCard" style="padding:8px 11px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:7px;">
 
 
 
@@ -9675,47 +9278,121 @@
 
       </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+      <!-- SECTION 2.5: FREELMAPI (PROXY MIỄN PHÍ CỤC BỘ) -->
+      <div id="freellmapiCard" style="padding:8px 11px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:7px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:0.84rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
+              <span>🆓 FreeLLMAPI</span>
+              <span style="font-size:0.71rem;font-weight:400;color:#64748b;">(Proxy Miễn Phí)</span>
+            </div>
+            <div id="freeLlmApiStatusBox" style="font-size:0.73rem;color:#94a3b8;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              Đang kiểm tra trạng thái FreeLLMAPI...
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            <select id="inFreeLlmApiMode" style="width:auto !important;min-width:92px;height:24px !important;min-height:24px !important;padding:0 6px !important;font-size:0.68rem !important;line-height:24px !important;background:#090d16;color:#e2e8f0;border:1px solid #334155;border-radius:4px;">
+              <option value="fallback">Dự phòng</option>
+              <option value="primary">Ưu tiên chính</option>
+              <option value="off">Tắt</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-xs" id="btnTestFreeLlmApi" onclick="checkFreeLlmApiNow()" style="display:inline-flex;align-items:center;gap:3px;height:24px;padding:0 7px;font-size:0.68rem;white-space:nowrap;">🔌 Kiểm tra</button>
+            <a id="btnOpenFreeLlmDashboard" href="http://127.0.0.1:31415" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-xs" style="display:inline-flex;align-items:center;gap:3px;height:24px;padding:0 7px;font-size:0.68rem;white-space:nowrap;text-decoration:none;">🔑 Keys</a>
+            <button type="button" class="btn btn-secondary btn-xs" onclick="var w=document.getElementById('freeLlmApiAdvWrap');if(w)w.style.display=w.style.display==='none'?'grid':'none';" title="Cấu hình nâng cao" style="display:inline-flex;align-items:center;height:24px;padding:0 6px;font-size:0.68rem;white-space:nowrap;">⚙</button>
+            <button type="button" class="btn btn-primary btn-xs" id="btnSaveFreeLlmApi" onclick="saveFreeLlmApiConfig()" style="display:inline-flex;align-items:center;height:24px;padding:0 8px;font-size:0.68rem;white-space:nowrap;">Lưu</button>
+          </div>
+        </div>
+        <div id="freeLlmApiAdvWrap" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #1e293b;">
+          <div class="field-wrap">
+            <label for="inFreeLlmApiUrl" style="font-size:0.7rem;">Endpoint URL</label>
+            <input type="text" id="inFreeLlmApiUrl" value="http://127.0.0.1:31415/v1" style="width:100%;font-size:0.74rem;padding:4px 6px;background:#090d16;color:#fff;border:1px solid #334155;border-radius:4px;">
+          </div>
+          <div class="field-wrap">
+            <label for="inFreeLlmApiModel" style="font-size:0.7rem;">Model (mặc định: auto)</label>
+            <input type="text" id="inFreeLlmApiModel" value="auto" style="width:100%;font-size:0.74rem;padding:4px 6px;background:#090d16;color:#fff;border:1px solid #334155;border-radius:4px;">
+          </div>
+          <div class="field-wrap">
+            <label for="inFreeLlmApiKey" style="font-size:0.7rem;">Unified Key (tự nhận nếu trống)</label>
+            <input type="password" id="inFreeLlmApiKey" placeholder="freellmapi-..." style="width:100%;font-size:0.74rem;padding:4px 6px;background:#090d16;color:#fff;border:1px solid #334155;border-radius:4px;">
+          </div>
+        </div>
+      </div>
 
       <!-- SECTION 3: TÀI KHOẢN GOOGLE FLOW (FLOWKIT) -->
-      <div id="flowkitSection" style="padding:12px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:12px;">
+      <div id="flowkitSection" style="padding:8px 11px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:7px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <!-- Cột trái: Tiêu đề & Thông tin đa luồng chuẩn đẹp, đồng bộ với Khóa Gemini -->
           <div style="min-width:0;flex:1;">
             <div style="font-size:0.85rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
               <span>⚡ Google Flow</span>
-              <span style="font-size:0.72rem;font-weight:400;color:#64748b;">(MCP V2)</span>
+              <span style="font-size:0.72rem;font-weight:400;color:#64748b;">(FlowKit Engine)</span>
             </div>
-            <div id="mcpAccountStatus" style="font-size:0.74rem;color:#10b981;margin-top:3px;line-height:1.35;word-break:break-word;">
-              ✓ Web Tool Storyboard Director AI đã kết nối (thangmayhn2021@gmail.com) · Đa luồng 3 TK
+            <div id="mcpAccountStatus" style="font-size:0.74rem;color:#10b981;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ✓ Đã kết nối FlowKit (Tự động bật khi tạo video/ảnh)
             </div>
           </div>
 
-          <!-- Cột phải: 3 nút nhỏ bằng đầu đũa (24px) -->
+          <!-- Cột phải: Các nút điều khiển nhỏ gọn (24px) -->
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            
             <button class="btn btn-primary btn-xs" id="btnFlowLogin" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;">
               🌐 Đăng Nhập
             </button>
             <button class="btn btn-secondary btn-xs" id="btnFlowAddAccount" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;">
               ➕ Thêm TK
             </button>
+            <button class="btn btn-secondary btn-xs" id="btnFlowDeleteAccount" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;color:#fca5a5;border-color:rgba(239,68,68,0.35);background:rgba(127,29,29,0.25);" title="Xóa hoặc làm mới hồ sơ Google Flow đang chọn để đổi tài khoản Google khác">
+              🗑️ Xóa
+            </button>
             <span id="autoFlowManagerStatus" style="display:inline-flex;align-items:center;justify-content:center;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;border-radius:4px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);box-sizing:border-box;white-space:nowrap;">
-              🟢 3/3 Đa luồng
+              🟢 Sẵn sàng
             </span>
           </div>
+        </div>
+        <div id="flowAccountPickerRow" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+          <span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;">Tài khoản:</span>
+          <select id="flowAccountSelect" style="flex:1;min-width:0;height:24px;background:#0b1329;color:#e2e8f0;border:1px solid #334155;border-radius:5px;padding:0 8px;font-size:0.7rem;"></select>
+        </div>
+      </div>
+
+      <!-- SECTION 3.5: TÀI KHOẢN CHATGPT WEB (THUMBNAIL & DALL-E) -->
+      <div id="chatgptSection" style="padding:8px 11px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;margin-bottom:7px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <!-- Cột trái: Tiêu đề & Thông tin độc lập -->
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:0.85rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
+              <span>🤖 ChatGPT Web</span>
+              <span style="font-size:0.72rem;font-weight:400;color:#64748b;">(Thumbnail & Prompt)</span>
+            </div>
+            <div id="chatgptAccountStatus" style="font-size:0.74rem;color:#10b981;margin-top:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ✓ Đã kết nối (Tự động bật khi tạo ảnh)
+            </div>
+          </div>
+
+          <!-- Cột phải: Các nút điều khiển gọn gàng -->
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <button class="btn btn-primary btn-xs" id="btnChatGptLogin" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;">
+              🌐 Đăng Nhập
+            </button>
+            <button class="btn btn-secondary btn-xs" id="btnChatGptAddAccount" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;" title="Thêm tài khoản ChatGPT Web dự phòng để tự động đổi khi hết lượt tạo ảnh">
+              ➕ Thêm TK
+            </button>
+            <button class="btn btn-secondary btn-xs" id="btnChatGptDeleteAccount" type="button" style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;white-space:nowrap;color:#fca5a5;border-color:rgba(239,68,68,0.35);background:rgba(127,29,29,0.25);" title="Xóa hoặc làm mới hồ sơ ChatGPT Web đang chọn để đổi tài khoản khác">
+              🗑️ Xóa
+            </button>
+            <button class="btn btn-secondary btn-xs" id="btnChatGptLock" type="button" style="display:none;align-items:center;gap:4px;height:24px;padding:0 6px;font-size:0.68rem;font-weight:600;white-space:nowrap;" title="Đóng trình duyệt Chrome để giải phóng RAM">
+              ❌ Đóng
+            </button>
+            <button class="btn btn-secondary btn-xs" id="btnChatGptCheck" type="button" style="display:none;" title="Kiểm tra trạng thái">
+              🔄
+            </button>
+            <span id="chatgptLiveStatusBadge" style="display:inline-flex;align-items:center;justify-content:center;height:24px;padding:0 8px;font-size:0.68rem;font-weight:600;border-radius:4px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);box-sizing:border-box;white-space:nowrap;">
+              🟢 Sẵn sàng
+            </span>
+          </div>
+        </div>
+        <div id="chatgptAccountPickerRow" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+          <span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;">Tài khoản:</span>
+          <select id="chatgptAccountSelect" style="flex:1;min-width:0;height:24px;background:#0b1329;color:#e2e8f0;border:1px solid #334155;border-radius:5px;padding:0 8px;font-size:0.7rem;"></select>
         </div>
       </div>
 
@@ -9755,7 +9432,7 @@
 
 
 
-      <div id="museCardSettings" style="padding:12px;background:#180b1e;border:1px solid rgba(244,63,94,0.3);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div id="museCardSettings" style="padding:8px 11px;background:#180b1e;border:1px solid rgba(244,63,94,0.3);border-radius:8px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
 
 
 
@@ -9891,7 +9568,7 @@
 
 
 
-      <div id="youtubeCardSettings" style="padding:12px;background:#180b1e;border:1px solid rgba(239,68,68,0.3);border-radius:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <div id="youtubeCardSettings" style="padding:8px 11px;background:#180b1e;border:1px solid rgba(239,68,68,0.3);border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
 
 
 
@@ -10011,7 +9688,7 @@
 
 
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #1e293b;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:10px;border-top:1px solid #1e293b;">
         <button type="button" class="btn btn-secondary btn-xs" onclick="cleanOldVersionsAndCache()" id="btnCleanOldVersions" style="border-color:#475569;color:#94a3b8;font-size:0.75rem;display:flex;align-items:center;gap:5px;">
           🧹 Dọn Dẹp Bản Cũ &amp; Bộ Nhớ Tạm
         </button>
@@ -10496,7 +10173,7 @@
 
 
 
-        Đánh giá toàn diện môi trường AI, bộ giải mã FFmpeg, cổng tự động Google Flow · MCP V2, phiên đăng nhập Google Flow và khóa API trên máy tính của bạn.
+        Đánh giá toàn diện môi trường AI, bộ giải mã FFmpeg, cổng tự động Google Flow · FlowKit Engine, phiên đăng nhập Google Flow và khóa API trên máy tính của bạn.
 
 
 
@@ -15594,6 +15271,9 @@
 
 
               </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="fetchYouTubeChannels(true)" style="background:#1e293b;color:#38bdf8;border:1px solid #334155;padding:5px 11px;font-size:0.74rem;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Kiểm tra và tự động làm mới trạng thái kết nối tất cả kênh">
+                <span>🔄 Kiểm tra kết nối</span>
+              </button>
 
 
 
@@ -18136,11 +17816,7 @@
 
         <button type="button" class="holo-tab-btn" id="holoTabTips" onclick="switchHoloTab('tips')">💡 Gợi Ý AI</button>
 
-
-
-
-
-
+        <button type="button" class="holo-tab-btn" id="holoTabChat" onclick="toggleRobotHologram(); window.openAssistantChat && window.openAssistantChat();" style="color:#a5b4fc;font-weight:700;">💬 Chat AI</button>
 
       </div>
 
@@ -18776,6 +18452,8 @@
 
       </div>
 
+      <!-- TAB 4 MOVED TO DEDICATED SLIDE-OVER DRAWER #assistantChatDrawer -->
+
 
 
 
@@ -18982,7 +18660,78 @@
 
 
 
-  <script src="app.js?v=20261112_0755_fix"></script>
+  <!-- STUDIO DEDICATED AI SCRIPT CO-PILOT DRAWER -->
+  <aside id="assistantChatDrawer" class="assistant-chat-drawer" style="display:none;" aria-label="Trợ Lý Kịch Bản AI">
+    <div class="assistant-drawer-head">
+      <div class="assistant-drawer-title-wrap">
+        <span class="assistant-drawer-icon">✨</span>
+        <div>
+          <div class="assistant-drawer-title">Trợ Lý Kịch Bản AI</div>
+          <div id="assistantRouterBadge" class="chat-status-badge offline">● Đang kiểm tra kết nối...</div>
+        </div>
+      </div>
+      <div class="assistant-drawer-tools">
+        <select id="chatLanguageSelect" class="chat-lang-select" title="Chọn ngôn ngữ viết kịch bản & giọng đọc">
+          <option value="studio">🌐 Theo Studio</option>
+          <option value="Vietnamese">🇻🇳 Tiếng Việt</option>
+          <option value="Japanese">🇯🇵 Tiếng Nhật</option>
+          <option value="Korean">🇰🇷 Tiếng Hàn</option>
+          <option value="English">🇺🇸 Tiếng Anh</option>
+          <option value="Chinese">🇨🇳 Tiếng Trung</option>
+          <option value="Spanish">🇪🇸 Tây Ban Nha</option>
+          <option value="French">🇫🇷 Tiếng Pháp</option>
+          <option value="German">🇩🇪 Tiếng Đức</option>
+          <option value="Russian">🇷🇺 Tiếng Nga</option>
+          <option value="Thai">🇹🇭 Tiếng Thái</option>
+          <option value="Indonesian">🇮🇩 Indonesia</option>
+        </select>
+        <button type="button" id="btnAssistantSettings" class="assistant-icon-btn" onclick="window.toggleAssistantSettings()" title="Cấu hình Model & Nguồn AI (9router / FreeLLMAPI)">⚙️</button>
+        <button type="button" id="btnAssistantExpand" class="assistant-icon-btn" onclick="window.toggleAssistantExpand()" title="Phóng rộng / Thu gọn khung viết kịch bản">⤢</button>
+        <button type="button" id="btnChatClear" class="assistant-icon-btn" onclick="window.clearAssistantChat()" title="Xóa lịch sử trò chuyện">🗑️</button>
+        <button type="button" id="btnCloseAssistantDrawer" class="assistant-icon-btn assistant-close-btn" onclick="window.closeAssistantChat()" title="Đóng Trợ Lý AI (Esc)">✕</button>
+      </div>
+    </div>
+
+    <div id="assistantSettingsTray" class="assistant-settings-tray" style="display:none;">
+      <div class="assistant-settings-row">
+        <select id="chatModelSelect" class="chat-model-select" title="Chọn model viết kịch bản">
+          <option value="auto">✨ Tự chọn model tốt nhất</option>
+        </select>
+        <button type="button" class="btn btn-xs btn-secondary" onclick="window.refreshAssistantStatus(true)" title="Làm mới danh sách model">↻</button>
+      </div>
+      <div class="assistant-settings-row" style="justify-content:space-between;">
+        <span id="assistantBackendNote" style="font-size:0.71rem;color:#94a3b8;">Tự động dùng nguồn AI rảnh, tách riêng khỏi luồng render.</span>
+        <div style="display:flex;gap:4px;">
+          <button type="button" id="btnStart9Router" class="btn btn-xs btn-secondary" onclick="window.startAssistantRouter()" title="Khởi động 9router (:20128)">▶ Bật 9router</button>
+          <button type="button" id="btnOpen9RouterDash" class="btn btn-xs btn-secondary" onclick="window.open9RouterDashboard()" title="Mở Dashboard 9router (http://127.0.0.1:20128/dashboard)">⚙️ Nguồn 9router</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-chip-row" id="assistantQuickChips">
+      <button type="button" class="chat-quick-chip" onclick="window.runAssistantQuickPreset('jp_idea')">🇯🇵 Ý tưởng Nhật</button>
+      <button type="button" class="chat-quick-chip" onclick="window.runAssistantQuickPreset('kr_idea')">🇰🇷 Drama Hàn</button>
+      <button type="button" class="chat-quick-chip" onclick="window.runAssistantQuickPreset('long_script')">📜 Kịch bản dài (5-10p)</button>
+      <button type="button" class="chat-quick-chip" onclick="window.runAssistantQuickPreset('refine_prompt')">✍️ Sửa kịch bản đang nhập</button>
+      <button type="button" class="chat-quick-chip" onclick="window.runAssistantQuickPreset('hook_seo')">🎯 Hook &amp; Tiêu đề</button>
+    </div>
+
+    <div id="chatMessagesBox" class="chat-messages-box">
+      <div class="chat-msg chat-msg-bot assistant-welcome-card">
+        <div class="chat-msg-text">
+          <div class="chat-md-h">Sẵn sàng viết &amp; tinh chỉnh kịch bản dài theo ý bạn</div>
+          <div>Bạn có thể yêu cầu viết từ video ngắn đến kịch bản dài 5–15 phút (hoặc bấm <b>➕ Viết tiếp dài thêm</b> để kéo dài thành nhiều phần). Khi ưng ý, bấm <b>🎬 Đẩy &amp; Tạo Video</b> (hoặc <b>🎬 Ghép tất cả phần &amp; Tạo Video</b>) để Studio tự đồng bộ số phút và dựng phim!</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="assistant-drawer-composer">
+      <textarea id="chatInput" rows="2" placeholder="Nhập ý tưởng, thời lượng mong muốn (vd: viết kịch bản 8 phút, 20 cảnh) hoặc sửa lại cảnh... (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+      <button type="button" id="btnChatSend" class="assistant-send-btn" onclick="window.sendAssistantMessage()">Gửi ➤</button>
+    </div>
+  </aside>
+
+  <script src="app.js?v=20261127_chat_lang"></script>
 
   <script src="drama_asset_review.js?v=20261031_multi_role_assets"></script>
 

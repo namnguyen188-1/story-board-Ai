@@ -30,18 +30,18 @@ GENRE_SEO_PROFILES: Dict[str, Dict[str, Any]] = {
         "default_hook_en": "MASTER YOUR MIND / Ancient Stoic Secret",
         "default_hook_es": "DEJA DE PERDER TU VIDA / Despierta",
         "titles_vi": [
-            "Làm Chủ Tâm Trí: Bí Mật Khắc Kỷ Của {subj} Giúp Bạn Bình Thản Trước Sóng Gió (Tập {episode_num})",
-            "{subj} Và Triết Lý Khắc Kỷ: Bí Quyết Đánh Thức Sức Mạnh Nội Tâm Đang Ngủ Quên",
-            "Tại Sao Bậc Thầy Khắc Kỷ Không Bao Giờ Nổi Giận? Bài Học Vô Giá Từ {subj}",
-            "Chủ Nghĩa Khắc Kỷ - Triết Lý {subj} Giúp Vượt Qua Áp Lực Cuộc Sống Bản Full HD",
-            "Hành Trình Giác Ngộ Của {subj} | Tuyệt Đỉnh Triết Học Khắc Kỷ Marcus Aurelius",
+            "Im Lặng Rời Đi: Đòn Trừng Phạt Thâm Sâu Nhất Khiến Kẻ Coi Thường Bạn Phải Hối Hận (Tập {episode_num})",
+            "Đừng Bao Giờ Giải Thích Với Kẻ Không Xứng Đáng: Nghệ Thuật Làm Chủ Cảm Xúc Của Marcus Aurelius",
+            "Buông Bỏ Thứ Không Thể Kiểm Soát, Nỗi Lo Âu Tự Khắc Tan Biến: 7 Bài Học Khắc Kỷ Thực Chiến",
+            "Tại Sao Bậc Thầy Khắc Kỷ Không Bao Giờ Nổi Giận? Bí Mật Để Trở Nên Bất Khả Xâm Phạm",
+            "Làm Chủ Tâm Trí: Triết Lý Khắc Kỷ Giúp Bạn Đứng Vững Trước Mọi Bão Giông Cuộc Đời",
         ],
         "titles_en": [
-            "Master Your Mind: The Stoic Secret of {subj} (Episode {episode_num})",
-            "{subj}: The Ancient Stoic Philosophy That Changes How You Think",
-            "Why Stoics Never Get Angry: Timeless Wisdom From {subj} (Episode {episode_num})",
-            "Stoicism Explained - How {subj} Mastered Emotional Control and Inner Peace",
-            "The Stoic Journey of {subj} | Full HD Ancient Philosophy Documentary",
+            "Walk Away in Silence and Watch How Quickly They Regret Losing You (Marcus Aurelius Stoicism)",
+            "Stop Explaining Yourself to People Who Don't Value You (Episode {episode_num} Stoic Rules)",
+            "Let Go of What You Can't Control and Anxiety Will Vanish (Ancient Stoic Wisdom)",
+            "Why Staying Silent Makes You Dangerously Respected: 7 Stoic Rules of {subj}",
+            "How to Be Emotionally Untouchable: The Brutal Stoic Mindset for Hard Times",
         ],
         "titles_es": [
             "SUELTA LO QUE NO PUEDES CONTROLAR Y LA ANSIEDAD SE IRÁ SOLA | 10 LECCIONES DE ESTOICISMO",
@@ -127,18 +127,18 @@ Bienvenido a esta profunda lección de {primary_kw} y sabiduría antigua para do
         "default_hook_vi": "HỐI HẬN MUỘN MÀNG! / Đẫm Nước Mắt",
         "default_hook_en": "TOO LATE TO REGRET! / Heartbreaking Secret",
         "titles_vi": [
-            "Drama Gia Đình: Bí Mật Đau Lòng Của {subj} Khiến Cả Nhà Bật Khóc Nức Nở (Tập {episode_num})",
-            "{subj} Tập {episode_num}: Nước Mắt Hối Hận Muộn Màng Khi Nhận Ra Tấm Lòng Cha Mẹ",
-            "Sự Thật Cay Đắng Sau Cánh Cửa Gia Đình {subj} Mà Không Ai Dám Nói Ra",
-            "Phim Ngắn Drama Gia Đình - {subj} Tập {episode_num} Cảm Động Rơi Nước Mắt Bản Full HD",
-            "Hành Trình Chuộc Lỗi Đầy Nước Mắt Của {subj} | Bài Học Tình Thân Vô Giá",
+            "BẤT HIẾU: Đuổi Mẹ Già Ra Đường Chiếm Căn Nhà Cũ, 3 Năm Sau Phải Quỳ Lạy Cầu Xin (Tập {episode_num})",
+            "Cố Tình Sang Tên Sổ Đỏ Chiếm Trọn Tài Sản, Người Con Nhận Cái Kết Đắng Cay (Tập {episode_num})",
+            "Kẻ Bội Bạc Cười Nhạo Người Nghèo Khổ, Đến Khi Biết Sự Thật Thì Đã Quá Muộn",
+            "Âm Mưu Chiếm Đoạt Di Chúc Bị Phanh Phui Ngay Trước Giờ Đấu Giá",
+            "Đuổi Chồng Nghèo Ra Khỏi Biệt Thự — Ngày Gặp Lại Phải Cúi Đầu Xin Lỗi (Tập {episode_num})",
         ],
         "titles_en": [
-            "Family Drama: The Heartbreaking Secret of {subj} That Broke a Home (Episode {episode_num})",
-            "{subj} Episode {episode_num}: Tears of Regret When The Truth Finally Came Out",
-            "The Bitter Truth Behind {subj}'s Family Door That Nobody Dared to Speak",
-            "Emotional Family Drama - {subj} Episode {episode_num} Full Movie HD",
-            "The Painful Redemption of {subj} | Heart Touching Family Story",
+            "He Kicked His Poor Mother Out to Steal the House — 3 Years Later He Begged for Mercy",
+            "They Forged the Will to Steal the Family Ranch, Then the Real Deed Appeared",
+            "Unforgivable Betrayal: Kicking Out the Man Who Secretly Paid Off Their Debt (Episode {episode_num})",
+            "He Humiliated the Poor Handyman — Until He Discovered Who Owned the Corporation",
+            "The Greedy Heirs Tried to Evict Him, But the Legal Will Shocked Everyone",
         ],
         "tags_vi": [
             "drama gia đình", "tình mẫu tử", "mẹ chồng nàng dâu", "lòng hiếu thảo", "nước mắt hối hận",
@@ -590,18 +590,18 @@ Welcome to this monumental {primary_kw} documentary journey exploring {subj}. Un
         "default_hook_vi": "SỰ THẬT CHẤN ĐỘNG! / Hồ Sơ Mật Bị Giấu",
         "default_hook_en": "THE SHOCKING TRUTH! / Hidden Secrets Revealed",
         "titles_vi": [
-            "Sự Thật Chấn Động: Hồ Sơ Mật Về {subj} Lần Đầu Tiên Được Hé Lộ Trước Công Chúng (Tập {episode_num})",
-            "{subj} Tập {episode_num}: Câu Chuyện Có Thật Khiến Toàn Bộ Thế Giới Phải Giật Mình",
-            "Tại Sao Họ Cố Che Giấu Sự Thật Về {subj}? Giải Mã Toàn Bộ Sự Việc",
-            "Phim Tài Liệu Khám Phá - {subj} Toàn Bộ Sự Thật & Bằng Chứng Xác Thực Bản Full HD",
-            "Hành Trình Đi Tìm Sự Thật Của {subj} | Tài Liệu Điều Tra Chi Tiết Nhất",
+            "Bí Mật Rùng Mình: Sự Thật Đằng Sau {subj} Mà Lịch Sử Từng Cố Xóa Bỏ (Tập {episode_num})",
+            "Tại Sao Họ Cố Tình Che Giấu Phát Hiện Về {subj}? Giải Mã Toàn Bộ Sự Việc",
+            "{subj} Tập {episode_num}: Kỳ Quan Bí Ẩn Vượt Xa Hiểu Biết Của Khoa Học Hiện Đại",
+            "Hồ Sơ Cấm: Bí Ẩn Kinh Hoàng Về {subj} Sau Hàng Thế Kỷ Bị Chôn Vùi",
+            "Sự Thật Chưa Từng Kể Về {subj} | Bộ Phim Tài Liệu Khiến Thế Giới Rúng Động",
         ],
         "titles_en": [
-            "The Untold Truth: Classified Files Behind {subj} Finally Revealed (Episode {episode_num})",
-            "{subj} Episode {episode_num}: The Shocking Real Story That Shook the World",
-            "Why They Tried to Hide {subj}: Deep Dive Investigation & Hidden Facts",
-            "Documentary Deep Dive - The True Phenomenon of {subj} Full HD",
-            "In Search of Truth: The Complete Journey of {subj} Explained",
+            "The Terrifying Truth Hidden Inside {subj} for Centuries (Episode {episode_num})",
+            "Why Historians Tried to Erase This Discovery About {subj}",
+            "The Ancient Secret Science Refused to Acknowledge: {subj}",
+            "What Really Happened Inside {subj}? The Bizarre Mystery Finally Solved",
+            "The Forbidden Architecture of {subj} That Defies Modern Science",
         ],
         "tags_vi": [
             "phim tài liệu", "giải mã bí ẩn", "sự thật chấn động", "điều tra độc quyền", "những điều chưa kể",
@@ -818,6 +818,45 @@ def get_genre_seo_profile(genre_str: str, language: str = "Vietnamese") -> Dict[
     return GENRE_SEO_PROFILES.get(norm, GENRE_SEO_PROFILES["documentary"])
 
 
+def _extract_title_ngrams_for_tags(title_text: str, language: str = "Spanish") -> List[str]:
+    """Extracts 2-4 word high-intent search phrases directly from title for Triple-Match tags."""
+    import unicodedata
+    raw = re.sub(r'#\w+', ' ', str(title_text or '')).strip()
+    if not raw:
+        return []
+    stop = {
+        'the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'on', 'at', 'by', 'for', 'from', 'with', 'that', 'this',
+        'de', 'del', 'la', 'las', 'el', 'los', 'un', 'una', 'y', 'o', 'con', 'por', 'para', 'en', 'al', 'su', 'tu', 'tus', 'que', 'no', 'te', 'se', 'lo', 'como',
+        'của', 'và', 'là', 'cho', 'trong', 'trên', 'với', 'về', 'từ', 'để', 'những', 'các', 'bạn', 'khi', 'mà', 'này', 'đó',
+    }
+    results: List[str] = []
+    # Split on punctuation boundaries like ':' / '-' / '|' first to preserve natural title clauses
+    segments = [s.strip() for s in re.split(r'[:|\-–—]+', raw) if s.strip()]
+    for seg in segments:
+        words = re.findall(r"[^\W_]+", seg.lower(), re.UNICODE)
+        if not words:
+            continue
+        if 1 <= len(words) <= 4 and len(' '.join(words)) >= 4:
+            cand = ' '.join(words)
+            if cand not in stop and cand not in results:
+                results.append(cand)
+        # Meaningful sliding 2-gram and 3-gram phrases excluding pure stopword edges
+        for n in (3, 2):
+            for i in range(0, len(words) - n + 1):
+                gram = words[i:i + n]
+                if gram[0] in stop or gram[-1] in stop:
+                    continue
+                if any(w in {'y', 'o', 'and', 'or', 'và', 'hay'} for w in gram):
+                    continue
+                if sum(1 for w in gram if w not in stop and len(w) > 2) < 2:
+                    continue
+                phrase = ' '.join(gram)
+                if 6 <= len(phrase) <= 45 and phrase not in results:
+                    results.append(phrase)
+    # Remove accents check helper not required, keep native chars clean
+    return results[:10]
+
+
 def enrich_and_maximize_tags(
     base_tags: Optional[List[str]],
     primary_kw: str,
@@ -828,19 +867,23 @@ def enrich_and_maximize_tags(
     subj: str = "",
     target_min_chars: int = 440,
     target_max_chars: int = 488,
+    title_text: str = "",
 ) -> List[str]:
-    """Guarantees 25-30 SEO tags strictly between 440 and 488 characters (90-98% YouTube limit).
+    """Guarantees 20-28 high-signal SEO tags strictly under YouTube 500-char limit.
 
-    Ensures 10/10 Tag Count, 10/10 Tag Volume, 10/10 Ranked Tags, and 10/10 High Volume Search
-    for vidIQ across ALL 11 genres without exceeding YouTube's 500-char barrier.
+    Prioritizes Triple-Match phrases extracted from best_title & primary_kw so VidIQ sees
+    strong Title-Description-Tags alignment without junk series-slug padding.
     """
     norm_genre = normalize_genre_key(genre)
     prof = get_genre_seo_profile(norm_genre, language)
     lang_lower = str(language or "").lower()
-    is_vi = any(k in lang_lower for k in ("vi", "vietnamese", "tiếng việt", "tieng viet"))
-    is_es = any(k in lang_lower for k in ("es", "spanish", "español", "tây ban nha"))
-    is_ru = any(k in lang_lower for k in ("ru", "russian", "русский", "nga"))
-    is_de = any(k in lang_lower for k in ("de", "german", "deutsch", "đức"))
+    is_vi = bool(re.search(r"(?:^|[\s_\-/,(])(?:vi|vi-[a-z]{2}|vie|vn|viet|vietnamese)(?:$|[\s_\-/,)])", lang_lower)) or ("tiếng việt" in lang_lower) or ("tieng viet" in lang_lower)
+    is_es = (not is_vi) and (bool(re.search(r"(?:^|[\s_\-/,(])(?:es|es-[a-z]{2}|esp|spa|spanish|español|espanol)(?:$|[\s_\-/,)])", lang_lower)) or ("tây ban nha" in lang_lower))
+    is_ru = any(k in lang_lower for k in ("russian", "русский", "nga")) or bool(re.search(r"(?:^|[\s_\-/,(])ru(?:$|[\s_\-/,)])", lang_lower))
+    is_de = any(k in lang_lower for k in ("german", "deutsch")) or bool(re.search(r"(?:^|[\s_\-/,(])(?:de|đức)(?:$|[\s_\-/,)])", lang_lower))
+
+    short_series_slug = str(series_name or "").strip().lower()
+    is_short_slug = bool(short_series_slug and len(short_series_slug) <= 5 and " " not in short_series_slug)
 
     def is_valid_tag(t_raw: str) -> bool:
         """Enforces 100% strict language isolation on every single SEO tag."""
@@ -848,6 +891,8 @@ def enrich_and_maximize_tags(
             return False
         clean = t_raw.strip().lower()
         if len(clean) < 2 or len(clean) > 60:
+            return False
+        if is_short_slug and re.match(rf"^{re.escape(short_series_slug)}\s+(?:capitulo|capítulo|episodio|episode|tap|tập)\b", clean, re.IGNORECASE):
             return False
         # Reject sentence fragments and clauses extracted from narration
         if len(clean.split()) > 5:
@@ -877,33 +922,21 @@ def enrich_and_maximize_tags(
         pool_primary = prof.get("primary_kw_en", "stoicism")
     effective_kw = str(primary_kw or pool_primary).strip().lower()
 
-    # Base ordered candidate stream
+    # Base ordered candidate stream: Primary Keyword + Direct Title Keyphrases first (Triple Match!)
     candidates: List[str] = [effective_kw]
+    for tk in _extract_title_ngrams_for_tags(title_text, language=language):
+        if tk not in candidates and is_valid_tag(tk):
+            candidates.append(tk)
 
-    # Specific series & episode tags
-    clean_subj = str(subj or series_name).strip().lower()
-    clean_series = str(series_name or "phim").strip().lower()
-    if clean_subj and clean_subj != effective_kw:
+    # Include meaningful subject phrase only (never junk 3-4 letter folder slugs like "stoi capitulo 2")
+    clean_subj = str(subj or "").strip().lower()
+    if clean_subj and clean_subj != effective_kw and len(clean_subj) >= 6 and is_valid_tag(clean_subj):
         candidates.append(clean_subj)
 
-    if is_vi:
-        if clean_subj:
-            candidates.append(f"{clean_subj} tap {episode_num}")
-            candidates.append(f"{clean_subj} tập {episode_num}")
-        if clean_series and clean_series != clean_subj:
-            candidates.append(f"{clean_series} tap {episode_num}")
-            candidates.append(f"{clean_series} tập {episode_num}")
-    elif is_es:
-        if clean_subj:
-            candidates.append(f"{clean_subj} capitulo {episode_num}")
-            candidates.append(f"{clean_subj} episodio {episode_num}")
-        if clean_series and clean_series != clean_subj:
-            candidates.append(f"{clean_series} capitulo {episode_num}")
-    else:
-        if clean_subj:
-            candidates.append(f"{clean_subj} episode {episode_num}")
-        if clean_series and clean_series != clean_subj:
-            candidates.append(f"{clean_series} episode {episode_num}")
+    clean_series = str(series_name or "").strip().lower()
+    if clean_series and len(clean_series) >= 7 and " " in clean_series and clean_series != effective_kw:
+        if is_valid_tag(clean_series):
+            candidates.append(clean_series)
 
     # Add existing AI or user base tags with strict language gating
     if base_tags:

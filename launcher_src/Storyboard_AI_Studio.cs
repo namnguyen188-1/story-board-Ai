@@ -50,14 +50,15 @@ namespace StoryboardAIStudio
             singleInstanceMutex = new Mutex(true, "StoryboardAIStudioPro_SingleInstance_Mutex_2026", out isNewInstance);
             if (!isNewInstance)
             {
-                // Do not open the default web browser or a second Edge window.
-                // Signal the existing Studio launcher to bring back its one UI.
+                // Signal the existing Studio launcher to restore its Native Desktop Window
                 try
                 {
                     using (var e = EventWaitHandle.OpenExisting(OpenEventName))
                         e.Set();
                 }
                 catch { }
+
+                RestoreExistingStudioWindow();
                 return;
             }
             openRequest = new EventWaitHandle(false, EventResetMode.AutoReset, OpenEventName);
@@ -107,23 +108,22 @@ namespace StoryboardAIStudio
                 }
             }
 
-            // 2. Launch the one backend and supervise it independently from Edge.
+            // 2. Launch the single Native Desktop App
             string targetPython = File.Exists(pythonwExe) ? pythonwExe : pythonExe;
-            try { StartBackend(targetPython, desktopApp); }
+            try 
+            { 
+                StartBackend(targetPython, desktopApp); 
+                if (pythonProcess != null)
+                {
+                    pythonProcess.WaitForExit();
+                }
+            }
             catch (Exception ex)
             {
                 MessageBox.Show("Không khởi động được máy chủ Studio:\n" + ex.Message,
                     AppTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
-            // 3. Tray + watchdog. Chromium may hand off --app to another
-            // process and exit instantly; never treat that as Studio shutdown.
-            SetupTray();
-            backendTimer = new System.Threading.Timer(
-                delegate(object state) { SuperviseBackend(targetPython, desktopApp); },
-                null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(8));
-            Application.Run();
         }
 
         private static void StartBackend(string python, string desktopApp)
@@ -134,11 +134,10 @@ namespace StoryboardAIStudio
                 Arguments = "\"" + desktopApp + "\"",
                 WorkingDirectory = baseDir,
                 UseShellExecute = false,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                CreateNoWindow = false,
+                WindowStyle = ProcessWindowStyle.Normal
             };
-            // The EXE, not Python's transient Edge child PID, owns the one UI.
-            psi.EnvironmentVariables["STORYBOARD_NATIVE_WINDOW_OWNER"] = "1";
+            psi.EnvironmentVariables["STORYBOARD_QT6_MODE"] = "1";
             pythonProcess = Process.Start(psi);
             if (pythonProcess == null) throw new InvalidOperationException("Backend process missing.");
         }
@@ -257,40 +256,18 @@ namespace StoryboardAIStudio
 
         private static void OpenStudioWindow()
         {
-            if (!BackendHealthy()) return;
             if (RestoreExistingStudioWindow()) { uiPresented = true; return; }
-            string url = "http://127.0.0.1:8765";
-            string uiProfile = Path.Combine(studioDir, "runtime", ".desktop_ui_profile");
-            try { Directory.CreateDirectory(uiProfile); } catch { }
-            string[] browsers = new string[]
+            if (pythonProcess == null || pythonProcess.HasExited)
             {
-                Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
-                Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
-                Environment.ExpandEnvironmentVariables(@"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
-                Environment.ExpandEnvironmentVariables(@"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
-                Environment.ExpandEnvironmentVariables(@"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
-                Environment.ExpandEnvironmentVariables(@"%LocalAppData%\Microsoft\Edge\Application\msedge.exe")
-            };
-
-            foreach (var b in browsers)
-            {
-                if (File.Exists(b))
-                {
-                    try
-                    {
-                        string args = "--app=" + url + " --user-data-dir=\"" + uiProfile + "\" --window-size=1400,850 --window-position=50,30 --no-first-run --no-default-browser-check --disable-features=msHub,msEdgeAppModeAddressBar --app-id=StoryboardAIStudioPro";
-                        Process.Start(b, args);
-                        return;
-                    }
-                    catch { }
-                }
+                string portablePython = Path.Combine(studioDir, "runtime", "python", "python.exe");
+                string portablePythonw = Path.Combine(studioDir, "runtime", "python", "pythonw.exe");
+                string venvDir = Path.Combine(studioDir, ".venv");
+                string pythonExe = File.Exists(portablePython) ? portablePython : Path.Combine(venvDir, "Scripts", "python.exe");
+                string pythonwExe = File.Exists(portablePythonw) ? portablePythonw : (File.Exists(portablePython) ? portablePython : Path.Combine(venvDir, "Scripts", "pythonw.exe"));
+                string targetPython = File.Exists(pythonwExe) ? pythonwExe : pythonExe;
+                StartBackend(targetPython, Path.Combine(studioDir, "desktop_app.py"));
             }
-
-            // Do not launch an unrelated default web browser as fallback.
-            if (trayIcon != null)
-                trayIcon.ShowBalloonTip(2500,"Storyboard AI",
-                    "Không tìm thấy trình duyệt chạy ở chế độ ứng dụng.",
-                    ToolTipIcon.Warning);
+            uiPresented = true;
         }
 
         private static void ExitApplication()

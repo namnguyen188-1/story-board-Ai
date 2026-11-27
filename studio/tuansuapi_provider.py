@@ -141,7 +141,13 @@ def test_gateway_connection() -> dict:
         return {"ok": False, "error": f"Không thể kết nối gateway: {exc}"}
 
 
-def generate_chat_completion(messages: list[dict], model: str | None = None, temperature: float = 0.7, timeout: float = 60.0) -> str:
+def generate_chat_completion(
+    messages: list[dict],
+    model: str | None = None,
+    temperature: float = 0.7,
+    timeout: float = 90.0,
+    max_tokens: int | None = None,
+) -> str:
     """Generates text / JSON content using 3rd-party gateway."""
     cfg = get_gateway_config()
     if not cfg["api_key"]:
@@ -153,13 +159,19 @@ def generate_chat_completion(messages: list[dict], model: str | None = None, tem
         "Content-Type": "application/json"
     }
     active_model = model or cfg["text_model"] or DEFAULT_TEXT_MODEL
-    payload = {
+    payload: dict = {
         "model": active_model,
         "messages": messages,
         "temperature": float(temperature)
     }
+    if max_tokens and int(max_tokens) > 0:
+        payload["max_tokens"] = int(max_tokens)
 
     resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
+    if resp.status_code == 400 and "max_tokens" in payload:
+        payload_retry = dict(payload)
+        payload_retry.pop("max_tokens", None)
+        resp = requests.post(url, headers=headers, json=payload_retry, timeout=timeout)
     if resp.status_code != 200:
         raise RuntimeError(f"Gateway HTTP {resp.status_code}: {resp.text[:200]}")
 
@@ -171,22 +183,32 @@ def generate_chat_completion(messages: list[dict], model: str | None = None, tem
 
 
 def generate_gateway_image(prompt: str, output_path: str | Path, model: str | None = None, timeout: float = 110.0) -> str:
-    """Generates an image via 3rd-party gateway (OpenAI images format)."""
+    """Generates an image via 3rd-party gateway or OpenAI ChatGPT (OpenAI images format)."""
     cfg = get_gateway_config()
-    if not cfg["api_key"]:
-        raise RuntimeError("Tuấn Stor API Key is missing for image generation")
+    
+    # Check if user plugged in an official OpenAI / ChatGPT key directly
+    openai_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("CHATGPT_API_KEY") or cfg.get("openai_api_key")
+    if openai_key and (model in ("dall-e-3", "dall-e-2", "gpt-image") or not cfg["api_key"]):
+        base_url = os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+        api_key = openai_key
+        active_model = model or "dall-e-3"
+    else:
+        if not cfg["api_key"]:
+            raise RuntimeError("Tuấn Stor API Key is missing for image generation")
+        base_url = cfg['base_url']
+        api_key = cfg['api_key']
+        active_model = model or cfg["image_model"] or DEFAULT_IMAGE_MODEL
 
-    url = f"{cfg['base_url']}/images/generations"
+    url = f"{base_url}/images/generations"
     headers = {
-        "Authorization": f"Bearer {cfg['api_key']}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    active_model = model or cfg["image_model"] or DEFAULT_IMAGE_MODEL
     payload = {
         "model": active_model,
         "prompt": prompt.strip(),
         "n": 1,
-        "size": "1024x1024"
+        "size": "1024x1024" if "dall-e-3" not in active_model else "1792x1024"
     }
 
     resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
@@ -216,7 +238,7 @@ def generate_gateway_image(prompt: str, output_path: str | Path, model: str | No
         img.load()
         rgb = img.convert("RGB")
         if abs(rgb.width / rgb.height - 16 / 9) > 0.01:
-            rgb = ImageOps.pad(rgb, (1536, 864), color="white", method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+            rgb = ImageOps.fit(rgb, (1280, 720), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
         temp = target.with_name(f"{target.stem}.{uuid.uuid4().hex}.png")
         rgb.save(temp, format="PNG")
         temp.replace(target)

@@ -1354,22 +1354,58 @@ def start_login_watcher(port: int = 9461):
 
 
 
-def open_google_flow_login() -> Dict[str, Any]:
-    """Open the existing active MCP V2 account for manual sign-in."""
-    from studio_flow_accounts import active, open_login
-    result = open_login(active()["id"])
-    return {**result, "success": bool(result.get("opened")), "provider": "mcp_v2"}
-
-
-
+def open_google_flow_login(account_id: Optional[str] = None) -> Dict[str, Any]:
+    """Open the existing active FlowKit account (or specified account_id) for manual sign-in."""
+    from studio_flow_accounts import active, open_login, select
+    target_id = str(account_id or "").strip() or active()["id"]
+    if account_id:
+        select(target_id)
+    result = open_login(target_id)
+    return {
+        **result,
+        "success": bool(result.get("opened")),
+        "account_id": target_id,
+        "message": "Đã mở trình duyệt Google Flow lên màn hình. Hãy đăng nhập tài khoản Google!",
+        "provider": "flowkit",
+    }
 
 
 def add_new_account() -> Dict[str, Any]:
-    """Create an MCP account only on the user's explicit Add Account action."""
-    from studio_flow_accounts import create, open_login
+    """Create a FlowKit account only on the user's explicit Add Account action."""
+    from studio_flow_accounts import create, open_login, select, delete_account, base
+    if base.any_running_production():
+        return {"success": False, "error": "Không thể thêm tài khoản khi video đang sản xuất."}
     row = create("Google Flow " + time.strftime("%Y%m%d-%H%M%S"))
-    result = open_login(row["id"])
-    return {**result, "success": bool(result.get("opened")), "provider": "mcp_v2"}
+    try:
+        select(row["id"])  # Automatically set the newly created account as active
+        result = open_login(row["id"])
+        return {
+            **result,
+            "success": bool(result.get("opened")),
+            "account": row,
+            "account_id": row["id"],
+            "message": f"Đã mở Chrome riêng cho {row['name']} (Cổng {result.get('cdp_port', '')}). Hãy đăng nhập Google!",
+            "provider": "flowkit",
+        }
+    except Exception as exc:
+        try:
+            delete_account(row["id"])
+        except Exception:
+            pass
+        return {"success": False, "error": str(exc), "provider": "flowkit"}
+
+
+def delete_flow_account(account_id: str = "") -> Dict[str, Any]:
+    """Delete/reset a Google Flow account and its profile so user can switch cleanly."""
+    from studio_flow_accounts import delete_account
+    res = delete_account(str(account_id or "").strip())
+    if res.get("reset_clean"):
+        _LOGIN_STATE["email"] = ""
+        msg = "Đã xóa tài khoản Google Flow cũ. Bấm '🌐 Đăng Nhập' để đăng nhập tài khoản khác!"
+    else:
+        _LOGIN_STATE["email"] = ""
+        msg = f"Đã xóa {res.get('deleted_name')}. Đang chuyển sang {res.get('active_name')}."
+    return {**res, "success": True, "message": msg}
 
 
 
@@ -1377,7 +1413,7 @@ def add_new_account() -> Dict[str, Any]:
 
 def _sanitize_accounts_db():
 
-    """Sanitize account paths on secondary machine to ensure portability."""
+    """Enforce all account profiles live inside project FLOW_ACCOUNTS_DIR and keep machine.json synced."""
 
     if not ACCOUNTS_DB_FILE.is_file():
 
@@ -1393,23 +1429,38 @@ def _sanitize_accounts_db():
 
             udd = a.get("user_data_dir", "")
 
-            if "thean" in udd.lower() and not os.path.exists(r"C:\Users\thean"):
-
-                new_udd = str(FLOW_ACCOUNTS_DIR / a["id"]).replace("/", "\\")
-
-                a["user_data_dir"] = new_udd
-
-                a["state_dir"] = str(FLOW_ACCOUNTS_DIR / f"{a['id']}_state").replace("/", "\\")
-
-                changed = True
+            # Allow dedicated project profiles in D:\STORYBOARD_AI\profiles
+            if udd and Path(udd).is_dir() and "storyboard_ai" in udd.lower():
+                pass
+            else:
+                expected_udd = str(FLOW_ACCOUNTS_DIR / a["id"]).replace("/", "\\")
+                expected_state = str(FLOW_ACCOUNTS_DIR / f"{a['id']}_state").replace("/", "\\")
+                if udd != expected_udd:
+                    a["user_data_dir"] = expected_udd
+                    a["state_dir"] = expected_state
+                    changed = True
 
         if changed:
 
             ACCOUNTS_DB_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
-    except Exception:
+        # Keep machine.json in FlowKit synced with active account
+        active_id = data.get("active")
+        for a in data.get("accounts", []):
+            if a.get("id") == active_id:
+                machine_file = FLOWKIT_ROOT / "state" / "machine.json"
+                if machine_file.is_file():
+                    m_data = {
+                        "chrome": _chrome_exe_path(),
+                        "flow_profile": str(a.get("user_data_dir", "")).replace("/", "\\"),
+                        "debug_port": int(a.get("cdp_port", 9461))
+                    }
+                    machine_file.write_text(json.dumps(m_data, indent=2), encoding="utf-8")
+                break
 
-        pass
+    except Exception as exc:
+
+        logger.warning(f"Failed to sanitize accounts db: {exc}")
 
 
 
@@ -1558,35 +1609,105 @@ def get_flow_account_for_scene(scene_number: int, exclude_ids: list[str] | None 
 
 
 def get_ui_status() -> Dict[str, Any]:
-    """Read native connection/auth state without starting any background service."""
-    from studio_mcp.accounts import (active_account, load_accounts, account_tool_url,
+    """Return FlowKit-powered Google Flow status."""
+    from studio_mcp.accounts import (active_account, load_accounts,
                                      connection_check, flow_auth_status)
+    import flowkit_client as fkc
     try:
         account = active_account()
-        from studio_mcp.transport import _isolated
-        _isolated(account)
         store = load_accounts()
-        state = connection_check(account["id"])
-        auth = flow_auth_status(account) if state.get("connected") else {}
+        is_alive = fkc.is_flowkit_alive()
+
+        state = connection_check(account["id"]) if account else {}
         connected = bool(state.get("connected"))
+        auth = flow_auth_status(account) if (account and state.get("connected")) else {}
         authenticated = bool(auth.get("authenticated"))
-        ready = connected and authenticated and bool(account_tool_url(account))
+
+        def _acc_logged_in(acc_row: dict, is_active_row: bool) -> bool:
+            if is_active_row and authenticated:
+                return True
+            sd = Path(acc_row.get("state_dir", ""))
+            ls_file = sd / "login_state.json"
+            if ls_file.is_file():
+                try:
+                    if json.loads(ls_file.read_text(encoding="utf-8")).get("logged_in"):
+                        return True
+                except Exception:
+                    pass
+            if acc_row.get("email"):
+                return True
+            if (sd / "auto_flow_shared_install.json").is_file() and (sd / "studio_private_tool_url.json").is_file():
+                return True
+            return False
+
+        login_verified = False
+        if account:
+            state_dir = Path(account.get("state_dir", ""))
+            login_state_file = state_dir / "login_state.json"
+            if authenticated:
+                login_verified = True
+                try:
+                    state_dir.mkdir(parents=True, exist_ok=True)
+                    login_state_file.write_text(json.dumps({"logged_in": True, "updated_at": time.time()}), encoding="utf-8")
+                except Exception:
+                    pass
+            else:
+                login_verified = _acc_logged_in(account, True)
+
+        active_id = account["id"] if account else None
+        ui_accounts = []
+        ready_count = 0
+        emails_list = []
+        for a in store.get("accounts", []):
+            is_act = (a.get("id") == active_id)
+            acc_ok = _acc_logged_in(a, is_act)
+            if acc_ok:
+                ready_count += 1
+            a_email = str(a.get("email") or "").strip()
+            if a_email and a_email not in emails_list:
+                emails_list.append(a_email)
+            ui_accounts.append({
+                "id": a.get("id"),
+                "name": a.get("name"),
+                "email": a_email,
+                "cdp_port": a.get("cdp_port"),
+                "active": is_act,
+                "logged_in": acc_ok,
+                "has_profile": Path(str(a.get("user_data_dir") or "")).is_dir(),
+            })
+
+        email = str((account.get("email") if account else "") or (auth.get("email") if isinstance(auth, dict) else "") or "").strip()
+        acc_label = email or (account.get("name") if account else "") or "Google Flow"
+        ready = bool(is_alive and (login_verified or connected))
+
+        if connected and authenticated:
+            badge_text = "🟢 Sẵn sàng"
+            badge_type = "success"
+            status_text = f"✓ Đang mở Chrome Google Flow ({acc_label}) · Sẵn sàng tạo media"
+        elif ready or login_verified:
+            badge_text = "🟢 Sẵn sàng"
+            badge_type = "success"
+            status_text = f"✓ Đã kết nối FlowKit ({acc_label}) · Tự động bật khi tạo video/ảnh"
+        else:
+            badge_text = "🟡 Chờ đăng nhập"
+            badge_type = "warning"
+            status_text = f"Chưa đăng nhập ({acc_label}). Bấm '🌐 Đăng Nhập' để mở Chrome đăng nhập Google."
+
         return {
-            "provider": "mcp_v2", "flowkit_required": False,
-            "ready": ready, "connected": connected, "logged_in": authenticated,
-            "email": account.get("email", ""), "emails": [],
-            "accounts": store.get("accounts", []), "active_id": account["id"],
-            "total_accounts": len(store.get("accounts", [])),
-            "ready_accounts": int(ready), "dispatch_mode": "active_account",
-            "badge_text": "MCP V2: đã kết nối" if ready else "MCP V2: chưa sẵn sàng",
-            "badge_type": "success" if ready else "warning",
-            "status_text": ("MCP V2 đã kết nối; trạng thái tạo nội dung cần kiểm tra riêng."
-                            if ready else "Mở tài khoản MCP V2 và kiểm tra đăng nhập Google Flow."),
+            "provider": "flowkit", "flowkit_required": True,
+            "ready": ready or login_verified, "connected": connected, "logged_in": login_verified or authenticated,
+            "email": email, "emails": emails_list,
+            "accounts": ui_accounts, "active_id": active_id,
+            "total_accounts": len(ui_accounts),
+            "ready_accounts": ready_count, "dispatch_mode": "flowkit_engine",
+            "badge_text": badge_text,
+            "badge_type": badge_type,
+            "status_text": status_text,
             "watcher_active": False
         }
     except Exception as exc:
-        return {"provider": "mcp_v2", "flowkit_required": False, "ready": False,
+        return {"provider": "flowkit", "flowkit_required": True, "ready": False,
                 "connected": False, "logged_in": False, "ready_accounts": 0,
                 "total_accounts": 0, "emails": [], "email": "", "accounts": [],
-                "badge_text": "MCP V2: cần kiểm tra", "badge_type": "warning",
-                "status_text": str(exc), "watcher_active": False}
+                "badge_text": "🔴 Lỗi", "badge_type": "warning",
+                "status_text": f"Chưa sẵn sàng: {exc}", "watcher_active": False}

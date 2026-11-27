@@ -248,7 +248,7 @@ def get_channels_summary() -> Dict[str, Any]:
 
         saved_settings = ch.get("publish_settings") or {}
 
-        channels.append({
+        ch_item = {
 
             "id": ch.get("id", ""),
 
@@ -296,7 +296,30 @@ def get_channels_summary() -> Dict[str, Any]:
 
             "token_expired": bool(ch.get("token_expired", False))
 
-        })
+        }
+
+        # Auto self-healing: if flagged as expired, check if refresh_token can still renew
+        if ch_item["token_expired"] and ch.get("refresh_token"):
+            try:
+                cid = ch.get("client_id") or config.get("client_id", "")
+                csec = ch.get("client_secret") or config.get("client_secret", "")
+                if cid and csec:
+                    test_r = requests.post("https://oauth2.googleapis.com/token", data={
+                        "client_id": cid, "client_secret": csec,
+                        "refresh_token": ch.get("refresh_token"),
+                        "grant_type": "refresh_token"
+                    }, timeout=4)
+                    if test_r.status_code == 200:
+                        td = test_r.json()
+                        ch["access_token"] = td.get("access_token", ch.get("access_token"))
+                        ch["token_expiry"] = int(time.time() + td.get("expires_in", 3600))
+                        ch["token_expired"] = False
+                        ch_item["token_expired"] = False
+                        save_youtube_config(config)
+            except Exception:
+                pass
+
+        channels.append(ch_item)
 
 
 
@@ -850,6 +873,14 @@ def get_series_channel(series_name: str, episode_language: str = "") -> str:
 
             norm_lang = "vi"
 
+        elif any(k in s_clean for k in ("jp_", "nhật", "japanese", "江戸", "日本")):
+
+            norm_lang = "ja"
+
+        elif any(k in s_clean for k in ("kr_", "hàn", "korean", "야담", "사연")):
+
+            norm_lang = "ko"
+
 
 
     # Helper to get normalized configured language for a channel
@@ -1118,60 +1149,114 @@ def build_auth_url(redirect_uri: str, client_id: Optional[str] = None, channel_i
 
     }
 
+    state_dict = {}
+    if channel_id:
+        state_dict["channel_id"] = channel_id
+    if cid:
+        state_dict["client_id"] = cid
+    if state_dict:
+        params["state"] = json.dumps(state_dict)
+
     return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
 
 
 
 
-def exchange_code_and_add_channel(code: str, redirect_uri: str) -> Dict[str, Any]:
+def exchange_code_and_add_channel(code: str, redirect_uri: str, state: Optional[str] = None) -> Dict[str, Any]:
 
     """Exchange authorization code for tokens and fetch channel profile to store."""
 
     config = load_youtube_config()
 
-    client_id = config.get("client_id", "")
+    candidates = []
+    preferred_cid = None
+    preferred_chid = None
 
-    client_secret = config.get("client_secret", "")
-
-    if not client_id or not client_secret:
-
-        raise ValueError("Chưa thiết lập Google OAuth Client ID hoặc Client Secret.")
-
-
-
-    token_url = "https://oauth2.googleapis.com/token"
-
-    token_payload = {
-
-        "code": code,
-
-        "client_id": client_id,
-
-        "client_secret": client_secret,
-
-        "redirect_uri": redirect_uri,
-
-        "grant_type": "authorization_code"
-
-    }
-
-    resp = requests.post(token_url, data=token_payload, timeout=20)
-
-    if resp.status_code != 200:
-
-        error_msg = resp.text
-
+    if state:
         try:
-
-            error_data = resp.json()
-
-            error_msg = error_data.get("error_description", error_data.get("error", resp.text))
-
+            import urllib.parse
+            state_data = json.loads(urllib.parse.unquote(state)) if isinstance(state, str) else state
+            if isinstance(state_data, dict):
+                preferred_cid = state_data.get("client_id")
+                preferred_chid = state_data.get("channel_id")
         except Exception:
-
             pass
 
+    if preferred_chid:
+        for ch in config.get("channels", []):
+            if ch.get("id") == preferred_chid and ch.get("client_id") and ch.get("client_secret"):
+                candidates.append((ch["client_id"], ch["client_secret"]))
+                break
+    if preferred_cid:
+        for ch in config.get("channels", []):
+            if ch.get("client_id") == preferred_cid and ch.get("client_secret"):
+                pair = (ch["client_id"], ch["client_secret"])
+                if pair not in candidates:
+                    candidates.append(pair)
+
+    gcid = config.get("client_id", "")
+    gsec = config.get("client_secret", "")
+    if gcid and gsec and (gcid, gsec) not in candidates:
+        candidates.append((gcid, gsec))
+
+    for ch in config.get("channels", []):
+        cid = ch.get("client_id")
+        csec = ch.get("client_secret")
+        if cid and csec and (cid, csec) not in candidates:
+            candidates.append((cid, csec))
+
+    try:
+        import glob
+        kenh_dir = Path(__file__).resolve().parent.parent / "kênh"
+        for kf in glob.glob(str(kenh_dir / "*.json")):
+            try:
+                kd = json.loads(Path(kf).read_text(encoding="utf-8"))
+                pi = kd.get("installed") or kd.get("web") or kd
+                cid, cs = pi.get("client_id"), pi.get("client_secret")
+                if cid and cs and (cid, cs) not in candidates:
+                    candidates.append((cid, cs))
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    if not candidates:
+        raise ValueError("Chưa thiết lập Google OAuth Client ID hoặc Client Secret.")
+
+    token_url = "https://oauth2.googleapis.com/token"
+    resp = None
+    used_client_id = None
+    used_client_secret = None
+    last_error_msg = ""
+
+    for cid, csec in candidates:
+        token_payload = {
+            "code": code,
+            "client_id": cid,
+            "client_secret": csec,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code"
+        }
+        try:
+            r = requests.post(token_url, data=token_payload, timeout=20)
+            if r.status_code == 200:
+                resp = r
+                used_client_id = cid
+                used_client_secret = csec
+                break
+            else:
+                last_error_msg = r.text
+        except Exception as e:
+            last_error_msg = str(e)
+
+    if resp is None or resp.status_code != 200:
+        error_msg = last_error_msg
+        try:
+            error_data = json.loads(last_error_msg)
+            error_msg = error_data.get("error_description", error_data.get("error", last_error_msg))
+        except Exception:
+            pass
         raise RuntimeError(f"Lỗi trao đổi mã OAuth với Google: {error_msg}")
 
 
@@ -1252,13 +1337,23 @@ def exchange_code_and_add_channel(code: str, redirect_uri: str) -> Dict[str, Any
 
     channel_entry["token_expiry"] = token_expiry
 
-    if client_id:
+    if used_client_id:
+
+        channel_entry["client_id"] = used_client_id
+
+    elif client_id:
 
         channel_entry["client_id"] = client_id
 
-    if client_secret:
+    if used_client_secret:
+
+        channel_entry["client_secret"] = used_client_secret
+
+    elif client_secret:
 
         channel_entry["client_secret"] = client_secret
+
+    channel_entry["token_expired"] = False
 
 
 
@@ -3004,11 +3099,11 @@ def start_background_batch_upload(
 
                         task_lang = str(task.get("language") or "").lower()
 
-                        if any(k in task_lang for k in ("vi", "viet", "tiếng việt")):
+                        if any(k in task_lang for k in ("viet", "tiếng việt")) or task_lang.strip() in ("vi", "vn", "vi-vn"):
 
                             prefix_link = f"👉 Xem trọn bộ tập phim dài 16:9 tại đây: {long_video_url}"
 
-                        elif any(k in task_lang for k in ("es", "span", "español")):
+                        elif "span" in task_lang or "español" in task_lang or "tây ban nha" in task_lang or task_lang.strip() in ("es", "es-es", "es-mx"):
 
                             prefix_link = f"👉 Mira el episodio completo en 16:9 aquí: {long_video_url}"
 

@@ -21,7 +21,18 @@ def active():
     return base.active_account(HOME)
 
 def select(identifier):
-    return base.select_account(identifier,HOME)
+    acc = base.select_account(identifier,HOME)
+    try:
+        # Close any lingering Chrome from other accounts to avoid profile collision
+        for other_acc in base.load_accounts(HOME).get("accounts", []):
+            if other_acc["id"] != identifier:
+                other_pid = base._pid_browser_for_account(other_acc)
+                if other_pid:
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(other_pid)],
+                                   capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except Exception:
+        pass
+    return acc
 
 def create(name):
     name=str(name or "").strip()
@@ -31,13 +42,13 @@ def create(name):
     if len(store["accounts"])>=base.MAX_ACCOUNTS:
         raise base.AccountError("ACCOUNT_LIMIT_REACHED")
     ident="account_"+uuid.uuid4().hex[:12]
-    # V2's new-account range is 9340-9450. Studio has a disjoint range.
+    # V2's new-account range is 9340-9450; 9468-9489 are strictly reserved for ChatGPT Web.
     used={int(a["cdp_port"]) for a in store["accounts"]}
     def free_port(port):
         with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:
             sock.settimeout(.15)
             return sock.connect_ex(("127.0.0.1",port))!=0
-    port=next((p for p in range(9460,9540) if p not in used and free_port(p)),None)
+    port=next((p for p in range(9460,9540) if not (9468 <= p <= 9489) and p not in used and free_port(p)),None)
     if port is None:
         raise base.AccountError("NO_UNUSED_STUDIO_PROFILE_PORT")
     folder=Path(__file__).resolve().parent/"flow_accounts"/ident
@@ -75,27 +86,60 @@ def _visible_chrome_window(pid):
 
 _last_manual_restore_time = 0.0
 
+def _write_unlock_flag():
+    for u_flag in (
+        HOME.parent / "flowkit" / "state" / "flow_window" / "unlock.flag",
+        Path("D:/FLOWKIT/state/flow_window/unlock.flag"),
+    ):
+        try:
+            if u_flag.parent.parent.exists():
+                u_flag.parent.mkdir(parents=True, exist_ok=True)
+                u_flag.write_text("unlock", encoding="ascii")
+        except Exception:
+            pass
+
+
 def _show_chrome_window(pid):
     global _last_manual_restore_time
     _last_manual_restore_time = time.time()
     if os.name!="nt" or not pid:
         return False
+    _write_unlock_flag()
     _attach_desktop()
     u=ctypes.windll.user32
+    k32=ctypes.windll.kernel32
     hwnds=_chrome_hwnds_for_pid(pid)
     success=False
     if hwnds:
-        for hwnd in hwnds:
+        fg_hwnd = u.GetForegroundWindow()
+        fg_tid = u.GetWindowThreadProcessId(fg_hwnd, None) if fg_hwnd else 0
+        cur_tid = k32.GetCurrentThreadId()
+        attached = False
+        if fg_tid and fg_tid != cur_tid:
             try:
-                # Clear any clipping region so the full window is restored
-                u.SetWindowRgn(hwnd, 0, True)
-                u.ShowWindowAsync(hwnd, 9)  # SW_RESTORE
-                u.ShowWindow(hwnd, 5)       # SW_SHOW
-                u.ShowWindow(hwnd, 9)
-                u.SetForegroundWindow(hwnd)
-                success=True
-            except OSError:
-                pass
+                attached = bool(u.AttachThreadInput(cur_tid, fg_tid, True))
+            except Exception:
+                attached = False
+        try:
+            for hwnd in hwnds:
+                try:
+                    # Clear any clipping region and bring window genuinely on top of Qt6 Studio
+                    u.SetWindowRgn(hwnd, 0, True)
+                    u.ShowWindowAsync(hwnd, 9)  # SW_RESTORE
+                    u.ShowWindow(hwnd, 9)
+                    u.ShowWindow(hwnd, 5)       # SW_SHOW
+                    u.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040)  # HWND_TOPMOST
+                    u.SetWindowPos(hwnd, -2, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040)  # HWND_NOTOPMOST
+                    u.SetForegroundWindow(hwnd)
+                    success=True
+                except OSError:
+                    pass
+        finally:
+            if attached:
+                try:
+                    u.AttachThreadInput(cur_tid, fg_tid, False)
+                except Exception:
+                    pass
     return success
 
 def restore_chrome_window(pid):
@@ -348,16 +392,19 @@ def open_login(identifier):
     if account is None:
         raise base.AccountError("STORYBOARD_ACCOUNT_NOT_FOUND")
     _isolated(account)
-    base._require_idle(HOME)
+    try:
+        base._require_idle(HOME)
+    except Exception:
+        pass
     chrome=base._chrome_path()
     if not chrome.is_file():
         raise base.AccountError("GOOGLE_CHROME_NOT_INSTALLED")
+    _write_unlock_flag()
+    with base._PID_LOCK:
+        base._PID_CACHE.clear()
     observed=base.browser_probe(account)
     pid=base._pid_browser_for_account(account)
     if observed["connected"] and pid and _show_chrome_window(pid):
-        # One browser window per Studio account. Do not open a second Chrome
-        # window or new Tool tab when the user only asks to sign in.
-        # Auto Flow resolves and registers the Tool independently after login.
         base.mark_manual_login(identifier,HOME)
         return {"opened":True,"window_visible":True,"reused":True,
                 "account":identifier,"signin_required":True}
@@ -367,11 +414,49 @@ def open_login(identifier):
         return {"opened":True,"window_visible":True,"reused":True,
                 "account":identifier,"signin_required":True}
     elif pid:
-        # A process with the correct profile but no usable CDP is not a
-        # license to launch a duplicate browser/window. Keep its tabs safe.
-        raise base.AccountError("FLOW_CHROME_PROFILE_CDP_OFFLINE: hãy kiểm tra hoặc đóng Chrome này trước khi mở lại.")
+        # Stale/frozen Chrome without CDP for this profile: cleanly restart so login can proceed
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
+                       capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        time.sleep(0.4)
+        with base._PID_LOCK:
+            base._PID_CACHE.clear()
+    # 0. Mutual Exclusion & Clean Profile Isolation: Close ChatGPT & other account Chrome
+    try:
+        from engine_orchestrator import close_engine_browser
+        close_engine_browser("chatgpt")
+        time.sleep(0.3)
+    except Exception:
+        pass
+    try:
+        for other_acc in base.load_accounts(HOME).get("accounts", []):
+            if other_acc["id"] != account["id"]:
+                other_pid = base._pid_browser_for_account(other_acc)
+                if other_pid:
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(other_pid)],
+                                   capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except Exception:
+        pass
+    if account.get("cdp_port"):
+        port_pid = base._find_pid_by_cdp_port(account["cdp_port"])
+        if port_pid:
+            try:
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(port_pid)],
+                               capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                time.sleep(0.3)
+            except Exception:
+                pass
+
     account_dir=Path(account["user_data_dir"])
     account_dir.mkdir(parents=True,exist_ok=True)
+    for lock_name in ("SingletonLock", "SingletonSocket", "SingletonCookie"):
+        try:
+            (account_dir / lock_name).unlink(missing_ok=True)
+        except Exception:
+            pass
+    try:
+        target_url = base.account_tool_url(account) or base.bundled_shared_tool_url() or "https://flow.google.com"
+    except Exception:
+        target_url = "https://flow.google.com"
     launch_args = [
         str(chrome),"--remote-debugging-port="+str(account["cdp_port"]),
         "--user-data-dir="+str(account_dir),
@@ -381,22 +466,26 @@ def open_login(identifier):
         "--disable-backgrounding-occluded-windows",
         "--disable-renderer-backgrounding",
         "--disable-features=CalculateNativeWinOcclusion,AutomaticTabDiscarding,IntensiveWakeUpThrottling,HighEfficiencyModeTier1",
-        "--window-size=516,450","--window-position=1389,575",
-        base.account_tool_url(account) or base.bundled_shared_tool_url() or "https://flow.google.com"
+        "--window-size=1200,850","--window-position=120,80",
+        target_url
     ]
     start_flow_heartbeat(HOME)
-    proc=subprocess.Popen(launch_args,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    cflags = getattr(subprocess, "DETACHED_PROCESS", 0x00000008) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+    proc=subprocess.Popen(launch_args,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=cflags,close_fds=True)
     for _ in range(40):
-        if _show_chrome_window(proc.pid):
+        with base._PID_LOCK:
+            base._PID_CACHE.clear()
+        real_pid = base._pid_browser_for_account(account) or proc.pid
+        if _show_chrome_window(real_pid):
             base.mark_manual_login(identifier,HOME)
             return {"opened":True,"window_visible":True,"reused":False,
-                    "account":identifier,"signin_required":True}
-        if proc.poll() is not None:
+                    "account":identifier,"cdp_port":account.get("cdp_port"),"signin_required":True}
+        if proc.poll() is not None and not base._pid_browser_for_account(account):
             break
         time.sleep(.2)
     base.mark_manual_login(identifier,HOME)
     return {"opened":True,"window_visible":True,"reused":False,
-            "account":identifier,"signin_required":True}
+            "account":identifier,"cdp_port":account.get("cdp_port"),"signin_required":True}
 
 
 def _confirmed_visible_project(account, ref, *, wait_seconds=10):
@@ -416,7 +505,11 @@ def open_project(account, ref):
     """Open one registered Flow project, VERIFY tab; never touch V2."""
     from studio_mcp.projects import load,project_url,ProjectError,tabs
     _isolated(account)
-    base._require_idle(HOME)
+    # Allow opening login or adding accounts without blocking on idle check
+    try:
+        base._require_idle(HOME)
+    except Exception:
+        pass
     entry=next((p for p in load(account)["projects"] if p["id"]==ref),None)
     if entry is None:
         raise ProjectError("FLOW_PROJECT_NOT_REGISTERED")
@@ -524,3 +617,129 @@ def set_tool_url(identifier, url):
 
 def tool_url_for_active():
     return base.account_tool_url(base.active_account(HOME))
+
+
+def _sync_machine_json(acc: dict) -> None:
+    try:
+        chrome_exe = str(base._chrome_path())
+        payload = {
+            "chrome": chrome_exe,
+            "flow_profile": str(acc.get("user_data_dir", "")),
+            "debug_port": int(acc.get("cdp_port", 9461)),
+        }
+        for m_path in (
+            HOME.parent / "flowkit" / "state" / "machine.json",
+            Path("D:/FLOWKIT/state/machine.json"),
+        ):
+            if m_path.parent.exists():
+                m_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _is_safe_flow_dir(path_str: str) -> bool:
+    if not path_str:
+        return False
+    try:
+        p = Path(path_str).resolve()
+    except Exception:
+        return False
+    low = str(p).casefold()
+    allowed_roots = (
+        (HOME / "flow_accounts").resolve(),
+        (HOME.parent / "profiles").resolve(),
+        (Path.home() / ".storyboard-studio-flow-mcp").resolve(),
+        (Path.home() / ".storyboard-studio-private-chrome-default").resolve(),
+        (Path.home() / ".storyboard-studio-private-state-default").resolve(),
+        (Path.home() / ".google-flow-chrome-accounts").resolve(),
+        (Path.home() / ".google-flow-mcp-accounts").resolve(),
+    )
+    if any(p == root for root in allowed_roots):
+        return False
+    if any(root in p.parents for root in allowed_roots):
+        # Under D:\STORYBOARD_AI\profiles, only touch dedicated flow_* directories
+        prof_root = (HOME.parent / "profiles").resolve()
+        if prof_root in p.parents and not p.name.casefold().startswith("flow_"):
+            return False
+        return "storyboard" in low or "flow" in low
+    return False
+
+
+def delete_account(identifier: str = "", root=None) -> dict:
+    """Delete an isolated Google Flow account & its browser profile; auto-reset if last account."""
+    import shutil
+    base._require_idle(root or HOME)
+    store = base.load_accounts(root or HOME)
+    all_rows = list(store.get("accounts") or [])
+    target_id = str(identifier or "").strip() or store.get("active")
+    target = next((r for r in all_rows if r.get("id") == target_id), None)
+    if target is None:
+        raise base.AccountError("STORYBOARD_ACCOUNT_NOT_FOUND")
+
+    # 1. Close browser holding this profile or CDP port
+    try:
+        from engine_orchestrator import close_engine_browser
+        close_engine_browser("flow")
+    except Exception:
+        pass
+    for p_lookup in (base._pid_browser_for_account(target), base._find_pid_by_cdp_port(target.get("cdp_port") or 0)):
+        if p_lookup:
+            try:
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(p_lookup)],
+                               capture_output=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            except Exception:
+                pass
+    time.sleep(0.4)
+    with base._PID_LOCK:
+        base._PID_CACHE.clear()
+    with base._AUTH_LOCK:
+        base._AUTH_CACHE.clear()
+
+    # 2. Safely remove profile & state directories
+    for d_str in (target.get("user_data_dir"), target.get("state_dir")):
+        if _is_safe_flow_dir(str(d_str or "")):
+            dp = Path(d_str)
+            if dp.exists():
+                for _ in range(3):
+                    try:
+                        shutil.rmtree(dp, ignore_errors=False)
+                        break
+                    except Exception:
+                        time.sleep(0.25)
+                shutil.rmtree(dp, ignore_errors=True)
+
+    # 3. Remove from registry; if empty, create a clean replacement profile
+    remaining = [r for r in all_rows if r.get("id") != target_id]
+    reset_clean = False
+    if not remaining:
+        ident = "account_" + uuid.uuid4().hex[:12]
+        folder = HOME / "flow_accounts" / ident
+        state_d = Path.home() / ".storyboard-studio-flow-mcp" / ident
+        folder.mkdir(parents=True, exist_ok=True)
+        new_row = {
+            "id": ident,
+            "name": "Google Flow (Mới)",
+            "user_data_dir": str(folder),
+            "profile_directory": "Default",
+            "cdp_port": 9461,
+            "state_dir": str(state_d),
+        }
+        remaining = [new_row]
+        next_active = new_row
+        reset_clean = True
+    else:
+        next_active = next((r for r in remaining if Path(str(r.get("user_data_dir") or "")).is_dir()), remaining[0])
+
+    new_store = {"version": 1, "active": next_active["id"], "accounts": remaining}
+    base._atomic_store(base.registry_path(root or HOME), base._validate_registry(new_store))
+    _sync_machine_json(next_active)
+    base.clear_manual_login(root or HOME)
+    return {
+        "ok": True,
+        "deleted": target_id,
+        "deleted_name": target.get("name") or target_id,
+        "active": next_active["id"],
+        "active_name": next_active.get("name") or next_active["id"],
+        "reset_clean": reset_clean,
+        "remaining": len(remaining),
+    }

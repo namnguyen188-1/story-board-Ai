@@ -124,8 +124,17 @@ def extract_kinetic_stickers_from_subtitles(
         return []
 
     lang_str = str(language or "en").lower().strip()
-    is_vietnamese = any(k in lang_str for k in ("vi", "viet", "tiếng việt"))
-    is_spanish = any(k in lang_str for k in ("es", "span", "tây ban nha"))
+    is_vietnamese = bool(
+        re.search(r"(?:^|[\s_\-/,(])(?:vi|vi-[a-z]{2}|vie|vn|viet|vietnamese)(?:$|[\s_\-/,)])", lang_str)
+        or "tiếng việt" in lang_str
+        or "tieng viet" in lang_str
+        or "vietnam" in lang_str
+    )
+    is_spanish = (not is_vietnamese) and bool(
+        re.search(r"(?:^|[\s_\-/,(])(?:es|es-[a-z]{2}|esp|spa|spanish|español|espanol)(?:$|[\s_\-/,)])", lang_str)
+        or "tây ban nha" in lang_str
+        or "tay ban nha" in lang_str
+    )
 
     stickers_found = []
     last_sticker_end = -10.0

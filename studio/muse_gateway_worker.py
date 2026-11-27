@@ -104,19 +104,25 @@ class GatewayAPI:
         if cookies_file and os.path.exists(cookies_file):
             try:
                 cookies = load_cookies(cookies_file)
-                info = fetch_session_info(cookies)
-                if info.get("vm_state") == "SUSPENDED":
-                    at = fetch_access_token(cookies)
-                    vm_id = info.get("vm_id") or self.cfg.get("vm_id")
-                    rq.post("https://muse.ai/api/hatch/vm/wake",
-                            headers=_hatch_headers(cookies, at),
-                            json={"vm_id": vm_id, "retry_count": 0},
-                            impersonate="chrome", timeout=15)
-                    for _ in range(12):
-                        time.sleep(2)
-                        fresh = fetch_session_info(cookies)
-                        if fresh.get("vm_state") == "RUNNING":
-                            break
+                vm_id = self.cfg.get("vm_id")
+                need_wake = False
+                try:
+                    info = fetch_session_info(cookies)
+                    if info.get("vm_state") == "SUSPENDED" or info.get("status") == "unavailable":
+                        need_wake = True
+                        vm_id = info.get("vm_id") or vm_id
+                except Exception:
+                    need_wake = True
+
+                if need_wake and vm_id:
+                    try:
+                        at = fetch_access_token(cookies)
+                        rq.post("https://muse.ai/api/hatch/vm/wake",
+                                headers=_hatch_headers(cookies, at),
+                                json={"vm_id": vm_id, "retry_count": 0},
+                                impersonate="chrome", timeout=15)
+                    except Exception:
+                        pass
             except Exception:
                 pass
         self.gateway = connect(self.cfg)

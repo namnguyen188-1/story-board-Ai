@@ -32,11 +32,21 @@ studio/.venv/
 *.mp3
 *.mp4
 *.mkv
+*.webm
 *.bak
 *.words.json
 kênh/
 knh/
 test_utf8.txt
+
+# FlowKit, ChatGPT profiles & Studio caches (sensitive cookies + >100MB media)
+profiles/
+flowkit/state/
+flowkit/logs/
+flowkit/outputs/
+studio/_preview_cache/
+east_asia_story_lab/output_preview/
+Chatbot_Studio/
 
 # Binaries & Distribution
 dist/

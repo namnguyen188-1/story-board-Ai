@@ -66,6 +66,10 @@ const state = {
 
 
 
+  storyboardViewMode: "list",
+
+
+
   lastLoadedScenes: [],
 
 
@@ -75,6 +79,7 @@ const state = {
 
 
   userCustomizedMaxImages: false,
+  userCustomizedMinutes: false,
 
 
 
@@ -1778,7 +1783,7 @@ function updateLiveButtonLabel() {
 
 
 
-  if (label && !state.isRunning && !state.submitting && state.statusReady) {
+  if (label && !state.isRunning && !state.submitting) {
 
 
 
@@ -2339,45 +2344,15 @@ function setupEventHandlers() {
 
 
         btnDrama.classList.add("active");
-
-
-
-        btnDrama.style.border = "1px solid #f59e0b";
-
-
-
+        btnDrama.style.border = "1px solid rgba(245, 158, 11, 0.6)";
         btnDrama.style.background = "rgba(245, 158, 11, 0.22)";
-
-
-
         btnDrama.style.color = "#fbbf24";
-
-
-
         btnDrama.style.fontWeight = "600";
 
-
-
-
-
-
-
         btnNarrative.classList.remove("active");
-
-
-
-        btnNarrative.style.border = "1px solid #334155";
-
-
-
-        btnNarrative.style.background = "#0b1120";
-
-
-
+        btnNarrative.style.border = "1px solid transparent";
+        btnNarrative.style.background = "transparent";
         btnNarrative.style.color = "#94a3b8";
-
-
-
         btnNarrative.style.fontWeight = "500";
 
 
@@ -2487,45 +2462,15 @@ function setupEventHandlers() {
 
 
         btnNarrative.classList.add("active");
-
-
-
-        btnNarrative.style.border = "1px solid #6366f1";
-
-
-
+        btnNarrative.style.border = "1px solid rgba(99, 102, 241, 0.6)";
         btnNarrative.style.background = "rgba(99, 102, 241, 0.22)";
-
-
-
-        btnNarrative.style.color = "#818cf8";
-
-
-
+        btnNarrative.style.color = "#a5b4fc";
         btnNarrative.style.fontWeight = "600";
 
-
-
-
-
-
-
         btnDrama.classList.remove("active");
-
-
-
-        btnDrama.style.border = "1px solid #334155";
-
-
-
-        btnDrama.style.background = "#0b1120";
-
-
-
+        btnDrama.style.border = "1px solid transparent";
+        btnDrama.style.background = "transparent";
         btnDrama.style.color = "#94a3b8";
-
-
-
         btnDrama.style.fontWeight = "500";
 
 
@@ -2660,31 +2605,16 @@ function setupEventHandlers() {
 
     btnDrama.addEventListener("click", () => {
 
-
-
       window.setProductionModeUI("cinematic_drama");
-
-
 
       const inImgSrc = document.getElementById("inImageSource");
 
-
-
       if (inImgSrc) {
-
-
-
-        inImgSrc.value = "muse_video";
-
-
-
+        if (!inImgSrc.value || inImgSrc.value === "gemini") {
+          inImgSrc.value = "comfyui";
+        }
         if (typeof updateImageBudgetHint === "function") updateImageBudgetHint();
-
-
-
       }
-
-
 
     });
 
@@ -3186,9 +3116,48 @@ function setupEventHandlers() {
 
     });
 
-
+    el.cinemaVideo.addEventListener("error", (e) => {
+      const err = el.cinemaVideo.error;
+      console.warn("[CinemaPlayer] Video error:", err);
+      let msg = "Không thể phát video.";
+      if (err) {
+        if (err.code === 4) msg = "Trình phát hiện tại thiếu codec giải mã H.264/AAC. Vui lòng bấm '↗️ Mở Ngoài' để xem bằng VLC / Media Player.";
+        else if (err.code === 3) msg = "Lỗi giải mã luồng video (Decode error). Bấm '↗️ Mở Ngoài' để xem trực tiếp.";
+      }
+      if (typeof showToast === "function") showToast(msg, 6000);
+    });
 
   }
+
+  window.openCurrentVideoInExternalPlayer = async function() {
+    try {
+      const s = (typeof state !== "undefined" && state.currentSeries) || "";
+      const ep = (typeof state !== "undefined" && state.currentEpisode) || 1;
+      if (!s) {
+        if (typeof showToast === "function") showToast("Chưa chọn series để mở video.");
+        return;
+      }
+      const payload = { type: "video", series: s, episode: ep };
+      if (typeof state !== "undefined" && state.activePreviewMode === "scene" && state.selectedSceneNumber) {
+        payload.scene = state.selectedSceneNumber;
+      }
+      const res = await fetch("/api/open-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const d = await res.json();
+      if (d.status === "OPENED") {
+        const desc = payload.scene ? `Cảnh ${payload.scene}` : `Tập ${ep}`;
+        if (typeof showToast === "function") showToast(`🎬 Đã mở video [${desc}] trong trình phát hệ thống!`);
+      } else {
+        const desc = payload.scene ? `Cảnh ${payload.scene}` : `Tập ${ep}`;
+        if (typeof showToast === "function") showToast(`Chưa có tệp video hoàn thiện của ${desc}.`);
+      }
+    } catch (err) {
+      if (typeof showToast === "function") showToast("Lỗi mở video ngoài: " + err.message);
+    }
+  };
 
 
 
@@ -3556,15 +3525,24 @@ function setupEventHandlers() {
 
   if (el.inInputMode) {
 
-
-
-    el.inInputMode.addEventListener("change", updateInputModeFields);
-
-
+    el.inInputMode.addEventListener("change", () => {
+      state.userExplicitInputMode = true;
+      const cur = el.inInputMode.value;
+      if (cur === "idea") {
+        if (el.inReferenceUrl) el.inReferenceUrl.value = "";
+        if (el.inPrompt) {
+          const val = el.inPrompt.value.trim();
+          if (val.startsWith("http://") || val.startsWith("https://") || val.includes("youtu.be") || val.includes("youtube.com")) {
+            el.inPrompt.value = "";
+          }
+        }
+        const detectBadge = document.getElementById("linkDetectBadge");
+        if (detectBadge) detectBadge.style.display = "none";
+      }
+      updateInputModeFields();
+    });
 
     updateInputModeFields();
-
-
 
   }
 
@@ -3728,17 +3706,21 @@ function setupEventHandlers() {
 
     el.inPrompt.addEventListener("input", (e) => {
 
+      const mode = el.inInputMode ? el.inInputMode.value : "idea";
+
       const val = e.target.value.trim();
 
-      if (val.startsWith("http://") || val.startsWith("https://") || val.includes("youtu.be") || val.includes("youtube.com")) {
-
-        if (el.inInputMode && el.inInputMode.value !== "link") {
-
-          el.inInputMode.value = "link";
-
-          updateInputModeFields();
-
+      // Nếu đang ở chế độ Ý TƯỞNG hoặc KỊCH BẢN, TUYỆT ĐỐI KHÔNG tự động chuyển sang link mode!
+      if (mode !== "link") {
+        const detectBadge = document.getElementById("linkDetectBadge");
+        if (detectBadge) detectBadge.style.display = "none";
+        if (mode === "script") {
+          syncAutoImageBudget();
         }
+        return;
+      }
+
+      if (val.startsWith("http://") || val.startsWith("https://") || val.includes("youtu.be") || val.includes("youtube.com")) {
 
         if (el.inReferenceUrl) el.inReferenceUrl.value = val;
 
@@ -3758,7 +3740,7 @@ function setupEventHandlers() {
 
           const g = el.inGenre?.value || "";
 
-          el.inVisualStyle.value = g === "animation" ? "color_animation" : (g === "whiteboard" ? "whiteboard" : (g === "colored_marker" ? "colored_marker" : ((el.inProductionMode && el.inProductionMode.value === "cinematic_drama") ? "flow_video" : "color_cinematic")));
+          el.inVisualStyle.value = g === "animation" ? "color_animation" : (g === "whiteboard" ? "whiteboard" : ((g === "colored_marker" || g === "jp_zen_story") ? "colored_marker" : ((el.inProductionMode && el.inProductionMode.value === "cinematic_drama" && !g.startsWith("jp_") && !g.startsWith("kr_")) ? "flow_video" : "color_cinematic")));
 
         }
 
@@ -3776,17 +3758,9 @@ function setupEventHandlers() {
 
       } else {
 
-        const mode = el.inInputMode ? el.inInputMode.value : "idea";
-
-        if (mode === "link") {
-
-          if (el.inReferenceUrl) el.inReferenceUrl.value = val;
-
-        } else if (mode === "script") {
-
-          syncAutoImageBudget();
-
-        }
+        if (el.inReferenceUrl) el.inReferenceUrl.value = val;
+        const detectBadge = document.getElementById("linkDetectBadge");
+        if (detectBadge) detectBadge.style.display = "none";
 
       }
 
@@ -3798,9 +3772,14 @@ function setupEventHandlers() {
 
       setTimeout(() => {
 
+        const mode = el.inInputMode ? el.inInputMode.value : "idea";
+
         const val = el.inPrompt ? el.inPrompt.value.trim() : "";
 
-        if (val.startsWith("http://") || val.startsWith("https://") || val.includes("youtu.be") || val.includes("youtube.com")) {
+        const isPureUrl = (val.startsWith("http://") || val.startsWith("https://") || val.includes("youtu.be") || val.includes("youtube.com")) && !val.includes(" ") && !val.includes("\n");
+
+        // Chỉ tự động chuyển sang link nếu người dùng dán DUY NHẤT một link URL sạch khi đang ở link mode hoặc prompt đang trống hoàn toàn
+        if (mode === "link" || (mode === "idea" && isPureUrl && !state.userExplicitInputMode)) {
 
           if (el.inInputMode && el.inInputMode.value !== "link") {
 
@@ -3828,7 +3807,7 @@ function setupEventHandlers() {
 
             const g = el.inGenre?.value || "";
 
-            el.inVisualStyle.value = g === "animation" ? "color_animation" : (g === "whiteboard" ? "whiteboard" : (g === "colored_marker" ? "colored_marker" : ((el.inProductionMode && el.inProductionMode.value === "cinematic_drama") ? "flow_video" : "color_cinematic")));
+            el.inVisualStyle.value = g === "animation" ? "color_animation" : (g === "whiteboard" ? "whiteboard" : ((g === "colored_marker" || g === "jp_zen_story") ? "colored_marker" : ((el.inProductionMode && el.inProductionMode.value === "cinematic_drama" && !g.startsWith("jp_") && !g.startsWith("kr_")) ? "flow_video" : "color_cinematic")));
 
           }
 
@@ -3845,8 +3824,6 @@ function setupEventHandlers() {
           }, 600);
 
         } else {
-
-          const mode = el.inInputMode ? el.inInputMode.value : "idea";
 
           if (mode === "script") setTimeout(syncAutoImageBudget, 50);
 
@@ -4976,7 +4953,23 @@ function setupEventHandlers() {
 
 
 
-                       history:["Vietnamese","VN"]};
+                       history:["Vietnamese","VN"],
+
+
+
+                       jp_zen_story:["Japanese","JP"],
+
+
+
+                       jp_edo_sleepless:["Japanese","JP"],
+
+
+
+                       kr_yadam_joseon:["Korean","KR"],
+
+
+
+                       kr_sayeon_drama:["Korean","KR"]};
 
 
 
@@ -5022,9 +5015,9 @@ function setupEventHandlers() {
 
         if (g === "animation") el.inVisualStyle.value = "color_animation";
 
-        else if (g === "whiteboard") el.inVisualStyle.value = "colored_marker";
+        else if (g === "whiteboard" || g === "colored_marker" || g === "jp_zen_story") el.inVisualStyle.value = "colored_marker";
 
-        else if (g === "colored_marker") el.inVisualStyle.value = "colored_marker";
+        else if (g === "jp_edo_sleepless" || g === "kr_yadam_joseon" || g === "kr_sayeon_drama") el.inVisualStyle.value = "color_cinematic";
 
         else if (el.inProductionMode && el.inProductionMode.value === "cinematic_drama") el.inVisualStyle.value = "flow_video";
 
@@ -5206,10 +5199,12 @@ function setupEventHandlers() {
   }
   if (el.inMinutes) {
     el.inMinutes.addEventListener("input", () => {
+      state.userCustomizedMinutes = true;
       state.userCustomizedMaxImages = false;
       syncAutoImageBudget();
     });
     el.inMinutes.addEventListener("change", () => {
+      state.userCustomizedMinutes = true;
       state.userCustomizedMaxImages = false;
       syncAutoImageBudget();
     });
@@ -5360,21 +5355,10 @@ function setupEventHandlers() {
 
 
   document.getElementById("btnOpenSettings").addEventListener("click", () => {
-
-
-
     openModal(el.modalApiKey);
-
-
-
     void loadGatewayStatus();
-
-
-
+    void loadFreeLlmApiStatus();
     void loadMuseStatus();
-
-
-
   });
 
 
@@ -5436,10 +5420,20 @@ function setupEventHandlers() {
   if (btnFlowLogin) {
     btnFlowLogin.addEventListener("click", async () => {
       const statusBox = document.getElementById("mcpAccountStatus");
+      const sel = document.getElementById("flowAccountSelect");
       if (statusBox) statusBox.textContent = "⏳ Đang mở trình duyệt Google Flow... Cửa sổ giữ nguyên trên màn hình.";
       try {
-        const res = await fetch("/api/flow/login", { method: "POST" });
+        const res = await fetch("/api/flow/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_id: sel ? sel.value : "" }),
+        });
         const data = await res.json();
+        if (!data.success && data.error) {
+          if (statusBox) statusBox.textContent = "Lỗi mở trình duyệt: " + data.error;
+          if (typeof showToast === "function") showToast("⚠️ " + data.error, "error");
+          return;
+        }
         if (statusBox) statusBox.textContent = data.message || "Đã mở trình duyệt Chrome. Hãy đăng nhập tài khoản Google.";
         const pollTimer = setInterval(async () => {
           await refreshAutoFlowStatus();
@@ -5447,12 +5441,258 @@ function setupEventHandlers() {
           if (node && node.textContent.includes("🟢")) {
             clearInterval(pollTimer);
             await refreshAutoFlowStatus();
-            if (typeof showToast === "function") showToast("Đã kết nối Web Tool Storyboard Director AI thành công!");
+            if (typeof showToast === "function") showToast("Đã kết nối Google Flow (FlowKit Engine) thành công!");
           }
         }, 2000);
         setTimeout(() => clearInterval(pollTimer), 300000);
       } catch (err) {
         if (statusBox) statusBox.textContent = "Lỗi khi mở trình duyệt: " + err.message;
+      }
+    });
+  }
+
+  const flowAccSel = document.getElementById("flowAccountSelect");
+  if (flowAccSel) {
+    flowAccSel.addEventListener("change", async () => {
+      const statusBox = document.getElementById("mcpAccountStatus");
+      try {
+        const res = await fetch("/api/flow/activate_account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_id: flowAccSel.value }),
+        });
+        const data = await res.json();
+        await refreshAutoFlowStatus();
+        if (!res.ok || !data.success) {
+          if (typeof showToast === "function") showToast("⚠️ " + (data.error || "Không đổi được tài khoản Flow."), "error");
+        } else if (typeof showToast === "function") {
+          showToast("✓ Đã chuyển sang tài khoản Google Flow đã chọn.");
+        }
+      } catch (err) {
+        if (statusBox) statusBox.textContent = "Lỗi chuyển tài khoản Flow: " + err.message;
+      }
+    });
+  }
+
+  const btnFlowDelete = document.getElementById("btnFlowDeleteAccount");
+  if (btnFlowDelete) {
+    btnFlowDelete.addEventListener("click", async () => {
+      const sel = document.getElementById("flowAccountSelect");
+      const accId = sel ? sel.value : "";
+      const label = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].textContent : "tài khoản Google Flow hiện tại";
+      if (!window.confirm(`Xóa hồ sơ Google Flow "${label}"?\n\nHệ thống sẽ đăng xuất và xóa sạch dữ liệu đăng nhập cũ của hồ sơ này để bạn dùng tài khoản khác.`)) {
+        return;
+      }
+      const statusBox = document.getElementById("mcpAccountStatus");
+      if (statusBox) statusBox.textContent = "⏳ Đang xóa và làm sạch hồ sơ Google Flow...";
+      try {
+        const res = await fetch("/api/flow/delete_account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_id: accId }),
+        });
+        const data = await res.json();
+        await refreshAutoFlowStatus();
+        if (!res.ok || !data.success) {
+          if (statusBox) statusBox.textContent = "Lỗi xóa tài khoản: " + (data.error || "Không thể xóa");
+          if (typeof showToast === "function") showToast("⚠️ " + (data.error || "Không xóa được tài khoản Flow."), "error");
+          return;
+        }
+        if (statusBox && data.message) statusBox.textContent = data.message;
+        if (typeof showToast === "function") showToast(data.message || "Đã xóa tài khoản Google Flow.");
+      } catch (err) {
+        if (statusBox) statusBox.textContent = "Lỗi xóa tài khoản Flow: " + err.message;
+      }
+    });
+  }
+
+  // ChatGPT Web Handlers for Storyboard AI
+  async function refreshChatGptStatus() {
+    const statusBox = document.getElementById("chatgptAccountStatus");
+    const badge = document.getElementById("chatgptLiveStatusBadge");
+    const topStatus = document.getElementById("statusChatGptTop");
+    const sel = document.getElementById("chatgptAccountSelect");
+    try {
+      const res = await fetch("/api/chatgpt/status");
+      const data = await res.json();
+      if (statusBox && data.status_text) {
+        statusBox.textContent = data.status_text;
+        statusBox.style.color = data.logged_in ? "#10b981" : (data.online ? "#38bdf8" : "#94a3b8");
+      }
+      if (badge && data.badge) {
+        badge.textContent = data.badge;
+        badge.style.background = data.logged_in ? "rgba(16,185,129,0.15)" : "rgba(148,163,184,0.15)";
+        badge.style.color = data.logged_in ? "#10b981" : "#94a3b8";
+        badge.style.borderColor = data.logged_in ? "rgba(16,185,129,0.3)" : "rgba(148,163,184,0.3)";
+      }
+      if (topStatus) {
+        topStatus.textContent = data.logged_in ? "🟢 Sẵn sàng" : (data.online ? "🟡 Chờ đăng nhập" : "⚪ Chưa bật");
+        topStatus.style.color = data.logged_in ? "#10b981" : (data.online ? "#eab308" : "#94a3b8");
+      }
+      if (sel && Array.isArray(data.accounts) && document.activeElement !== sel) {
+        const prev = data.active_id || sel.value;
+        const nowSec = Date.now() / 1000;
+        sel.replaceChildren();
+        data.accounts.forEach((a) => {
+          const opt = document.createElement("option");
+          opt.value = a.id || "";
+          const emailPart = a.email ? ` (${a.email})` : "";
+          const cooling = Number(a.cooldown_until || 0) > nowSec;
+          const stIcon = cooling ? "⏳ Giới hạn" : (a.logged_in ? "🟢 Sẵn sàng" : "⚪ Chưa đăng nhập");
+          opt.textContent = `${a.label || a.id}${emailPart} — ${stIcon}`;
+          sel.appendChild(opt);
+        });
+        if (prev && Array.from(sel.options).some((o) => o.value === prev)) {
+          sel.value = prev;
+        }
+      }
+      const btnLock = document.getElementById("btnChatGptLock");
+      if (btnLock) {
+        btnLock.style.display = data.online ? "inline-flex" : "none";
+      }
+      return data;
+    } catch (e) {
+      if (badge) badge.textContent = "Lỗi kết nối";
+    }
+  }
+
+  function _watchChatGptLoginCompletion(targetAccountId) {
+    const poll = setInterval(async () => {
+      const st = await refreshChatGptStatus();
+      if (!st) return;
+      const targetAcc = Array.isArray(st.accounts)
+        ? st.accounts.find((a) => !targetAccountId || a.id === targetAccountId)
+        : null;
+      const done = targetAcc ? Boolean(targetAcc.logged_in) : Boolean(st.logged_in);
+      if (done) {
+        clearInterval(poll);
+        if (typeof showToast === "function") showToast("✓ Đăng nhập thành công! Đang tự động đóng Chrome...");
+        setTimeout(async () => {
+          try {
+            await fetch("/api/chatgpt/close", { method: "POST" });
+            await refreshChatGptStatus();
+            if (typeof showToast === "function") showToast("Đã tự động đóng Chrome để giải phóng RAM.");
+          } catch (e) {}
+        }, 2000);
+      }
+    }, 2500);
+    setTimeout(() => clearInterval(poll), 300000);
+  }
+
+  const btnChatGptLogin = document.getElementById("btnChatGptLogin");
+  if (btnChatGptLogin) {
+    btnChatGptLogin.addEventListener("click", async () => {
+      const statusBox = document.getElementById("chatgptAccountStatus");
+      if (statusBox) statusBox.textContent = "⏳ Đang mở trình duyệt riêng cho ChatGPT Web... Hãy đăng nhập trên cửa sổ Chrome.";
+      try {
+        const res = await fetch("/api/chatgpt/login", { method: "POST" });
+        const data = await res.json();
+        if (statusBox && data.message) statusBox.textContent = data.message;
+        if (typeof showToast === "function") showToast(`Đã mở trình duyệt ChatGPT Web trên cổng ${data.port || 9468}!`);
+        _watchChatGptLoginCompletion(data.account_id || "");
+      } catch (err) {
+        if (statusBox) statusBox.textContent = "Lỗi khi mở ChatGPT: " + err.message;
+      }
+    });
+  }
+
+  const btnChatGptAddAccount = document.getElementById("btnChatGptAddAccount");
+  if (btnChatGptAddAccount) {
+    btnChatGptAddAccount.addEventListener("click", async () => {
+      const statusBox = document.getElementById("chatgptAccountStatus");
+      if (statusBox) statusBox.textContent = "⏳ Đang tạo hồ sơ ChatGPT mới và mở Chrome... Hãy đăng nhập tài khoản dự phòng.";
+      try {
+        const res = await fetch("/api/chatgpt/add_account", { method: "POST" });
+        const data = await res.json();
+        if (!data.success && data.error) {
+          if (statusBox) statusBox.textContent = "Lỗi khi thêm tài khoản ChatGPT: " + data.error;
+          return;
+        }
+        if (statusBox && data.message) statusBox.textContent = data.message;
+        if (typeof showToast === "function") {
+          showToast(`Đã mở Chrome cho ${data.account?.label || "tài khoản ChatGPT mới"} (Cổng ${data.port || 9469})!`);
+        }
+        await refreshChatGptStatus();
+        _watchChatGptLoginCompletion(data.account_id || data.account?.id || "");
+      } catch (err) {
+        if (statusBox) statusBox.textContent = "Lỗi khi thêm tài khoản ChatGPT: " + err.message;
+      }
+    });
+  }
+
+  const btnChatGptLock = document.getElementById("btnChatGptLock");
+  if (btnChatGptLock) {
+    btnChatGptLock.addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/chatgpt/close", { method: "POST" });
+        const data = await res.json();
+        if (typeof showToast === "function") showToast(data.message || "Đã đóng Chrome ChatGPT Web.");
+        await refreshChatGptStatus();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+
+  const btnChatGptCheck = document.getElementById("btnChatGptCheck");
+  if (btnChatGptCheck) {
+    btnChatGptCheck.addEventListener("click", async () => {
+      await refreshChatGptStatus();
+      if (typeof showToast === "function") showToast("Đã cập nhật trạng thái ChatGPT Web.");
+    });
+  }
+
+  const cgptAccSel = document.getElementById("chatgptAccountSelect");
+  if (cgptAccSel) {
+    cgptAccSel.addEventListener("change", async () => {
+      const statusBox = document.getElementById("chatgptAccountStatus");
+      try {
+        const res = await fetch("/api/chatgpt/select_account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_id: cgptAccSel.value }),
+        });
+        const data = await res.json();
+        await refreshChatGptStatus();
+        if (!res.ok || !data.success) {
+          if (typeof showToast === "function") showToast("⚠️ " + (data.error || "Không đổi được tài khoản ChatGPT."), "error");
+        } else if (typeof showToast === "function") {
+          showToast(`✓ Đã chuyển sang ${data.account?.label || "tài khoản ChatGPT"} đã chọn.`);
+        }
+      } catch (err) {
+        if (statusBox) statusBox.textContent = "Lỗi chuyển tài khoản ChatGPT: " + err.message;
+      }
+    });
+  }
+
+  const btnChatGptDelete = document.getElementById("btnChatGptDeleteAccount");
+  if (btnChatGptDelete) {
+    btnChatGptDelete.addEventListener("click", async () => {
+      const sel = document.getElementById("chatgptAccountSelect");
+      const accId = sel ? sel.value : "";
+      const label = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].textContent : "tài khoản ChatGPT hiện tại";
+      if (!window.confirm(`Xóa hồ sơ ChatGPT Web "${label}"?\n\nHệ thống sẽ đóng Chrome và xóa sạch dữ liệu đăng nhập cũ của tài khoản này để bạn đổi tài khoản khác.`)) {
+        return;
+      }
+      const statusBox = document.getElementById("chatgptAccountStatus");
+      if (statusBox) statusBox.textContent = "⏳ Đang xóa và làm sạch hồ sơ ChatGPT Web...";
+      try {
+        const res = await fetch("/api/chatgpt/delete_account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_id: accId }),
+        });
+        const data = await res.json();
+        await refreshChatGptStatus();
+        if (!res.ok || !data.success) {
+          if (statusBox) statusBox.textContent = "Lỗi xóa tài khoản ChatGPT: " + (data.error || "Không thể xóa");
+          if (typeof showToast === "function") showToast("⚠️ " + (data.error || "Không xóa được tài khoản ChatGPT."), "error");
+          return;
+        }
+        if (statusBox && data.message) statusBox.textContent = data.message;
+        if (typeof showToast === "function") showToast(data.message || "Đã xóa tài khoản ChatGPT.");
+      } catch (err) {
+        if (statusBox) statusBox.textContent = "Lỗi xóa tài khoản ChatGPT: " + err.message;
       }
     });
   }
@@ -5498,20 +5738,21 @@ function setupEventHandlers() {
   if (btnFlowAdd) {
     btnFlowAdd.addEventListener("click", async () => {
       const statusBox = document.getElementById("mcpAccountStatus");
-      if (statusBox) statusBox.textContent = "⏳ Đang tạo hồ sơ mới và mở Chrome... Cửa sổ giữ nguyên trên màn hình.";
+      if (statusBox) statusBox.textContent = "⏳ Đang tạo hồ sơ mới và mở Chrome... Vui lòng đăng nhập tài khoản Google.";
       try {
         const res = await fetch("/api/flow/add_account", { method: "POST" });
         const data = await res.json();
+        await refreshAutoFlowStatus();
+        if (!data.success && data.error) {
+          if (statusBox) statusBox.textContent = "Lỗi khi thêm tài khoản: " + data.error;
+          if (typeof showToast === "function") showToast("⚠️ " + data.error, "error");
+          return;
+        }
         if (statusBox) statusBox.textContent = data.message || "Đã mở Chrome cho tài khoản mới. Vui lòng đăng nhập Google.";
+        if (typeof showToast === "function") showToast(data.message || "Đã mở Chrome cho tài khoản mới. Hãy đăng nhập tài khoản Google.");
         const pollTimer = setInterval(async () => {
           await refreshAutoFlowStatus();
-          const node = document.getElementById("autoFlowManagerStatus");
-          if (node && node.textContent.includes("🟢")) {
-            clearInterval(pollTimer);
-            if (statusBox) statusBox.textContent = "✓ Đã đăng nhập tài khoản mới thành công! Cửa sổ đã tự động ẩn và kết nối Web Tool.";
-            if (typeof showToast === "function") showToast("Tài khoản mới đã sẵn sàng và kết nối Web Tool!");
-          }
-        }, 2000);
+        }, 4000);
         setTimeout(() => clearInterval(pollTimer), 300000);
       } catch (err) {
         if (statusBox) statusBox.textContent = "Lỗi khi thêm tài khoản: " + err.message;
@@ -5521,6 +5762,8 @@ function setupEventHandlers() {
 
   refreshAutoFlowStatus();
   setInterval(refreshAutoFlowStatus, 30000);
+  refreshChatGptStatus();
+  setInterval(refreshChatGptStatus, 30000);
 
   // FlowKit Settings Event Handlers
   const btnFkLogin = document.getElementById("btnFlowKitOpenLogin");
@@ -6619,16 +6862,6 @@ function switchPlayerMode(mode) {
 
 
   } else if (mode === "short") {
-    const resEl = (typeof el !== 'undefined' && el.inResolution) || document.getElementById("inResolution");
-    if (resEl) {
-      const opt916 = Array.from(resEl.options).find(o => o.value.includes("720x1280") || o.value.includes("1080x1920"));
-      if (opt916) {
-        resEl.value = opt916.value;
-        try { localStorage.setItem("storyboard_saved_resolution", opt916.value); } catch(_) {}
-      }
-    }
-
-
 
     if (el.modeBtnShort) el.modeBtnShort.classList.add("active");
 
@@ -6789,6 +7022,19 @@ const GENRE_PROMPT_PRESETS = {
   ],
   action: [
     { label: "🏎️ Rượt đuổi nghẹt thở", text: "Cuộc đào thoát trong gang tấc: 24 giờ nghẹt thở của người cựu điệp viên bị gài bẫy, đơn độc truy tìm sự thật giữa vòng vây sát thủ và máy bay không người lái của tổ chức phản diện." }
+  ],
+  jp_zen_story: [
+    { label: "🧘 禅・沈黙の力 (Vẽ tay)", text: "感情を乱されない人の静かな習慣。理不尽な言葉に反応せず、自分の心の平和を守る禅の3つの教えをホワイトボードの手描きイラストで分かりやすく解説。" },
+    { label: "🎍 人間関係を手放す技術", text: "他人の評価を気にしすぎて疲れた夜に聞く話。静かに距離を置く勇気と、本当の自由を取り戻す心の整理術。" }
+  ],
+  jp_edo_sleepless: [
+    { label: "🏯 江戸の夜・眠れる歴史", text: "眠れない夜に聞く江戸時代の静かな物語。侍が夜明けの城下で守った小さな約束と、忘れられた知恵の記録。" }
+  ],
+  kr_yadam_joseon: [
+    { label: "🏮 조선야담・침묵의 지혜", text: "달빛 아래 한옥 마당에 전해지는 조선 시대의 기이한 야담. 작은 친절과 침묵이 한 선비의 운명을 바꾼 깊은 밤의 이야기." }
+  ],
+  kr_sayeon_drama: [
+    { label: "💔 가족 갈등・눈물의 반전", text: "10년 동안 묵묵히 가족을 지킨 막내아들을 내쫓은 날 밤, 낡은 상자 속에서 발견된 비밀 유언장이 모든 것을 뒤집는다." }
   ]
 };
 
@@ -7141,17 +7387,9 @@ async function loadConfig() {
 
 
       if (elGeminiBadge) {
-
-
-
-        elGeminiBadge.textContent = `● Đã kích hoạt (${maskStr || cnt + " khóa"})`;
-
-
-
+        elGeminiBadge.textContent = `● Đã kích hoạt (${cnt} khóa API dự phòng)`;
+        elGeminiBadge.title = maskStr || `${cnt} khóa`;
         elGeminiBadge.style.color = "#10b981";
-
-
-
       }
 
 
@@ -7508,9 +7746,7 @@ async function loadConfig() {
 
 
     void loadGatewayStatus();
-
-
-
+    void loadFreeLlmApiStatus();
     void loadMuseStatus();
 
 
@@ -7997,6 +8233,124 @@ async function saveGatewayConfig() {
 
 window.saveGatewayConfig = saveGatewayConfig;
 
+function _renderFreeLlmApiStatus(data) {
+  const box = document.getElementById("freeLlmApiStatusBox");
+  const inUrl = document.getElementById("inFreeLlmApiUrl");
+  const inModel = document.getElementById("inFreeLlmApiModel");
+  const inKey = document.getElementById("inFreeLlmApiKey");
+  const inMode = document.getElementById("inFreeLlmApiMode");
+  const dashBtn = document.getElementById("btnOpenFreeLlmDashboard");
+  if (!data || !data.ok) return;
+
+  const cfg = data.config || {};
+  const test = data.test || {};
+  if (inUrl && cfg.base_url) inUrl.value = cfg.base_url;
+  if (inModel && cfg.model) inModel.value = cfg.model;
+  if (inMode && cfg.mode) inMode.value = cfg.mode;
+  if (inKey && cfg.api_key_masked) inKey.placeholder = `Đã nhận: ${cfg.api_key_masked}`;
+  if (dashBtn && data.dashboard_url) dashBtn.href = data.dashboard_url;
+
+  if (!box) return;
+  if (cfg.mode === "off") {
+    box.innerHTML = `<span style="color:#94a3b8;">⚪ Đang tắt · Chọn "Dự phòng tự động" hoặc "Ưu tiên" để bật.</span>`;
+  } else if (data.running && test.ok) {
+    const cnt = test.model_count ? `${test.model_count} model` : "Sẵn sàng";
+    const modeLabel = cfg.mode === "primary" ? "Ưu tiên chính" : "Dự phòng tự động";
+    box.innerHTML = `<span style="color:#10b981;">✓ Đang chạy (${cnt} · ${modeLabel} · Model: ${escapeHtml(cfg.model || "auto")})</span>`;
+  } else if (!data.installed && !data.running) {
+    box.innerHTML = `<span style="color:#f59e0b;">Chưa phát hiện FreeLLMAPI cục bộ trên máy.</span>`;
+  } else if (!data.running) {
+    box.innerHTML = `<span style="color:#f59e0b;">🟡 Chưa chạy · Bấm "🔌 Kiểm tra" để tự khởi động proxy cục bộ.</span>`;
+  } else {
+    box.innerHTML = `<span style="color:#f87171;">⚠️ ${escapeHtml(test.error || "Cần kiểm tra lại khóa hoặc cổng kết nối.")}</span>`;
+  }
+}
+
+async function _fetchFreeLlmJson(url, opts) {
+  const res = await fetch(url, opts);
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (!ct.includes("application/json")) {
+    throw new Error("Cần khởi động lại Studio (sau khi tập phim chạy xong) để kích hoạt API mới.");
+  }
+  return await res.json();
+}
+
+async function loadFreeLlmApiStatus(withLiveTest = false) {
+  try {
+    const data = await _fetchFreeLlmJson(
+      withLiveTest ? "/api/freellmapi/status?test=1" : "/api/freellmapi/status",
+      { cache: "no-store" }
+    );
+    _renderFreeLlmApiStatus(data);
+  } catch (err) {
+    const box = document.getElementById("freeLlmApiStatusBox");
+    if (box) box.innerHTML = `<span style="color:#fbbf24;">ℹ️ ${escapeHtml(err.message)}</span>`;
+  }
+}
+window.loadFreeLlmApiStatus = loadFreeLlmApiStatus;
+
+async function checkFreeLlmApiNow() {
+  const btn = document.getElementById("btnTestFreeLlmApi");
+  const box = document.getElementById("freeLlmApiStatusBox");
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Đang kiểm tra..."; }
+  if (box) box.innerHTML = `<span style="color:#38bdf8;">⏳ Đang kiểm tra / khởi động FreeLLMAPI cục bộ...</span>`;
+  try {
+    const data = await _fetchFreeLlmJson("/api/freellmapi/status?test=1", { cache: "no-store" });
+    _renderFreeLlmApiStatus(data);
+    if (data.test && data.test.ok) {
+      if (typeof showToast === "function") showToast("✓ Kết nối FreeLLMAPI thành công!");
+    } else {
+      if (typeof showToast === "function") showToast("FreeLLMAPI: " + (data.test?.error || "Chưa kết nối được"), "warning");
+    }
+  } catch (err) {
+    if (box) box.innerHTML = `<span style="color:#fbbf24;">ℹ️ ${escapeHtml(err.message)}</span>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "🔌 Kiểm tra"; }
+  }
+}
+window.checkFreeLlmApiNow = checkFreeLlmApiNow;
+
+async function saveFreeLlmApiConfig() {
+  const btn = document.getElementById("btnSaveFreeLlmApi");
+  const box = document.getElementById("freeLlmApiStatusBox");
+  const inUrl = document.getElementById("inFreeLlmApiUrl");
+  const inModel = document.getElementById("inFreeLlmApiModel");
+  const inKey = document.getElementById("inFreeLlmApiKey");
+  const inMode = document.getElementById("inFreeLlmApiMode");
+
+  const payload = {
+    base_url: inUrl ? inUrl.value.trim() : "http://127.0.0.1:31415/v1",
+    model: inModel ? inModel.value.trim() : "auto",
+    api_key: inKey ? inKey.value.trim() : "",
+    mode: inMode ? inMode.value : "fallback"
+  };
+
+  if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+  try {
+    const data = await _fetchFreeLlmJson("/api/freellmapi/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (data.ok) {
+      if (inKey && inKey.value) inKey.value = "";
+      await loadFreeLlmApiStatus(false);
+      if (typeof showToast === "function") {
+        if (payload.mode === "off") showToast("Đã tắt FreeLLMAPI.");
+        else if (data.test && data.test.ok) showToast("✓ Đã lưu và kết nối FreeLLMAPI thành công!");
+        else showToast("Đã lưu cấu hình FreeLLMAPI (" + (data.test?.error || "Kiểm tra lại") + ")", "warning");
+      }
+    } else {
+      if (typeof showToast === "function") showToast("Lỗi lưu FreeLLMAPI: " + (data.error || "Không rõ"), "error");
+    }
+  } catch (err) {
+    if (box) box.innerHTML = `<span style="color:#fbbf24;">ℹ️ ${escapeHtml(err.message)}</span>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Lưu"; }
+  }
+}
+window.saveFreeLlmApiConfig = saveFreeLlmApiConfig;
+
 
 
 
@@ -8318,10 +8672,12 @@ function renderMuseAccounts(accounts, activeId, dispatchMode) {
 
 
     settingsBadge.textContent = `${readyCount} Sẵn sàng`;
-
-
-
     settingsBadge.style.background = readyCount > 0 ? "#f43f5e" : "#64748b";
+    const topMuse = document.getElementById("statusMuseTop");
+    if (topMuse) {
+      topMuse.textContent = readyCount > 0 ? `${readyCount} Sẵn sàng` : "0 Sẵn sàng";
+      topMuse.style.color = readyCount > 0 ? "#f43f5e" : "#94a3b8";
+    }
 
 
 
@@ -9986,7 +10342,7 @@ function updateFlowKitUI(data) {
     const isConnected = Boolean(data.connected);
     if (isConnected) {
       if (badge) {
-        badge.textContent = "🟢 Web Tool Đã Kết Nối";
+        badge.textContent = "🟢 Sẵn sàng";
         badge.style.color = "#10b981";
         badge.style.background = "rgba(16,185,129,0.15)";
         badge.style.borderColor = "rgba(16,185,129,0.3)";
@@ -9998,7 +10354,7 @@ function updateFlowKitUI(data) {
         autoBadge.style.background = "rgba(16,185,129,0.15)";
       }
       if (box) {
-        box.innerHTML = '✅ <strong style="color:#10b981;">FlowKit Gateway (Port 18110) &amp; Google Flow Web Tool (Port 9461)</strong> đang hoạt động ổn định. Sẵn sàng tạo ảnh và video!';
+        box.innerHTML = '✅ <strong style="color:#10b981;">FlowKit Gateway (Port 18110) &amp; Google Flow</strong> đang hoạt động ổn định. Sẵn sàng tạo ảnh và video!';
       }
       const rFlowEl = document.getElementById("robotStatusFlow");
       const rBtnEl = document.getElementById("robotBtnGoogleLogin");
@@ -10014,25 +10370,25 @@ function updateFlowKitUI(data) {
         rBtnEl.style.color = "#ffffff";
       }
       if (statusFk) {
-        statusFk.textContent = "🟢 Online (18110)";
+        statusFk.textContent = "🟢 Sẵn sàng";
         statusFk.style.color = "#10b981";
       }
-      if (cardChrome) cardChrome.textContent = "Cổng 9461 · Web Tool Đã Mở";
+      if (cardChrome) cardChrome.textContent = "Cổng 9460 · Trình duyệt kết nối";
     } else {
       if (badge) {
-        badge.textContent = "🟡 Gateway Online (Chờ Mở Tab)";
-        badge.style.color = "#fbbf24";
-        badge.style.background = "rgba(251,191,36,0.15)";
-        badge.style.borderColor = "rgba(251,191,36,0.3)";
+        badge.textContent = "🟢 Sẵn sàng";
+        badge.style.color = "#10b981";
+        badge.style.background = "rgba(16,185,129,0.15)";
+        badge.style.borderColor = "rgba(16,185,129,0.3)";
       }
       if (box) {
-        box.innerHTML = '⚡ FlowKit Gateway đang chạy (Port 18110). Bấm nút <strong>"Mở Trình Duyệt / Đăng Nhập Flow"</strong> để mở tab Web Tool Google Flow.';
+        box.innerHTML = '⚡ FlowKit Gateway đang chạy (Port 18110). Tự động bật và thu nhỏ taskbar khi tạo video/ảnh.';
       }
       if (statusFk) {
-        statusFk.textContent = "🟡 Sẵn sàng";
-        statusFk.style.color = "#fbbf24";
+        statusFk.textContent = "🟢 Sẵn sàng";
+        statusFk.style.color = "#10b981";
       }
-      if (cardChrome) cardChrome.textContent = "Cổng 9461 · Sẵn sàng";
+      if (cardChrome) cardChrome.textContent = "Cổng 9460 · Sẵn sàng";
     }
     if (data.model && cardModel) {
       cardModel.textContent = data.model;
@@ -10067,7 +10423,7 @@ async function refreshAutoFlowStatus() {
   try {
     const res = await fetch("/api/flow/status", { cache: "no-store" });
     const data = await res.json();
-    node.textContent = data.badge_text || (data.connected ? "🟢 Sẵn sàng" : "🟡 Chờ đăng nhập");
+    node.textContent = data.badge_text || (data.connected || data.ready ? "🟢 Sẵn sàng" : "🟡 Chờ đăng nhập");
     const btnInstallFk = document.getElementById("btnInstallFlowKit");
     const btnFlowLoginEl = document.getElementById("btnFlowLogin");
     const btnFlowAddEl = document.getElementById("btnFlowAddAccount");
@@ -10082,7 +10438,7 @@ async function refreshAutoFlowStatus() {
         if (btnFlowAddEl) btnFlowAddEl.style.display = "inline-flex";
       }
     }
-    if (data.badge_type === "success") {
+    if (data.badge_type === "success" || data.ready) {
       node.style.background = "rgba(16,185,129,0.15)";
       node.style.color = "#10b981";
       node.style.borderColor = "rgba(16,185,129,0.3)";
@@ -10099,15 +10455,17 @@ async function refreshAutoFlowStatus() {
       if (statusBox) statusBox.style.color = "#f87171";
     }
     if (statusBox) {
-      if (data.connected || data.ready) {
+      if (data.status_text) {
+        statusBox.textContent = data.status_text;
+      } else if (data.connected || data.ready) {
         const emailInfo = data.email ? ` (${data.email})` : "";
         if (data.ready_accounts > 1) {
-          statusBox.textContent = `✓ Web Tool đã kết nối${emailInfo} · ${data.ready_accounts} TK Đa luồng Round-Robin`;
+          statusBox.textContent = `✓ Đã kết nối FlowKit${emailInfo} · ${data.ready_accounts} TK Đa luồng Round-Robin`;
         } else {
-          statusBox.textContent = `✓ Web Tool đã kết nối${emailInfo}`;
+          statusBox.textContent = `✓ Đã kết nối FlowKit${emailInfo} · Tự động bật khi tạo video/ảnh`;
         }
       } else {
-        statusBox.textContent = data.status_text || "Chưa kết nối Web Tool Google Flow.";
+        statusBox.textContent = data.status_text || "Chưa kết nối Google Flow (FlowKit).";
       }
     }
     const topBarFk = document.getElementById("statusFlowKit");
@@ -10135,8 +10493,24 @@ async function refreshAutoFlowStatus() {
         robotBtn.style.color = "#ffffff";
       }
     }
+    const flowSel = document.getElementById("flowAccountSelect");
+    if (flowSel && Array.isArray(data.accounts) && document.activeElement !== flowSel) {
+      const prev = data.active_id || flowSel.value;
+      flowSel.replaceChildren();
+      data.accounts.forEach((a) => {
+        const opt = document.createElement("option");
+        opt.value = a.id || "";
+        const emailPart = a.email ? ` (${a.email})` : "";
+        const stIcon = a.logged_in ? "🟢 Sẵn sàng" : "🟡 Chờ đăng nhập";
+        opt.textContent = `${a.name || a.id}${emailPart} — ${stIcon}`;
+        flowSel.appendChild(opt);
+      });
+      if (prev && Array.from(flowSel.options).some((o) => o.value === prev)) {
+        flowSel.value = prev;
+      }
+    }
     const countBadge = document.getElementById("flowAccountCountBadge");
-    if (countBadge && data.ready_accounts) {
+    if (countBadge && data.ready_accounts !== undefined) {
       countBadge.textContent = data.badge_text || `${data.ready_accounts}/${data.total_accounts} Sẵn sàng`;
     }
   } catch (err) {
@@ -11146,6 +11520,10 @@ function updateInputModeFields() {
 
     // Mode idea
 
+    if (el.inReferenceUrl) el.inReferenceUrl.value = "";
+
+    if (detectBadge) detectBadge.style.display = "none";
+
 
 
     if (lbl) lbl.textContent = "Ý Tưởng / Cốt Truyện";
@@ -11167,10 +11545,6 @@ function updateInputModeFields() {
 
 
 
-    if (detectBadge) detectBadge.style.display = "none";
-
-
-
     if (inputModeWrap) inputModeWrap.style.gridColumn = "span 2";
 
 
@@ -11181,7 +11555,11 @@ function updateInputModeFields() {
 
     if (el.inPrompt) {
 
-
+      const pVal = el.inPrompt.value.trim();
+      // Nếu ô prompt đang chứa link web URL cũ, xóa sạch để người dùng nhập ý tưởng mà không bị nhảy chế độ
+      if (pVal.startsWith("http://") || pVal.startsWith("https://") || (pVal.includes("youtu.be") && !pVal.includes(" "))) {
+        el.inPrompt.value = "";
+      }
 
       el.inPrompt.placeholder = "Nhập ý tưởng hoặc tóm tắt kịch bản...";
 
@@ -11328,29 +11706,26 @@ async function analyzeYouTubeLink(rawUrl, force = false) {
 
 
       // 1. Đồng bộ số phút & TỰ ĐỘNG ĐIỀU CHỈNH SỐ ẢNH TỐI ĐA KHÔNG CẦN CHỌN THỦ CÔNG
-
       if (data.duration_minutes && el.inMinutes) {
-
-        el.inMinutes.value = String(data.duration_minutes);
-
-        state.userCustomizedMaxImages = false;
-
-        const isShort = Number(data.duration_minutes) <= 1.05 || Boolean(data.is_short);
-
-        if (isShort && el.inSceneSec && (!el.inSceneSec.value || el.inSceneSec.value === "0")) {
-
-          el.inSceneSec.value = "7";
-
+        if (!state.userCustomizedMinutes) {
+          const rawM = parseFloat(data.duration_minutes);
+          if (rawM > 25.0) {
+            el.inMinutes.value = "20.0";
+            showToast(`💡 Video đối thủ dài ${rawM}p. Hệ thống tự động tối ưu về 20.0 phút (Sweet-spot giữ chân >40% cho kênh). Bạn có thể chỉnh lại tùy ý!`, "info");
+          } else {
+            el.inMinutes.value = String(data.duration_minutes);
+          }
         }
-
+        const effectiveMinutes = parseFloat(el.inMinutes.value) || Number(data.duration_minutes);
+        state.userCustomizedMaxImages = false;
+        const isShort = effectiveMinutes <= 1.05 || Boolean(data.is_short);
+        if (isShort && el.inSceneSec && (!el.inSceneSec.value || el.inSceneSec.value === "0")) {
+          el.inSceneSec.value = "7";
+        }
         const sceneSec = parseInt(el.inSceneSec?.value, 10) || (isShort ? 7 : 25);
-
-        const autoScenes = Math.max(3, Math.ceil((Number(data.duration_minutes) * 60) / sceneSec));
-
-        if (el.inMcpMaxImages && autoScenes > 0) {
-
+        const autoScenes = Math.max(3, Math.ceil((effectiveMinutes * 60) / sceneSec));
+        if (el.inMcpMaxImages && autoScenes > 0 && !state.userCustomizedMaxImages) {
           el.inMcpMaxImages.value = String(autoScenes);
-
         }
 
         const resEl = el.inResolution || document.getElementById("inResolution");
@@ -11458,7 +11833,7 @@ async function analyzeYouTubeLink(rawUrl, force = false) {
 
             const g = el.inGenre?.value || "";
 
-            matchedStyle = g === "animation" ? "color_animation" : (g === "whiteboard" ? "whiteboard" : (g === "colored_marker" ? "colored_marker" : ((el.inProductionMode && el.inProductionMode.value === "cinematic_drama") ? "flow_video" : "color_cinematic")));
+            matchedStyle = g === "animation" ? "color_animation" : (g === "whiteboard" ? "whiteboard" : ((g === "colored_marker" || g === "jp_zen_story") ? "colored_marker" : ((el.inProductionMode && el.inProductionMode.value === "cinematic_drama" && !g.startsWith("jp_") && !g.startsWith("kr_")) ? "flow_video" : "color_cinematic")));
 
           }
 
@@ -11472,7 +11847,7 @@ async function analyzeYouTubeLink(rawUrl, force = false) {
 
       // 5.1 Đồng bộ tên series tương ứng với thể loại để không bị lẫn lộn giữa các dòng phim
 
-      const newSeries = data.suggested_series || (data.genre === "stoic" ? "stoi" : data.genre === "family_drama" ? "drama" : data.genre === "mafia_thriller" ? "thriller" : data.genre === "psychological_horror" ? "horror" : data.genre === "romance_melodrama" ? "romance" : null);
+      const newSeries = data.suggested_series || (data.genre === "stoic" ? "stoi" : data.genre === "family_drama" ? "drama" : data.genre === "mafia_thriller" ? "thriller" : data.genre === "psychological_horror" ? "horror" : data.genre === "romance_melodrama" ? "romance" : data.genre === "jp_zen_story" ? "jp_zen" : data.genre === "jp_edo_sleepless" ? "jp_edo" : data.genre === "kr_yadam_joseon" ? "kr_yadam" : data.genre === "kr_sayeon_drama" ? "kr_drama" : null);
 
       if (newSeries && el.inSeries) {
 
@@ -11638,7 +12013,7 @@ async function analyzeYouTubeLink(rawUrl, force = false) {
 
 async function submitProduction(mode, options = {}) {
 
-  if (!state.statusReady || state.isRunning || state.submitting) return;
+  if (state.isRunning || state.submitting) return;
 
 
 
@@ -11648,34 +12023,31 @@ async function submitProduction(mode, options = {}) {
 
   let referenceUrl = el.inReferenceUrl ? el.inReferenceUrl.value.trim() : "";
 
+  const isDirectUrl = (inputMode !== "idea") && (rawPrompt.startsWith("http://") || rawPrompt.startsWith("https://") || rawPrompt.includes("youtu.be") || rawPrompt.includes("youtube.com"));
 
-
-  // 1. Tự động chuyển mode link nếu dán URL trực tiếp vào ô kịch bản/ý tưởng
-
-  const isDirectUrl = rawPrompt.startsWith("http://") || rawPrompt.startsWith("https://") || rawPrompt.includes("youtu.be") || rawPrompt.includes("youtube.com");
-
-  if (isDirectUrl) {
-
-    referenceUrl = rawPrompt;
-
-    inputMode = "link";
-
-    if (el.inInputMode && el.inInputMode.value !== "link") {
-
-      el.inInputMode.value = "link";
-
-      updateInputModeFields();
-
+  // 1. Phân loại và cách ly chế độ nhập rõ ràng:
+  if (inputMode === "idea") {
+    // Chế độ Ý tưởng: Triệt tiêu mọi URL đối thủ cũ còn sót lại
+    referenceUrl = "";
+    if (el.inReferenceUrl) el.inReferenceUrl.value = "";
+    const isPureUrl = (rawPrompt.startsWith("http://") || rawPrompt.startsWith("https://")) && !rawPrompt.includes(" ") && !rawPrompt.includes("\n");
+    if (isPureUrl) {
+      return alert("Bạn đang ở chế độ 'Ý tưởng (AI)' nhưng ô nhập lại chứa link web. Vui lòng nhập nội dung ý tưởng/chủ đề phim, hoặc đổi 'Chế Độ Nhập' sang 'Link YouTube' để clone video.");
     }
-
-    if (el.inReferenceUrl) el.inReferenceUrl.value = referenceUrl;
-
-  } else if (inputMode === "link") {
-
-    referenceUrl = referenceUrl || (rawPrompt.startsWith("http") ? rawPrompt : "");
-
-    if (el.inReferenceUrl && referenceUrl) el.inReferenceUrl.value = referenceUrl;
-
+  } else {
+    // Chế độ Link hoặc Script
+    if (isDirectUrl) {
+      referenceUrl = rawPrompt;
+      inputMode = "link";
+      if (el.inInputMode && el.inInputMode.value !== "link") {
+        el.inInputMode.value = "link";
+        updateInputModeFields();
+      }
+      if (el.inReferenceUrl) el.inReferenceUrl.value = referenceUrl;
+    } else if (inputMode === "link") {
+      referenceUrl = referenceUrl || (rawPrompt.startsWith("http") ? rawPrompt : "");
+      if (el.inReferenceUrl && referenceUrl) el.inReferenceUrl.value = referenceUrl;
+    }
   }
 
 
@@ -11684,6 +12056,14 @@ async function submitProduction(mode, options = {}) {
 
     return alert("Vui lòng nhập ý tưởng, kịch bản hoặc link YouTube công khai!");
 
+  }
+
+  if (inputMode === "link" && !options.resume) {
+    const hasValidLink = (referenceUrl && (referenceUrl.startsWith("http://") || referenceUrl.startsWith("https://"))) ||
+                         (rawPrompt && (rawPrompt.startsWith("http://") || rawPrompt.startsWith("https://")));
+    if (!hasValidLink) {
+      return alert("Vui lòng dán link YouTube đối thủ hợp lệ (https://www.youtube.com/...) vào ô link!");
+    }
   }
 
 
@@ -11788,7 +12168,11 @@ async function submitProduction(mode, options = {}) {
 
   const epData = state.loadedEpisodeData;
 
-  const isResume = Boolean(options.resume) || Boolean(epData?.can_resume && !options.force_new);
+  const savedResumePrompt = String(epData?.resume_config?.prompt || "").trim();
+
+  const matchesSavedPrompt = !prompt || prompt.startsWith("Tiếp tục") || (savedResumePrompt && prompt === savedResumePrompt) || (inputMode === "link" && referenceUrl && epData?.resume_config?.reference_url && referenceUrl === epData.resume_config.reference_url);
+
+  const isResume = Boolean(options.resume) || Boolean(epData?.can_resume && !options.force_new && matchesSavedPrompt);
 
   const resCfg = isResume ? (epData?.resume_config || null) : null;
 
@@ -11875,7 +12259,7 @@ async function submitProduction(mode, options = {}) {
 
 
 
-    if ((inputMode === "link" || !state.userCustomizedMaxImages) && expectedScenes && expectedScenes > 0) {
+    if (!state.userCustomizedMaxImages && expectedScenes && expectedScenes > 0) {
 
 
 
@@ -12053,10 +12437,8 @@ async function submitProduction(mode, options = {}) {
 
 
       size: el.inResolution.value,
-
       aspect_ratio: (el.inResolution.value.includes("1080x1920") || el.inResolution.value.includes("720x1280")) ? "9:16" : "16:9",
-
-      is_short: Boolean(safeMin <= 1.05 || el.inResolution.value.includes("1080x1920") || el.inResolution.value.includes("720x1280")),
+      is_short: Boolean(el.inResolution.value.includes("1080x1920") || el.inResolution.value.includes("720x1280")),
 
 
 
@@ -12212,7 +12594,7 @@ async function submitProduction(mode, options = {}) {
 
 
 
-        if (payload.input_mode === "link" || !state.userCustomizedMaxImages) {
+        if (!state.userCustomizedMaxImages) {
 
 
 
@@ -13203,11 +13585,15 @@ async function pollStatus() {
 
     if (window.studioRobotWalker && typeof window.studioRobotWalker.onProductionStatus === "function") {
 
+      try {
 
+        window.studioRobotWalker.onProductionStatus(data, isAssembling, isJobForCurrentEpisode, curEp, hasCurrentCompletedVideo);
 
-      window.studioRobotWalker.onProductionStatus(data, isAssembling, isJobForCurrentEpisode, curEp, hasCurrentCompletedVideo);
+      } catch (robotErr) {
 
+        console.debug("Robot walker HUD status warning (ignored):", robotErr);
 
+      }
 
     }
 
@@ -13480,89 +13866,38 @@ function renderLogs(lines) {
 
 
         const time = m[1];
+        let icon = m[2] || "";
+        let tag = m[3] || "Thông tin";
+        const rawMsg = m[4] || "";
 
-
-
-        const icon = m[2] || "";
-
-
-
-        const tag = m[3] || "Thông tin";
-
-
-
-        const msg = m[4] || "";
-
-
-
-
-
-
+        let cleanMsg = rawMsg
+          .replace(/(?:FLOWKIT|MCP)_BATCH_PREPARED\s+(\d+)/g, "⚡ [Google Flow] Đã chuẩn bị $1 hình ảnh")
+          .replace(/(?:FLOWKIT|MCP)_RENDERING_BATCH\s+(\d+)\/(\d+)/g, "🎨 [Google Flow] Đang tạo hình ảnh $1/$2")
+          .replace(/(?:FLOWKIT|MCP)_IMAGE_IMPORTED\s+scene\s+(\d+)\/(\d+)/g, "✅ [Google Flow] Đã lưu hình ảnh cảnh $1/$2")
+          .replace(/(?:FLOWKIT|MCP)_BATCH_ALL_IMAGES_PASS/g, "✨ [Google Flow] Toàn bộ hình ảnh đã hoàn tất!")
+          .replace(/MCP V2/g, "FlowKit Engine")
+          .replace(/\bMCP\b/g, "FlowKit");
 
         let badgeCls = "log-badge-info";
-
-
-
         const tagLower = tag.toLowerCase();
-
-
-
-        if (tagLower.includes("kịch bản")) badgeCls = "log-badge-script";
-
-
-
+        if (cleanMsg.includes("[Google Flow]")) {
+          tag = "Google Flow";
+          icon = "⚡";
+          badgeCls = "log-badge-render";
+        } else if (tagLower.includes("kịch bản")) badgeCls = "log-badge-script";
         else if (tagLower.includes("cốt truyện")) badgeCls = "log-badge-story";
-
-
-
         else if (tagLower.includes("comfyui")) badgeCls = "log-badge-comfy";
-
-
-
         else if (tagLower.includes("lồng tiếng")) badgeCls = "log-badge-voice";
-
-
-
         else if (tagLower.includes("phân cảnh")) badgeCls = "log-badge-scene";
-
-
-
         else if (tagLower.includes("dựng phim")) badgeCls = "log-badge-render";
-
-
-
         else if (tagLower.includes("điều phối") || tagLower.includes("dự phòng") || tagLower.includes("kết nối")) badgeCls = "log-badge-api";
-
-
-
         else if (tagLower.includes("xuất bản")) badgeCls = "log-badge-publish";
-
-
-
         else if (tagLower.includes("lỗi") || tagLower.includes("cảnh báo")) badgeCls = "log-badge-error";
 
-
-
-
-
-
-
         return `<div class="log-entry">
-
-
-
           <span class="log-time">${escapeHtml(time)}</span>
-
-
-
           <span class="log-badge ${badgeCls}">${icon ? icon + " " : ""}${escapeHtml(tag)}</span>
-
-
-
-          <span class="log-msg">${escapeHtml(msg)}</span>
-
-
-
+          <span class="log-msg">${escapeHtml(cleanMsg)}</span>
         </div>`;
 
 
@@ -14212,7 +14547,7 @@ async function loadEpisodeDetails(series, episode) {
 
 
 
-        if (rc.input_mode && el.inInputMode) {
+        if (rc.input_mode && el.inInputMode && !state.userExplicitInputMode) {
 
 
 
@@ -14627,39 +14962,30 @@ async function loadEpisodeDetails(series, episode) {
 
 
 
-    // Always pre-load this episode's dedicated SEO package so it is immediately ready and never lost
-
-    fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}`, { cache: "no-store" })
-
-      .then(r => r.ok ? r.json() : null)
-
-      .then(seoData => {
-
-        if (seoData && (seoData.best_title || seoData.titles || seoData.vidiq_score)) {
-
-          if (slugify(state.currentSeries || series) === slugify(series) && Number(state.currentEpisode || episode) === Number(episode)) {
-
-            currentSeoData = seoData;
-
-            window.currentSeoData = seoData;
-
-            state.currentSeoData = seoData;
-
-            const seoModal = document.getElementById("modalSeoPackage");
-
-            if (seoModal && (seoModal.style.display === "block" || seoModal.classList.contains("active") || seoModal.classList.contains("open"))) {
-
-              renderSeoPackageUI(seoData);
-
+    // Always pre-load ONLY existing SEO metadata (read_only=1); never trigger ChatGPT thumbnail creation during polling
+    const isActivelyProducingThisEp = Boolean(
+      state.isRunning &&
+      slugify(state.currentSeries || "") === slugify(series) &&
+      Number(state.currentEpisode || 0) === Number(episode)
+    );
+    if (!isActivelyProducingThisEp) {
+      fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}&read_only=1`, { cache: "no-store" })
+        .then(r => r.ok ? r.json() : null)
+        .then(seoData => {
+          if (seoData && (seoData.best_title || seoData.titles || seoData.vidiq_score)) {
+            if (slugify(state.currentSeries || series) === slugify(series) && Number(state.currentEpisode || episode) === Number(episode)) {
+              currentSeoData = seoData;
+              window.currentSeoData = seoData;
+              state.currentSeoData = seoData;
+              const seoModal = document.getElementById("modalSeoPackage");
+              if (seoModal && (seoModal.style.display === "block" || seoModal.classList.contains("active") || seoModal.classList.contains("open"))) {
+                renderSeoPackageUI(seoData);
+              }
             }
-
           }
-
-        }
-
-      })
-
-      .catch(() => {});
+        })
+        .catch(() => {});
+    }
 
 
 
@@ -14751,7 +15077,7 @@ function renderStoryboardCards(scenes) {
 
 
 
-  const scenesCompact = scenes ? scenes.map((s) => `${s.scene_number}_${s.status}_${Boolean(s.video_url)}_${Boolean(s.image_url)}`).join(";") : "";
+  const scenesCompact = scenes ? scenes.map((s) => `${s.scene_number}_${s.status}_${s.video_url || ""}_${s.image_url || ""}`).join(";") : "";
 
   const signature = `${state.currentSeries}_${state.currentEpisode}_${scenesCompact}_${state.storyboardFilter}_${state.currentRunningScene}_${state.isRunning}`;
 
@@ -15480,93 +15806,23 @@ window.filterStoryboardScenes = function (filterType) {
 
 
 window.setStoryboardViewMode = function (mode) {
-
-
-
   const container = el.scenesContainer;
-
-
-
   if (!container) return;
-
-
-
-  state.storyboardViewMode = mode;
-
-
-
-  container.classList.remove("view-cinema", "view-list");
-
-
-
-  if (mode === "cinema") {
-
-
-
-    container.classList.add("view-cinema");
-
-
-
-  } else if (mode === "list") {
-
-
-
-    container.classList.add("view-list");
-
-
-
-  }
-
-
+  const resolvedMode = "list";
+  state.storyboardViewMode = resolvedMode;
+  container.classList.remove("view-cinema");
+  container.classList.add("view-list");
 
   const btnGrid = document.getElementById("btnViewGrid");
-
-
-
   const btnCinema = document.getElementById("btnViewCinema");
-
-
-
   const btnList = document.getElementById("btnViewList");
-
-
-
-  if (btnGrid) btnGrid.classList.toggle("active", mode === "grid");
-
-
-
-  if (btnCinema) btnCinema.classList.toggle("active", mode === "cinema");
-
-
-
-  if (btnList) btnList.classList.toggle("active", mode === "list");
-
-
-
+  if (btnGrid) btnGrid.classList.remove("active");
+  if (btnCinema) btnCinema.classList.remove("active");
+  if (btnList) btnList.classList.add("active");
 };
 
-
-
-
-
-
-
 window.toggleDeckDensity = function () {
-
-
-
-  const current = state.storyboardViewMode || "grid";
-
-
-
-  const next = current === "grid" ? "cinema" : current === "cinema" ? "list" : "grid";
-
-
-
-  window.setStoryboardViewMode(next);
-
-
-
+  window.setStoryboardViewMode("list");
 };
 
 
@@ -15980,13 +16236,7 @@ window.selectSceneAndPlay = function (num, videoUrl) {
 
 
   if (videoUrl) {
-
-
-
-    setVideoSource(videoUrl, `Cảnh ${num} - Hoạt ảnh nét vẽ`, posterUrl);
-
-
-
+    setVideoSource(videoUrl, `Cảnh ${num} - Hoạt ảnh nét vẽ`, posterUrl, true);
   } else {
 
 
@@ -16024,17 +16274,9 @@ window.selectSceneAndPlay = function (num, videoUrl) {
 
 
 window.reloadEpisodeDetails = function () {
-
-
-
+  state.deckSignature = null;
   loadEpisodeDetails(state.currentSeries, state.currentEpisode);
-
-
-
   showToast("Đã cập nhật danh sách cảnh");
-
-
-
 };
 
 
@@ -16140,13 +16382,7 @@ function playSceneVideo(num) {
 
 
   if (sc && sc.video_url) {
-
-
-
-    setVideoSource(sc.video_url, `Cảnh ${num} - Hoạt ảnh nét vẽ`, sc.image_url);
-
-
-
+    setVideoSource(sc.video_url, `Cảnh ${num} - Hoạt ảnh nét vẽ`, sc.image_url, true);
   } else {
 
 
@@ -16659,70 +16895,56 @@ function toggleCinemaPlayback(forceUnmute = false) {
 
 
 
-function setVideoSource(url, title, posterUrl = null) {
+function _ensurePlayablePreviewUrl(url) {
+  if (!url || !/\.mp4(\?|$)/i.test(url)) return url;
+  if (window._canPlayH264 === undefined) {
+    const probe = document.createElement("video");
+    window._canPlayH264 = Boolean(
+      probe.canPlayType('video/mp4; codecs="avc1.42E01E"') ||
+      probe.canPlayType('video/mp4; codecs="avc1.4d401f"')
+    );
+  }
+  if (window._canPlayH264) return url;
+  if (/preview=webm/i.test(url)) return url;
+  return url + (url.includes("?") ? "&" : "?") + "preview=webm";
+}
 
-
-
+function setVideoSource(url, title, posterUrl = null, autoPlay = false) {
   if (!url) return;
-
-
+  const playableUrl = _ensurePlayablePreviewUrl(url);
 
   if (el.videoEmptyState) el.videoEmptyState.style.display = "none";
 
-
-
   if (el.cinemaVideo) {
-
-
-
     el.cinemaVideo.style.display = "block";
-
-
 
     const currentSrc = el.cinemaVideo.getAttribute("src");
 
+    if (currentSrc !== playableUrl) {
+      // Show poster immediately if available so player is never pitch-black while loading/decoding
+      if (posterUrl) {
+        el.cinemaVideo.poster = posterUrl;
+      } else {
+        el.cinemaVideo.removeAttribute("poster");
+      }
 
-
-    if (currentSrc !== url) {
-
-
-
-      // Clear static poster so video canvas shows crisp decoded video frames directly
-
-
-
-      el.cinemaVideo.removeAttribute("poster");
-
-
-
-      el.cinemaVideo.src = url;
-
-
+      el.cinemaVideo.src = playableUrl;
 
       el.cinemaVideo.load();
 
-
-
       el.cinemaVideo.muted = false;
-
-
 
       el.cinemaVideo.volume = 1.0;
 
+      // When autoPlay is false, cue the frame with poster & central Play button without blaring audio
+      if (!autoPlay) {
+        el.cinemaVideo.pause();
+        updatePlayOverlay(true);
+        updatePlaybackStatus(false);
+        return;
+      }
 
-
-
-
-
-
-      // Intelligent Playback: Try unmuted play first.
-
-
-
-      // If browser blocks unmuted autoplay without prior click, cue frame 0 with prominent Play button.
-
-
-
+      // Intelligent Playback: Try unmuted play only when autoPlay is explicitly requested
       const playPromise = el.cinemaVideo.play();
 
 
@@ -17945,7 +18167,7 @@ function setButtonsRunning(running, percent = state.lastPercent) {
 
 
 
-  const locked = active || state.submitting || !state.statusReady;
+  const locked = active || Boolean(state.submitting);
 
 
 
@@ -18001,10 +18223,6 @@ function setButtonsRunning(running, percent = state.lastPercent) {
 
 
 
-        : !state.statusReady ? "Đang kiểm tra..."
-
-
-
         : "Sản Xuất Bằng AI";
 
 
@@ -18018,10 +18236,6 @@ function setButtonsRunning(running, percent = state.lastPercent) {
 
 
       : state.submitting ? "Đang xử lý yêu cầu khởi chạy"
-
-
-
-      : !state.statusReady ? "Chưa kết nối được trạng thái máy chủ"
 
 
 
@@ -18808,8 +19022,8 @@ window.studioRobotWalker = {
 
 
     window.addEventListener("mousemove", (e) => {
-
-      if (!this.dodgeEnabled || this.isWalking) return;
+      const holo = document.getElementById("robotHologramPanel");
+      if (!this.dodgeEnabled || this.isWalking || (holo && holo.style.display !== "none")) return;
 
       const now = performance.now();
 
@@ -20634,47 +20848,16 @@ window.studioRobotWalker = {
 
 
 window.switchHoloTab = function(tabName) {
-
-
-
   const tabs = ["status", "diag", "tips"];
-
-
-
   tabs.forEach(t => {
-
-
-
     const btn = document.getElementById("holoTab" + t.charAt(0).toUpperCase() + t.slice(1));
-
-
-
     const pane = document.getElementById("holoTabPane" + t.charAt(0).toUpperCase() + t.slice(1));
-
-
-
     if (btn) btn.classList.toggle("active", t === tabName);
-
-
-
     if (pane) pane.style.display = (t === tabName) ? "block" : "none";
-
-
-
   });
-
-
-
   if (tabName === "diag") {
-
-
-
     window.runRobotDiagnostics();
-
-
-
   }
-
 };
 
 
@@ -20751,49 +20934,27 @@ window.runRobotDiagnostics = async function() {
 
 
 
-    const gCheck = findCheck("gemini_key") || findCheck("llm_model");
-
-
+    const gCheck = findCheck("api_keys") || findCheck("gemini_key") || findCheck("llm_model");
 
     if (geminiEl) {
 
-
-
-      geminiEl.innerHTML = gCheck && gCheck.status === "PASS" ? "<span style='color:#10b981;'>✓ Sẵn sàng</span>" : "<span style='color:#10b981;'>✓ Sẵn sàng</span>";
-
-
+      geminiEl.innerHTML = !gCheck || gCheck.status === "PASS" ? "<span style='color:#10b981;'>✓ Sẵn sàng</span>" : `<span style='color:#f59e0b;'>⚠️ ${gCheck.message || "Kiểm tra API"}</span>`;
 
     }
-
-
 
     const cCheck = findCheck("comfyui");
 
-
-
     if (comfyEl) {
-
-
 
       comfyEl.innerHTML = cCheck && cCheck.status === "PASS" ? "<span style='color:#10b981;'>✓ GPU Sẵn sàng</span>" : "<span style='color:#38bdf8;'>○ Tự nạp khi chạy</span>";
 
-
-
     }
-
-
 
     const fCheck = findCheck("ffmpeg");
 
-
-
     if (ffmpegEl) {
 
-
-
-      ffmpegEl.innerHTML = fCheck && fCheck.status === "PASS" ? "<span style='color:#10b981;'>✓ Khả dụng</span>" : "<span style='color:#10b981;'>✓ Khả dụng</span>";
-
-
+      ffmpegEl.innerHTML = !fCheck || fCheck.status === "PASS" ? "<span style='color:#10b981;'>✓ Khả dụng</span>" : "<span style='color:#ef4444;'>❌ Thiếu FFmpeg</span>";
 
     }
 
@@ -20842,30 +21003,599 @@ window.runRobotDiagnostics = async function() {
 
 
 window.toggleRobotHologram = function (force) {
-
-
-
   const panel = document.getElementById("robotHologramPanel");
-
-
-
   if (!panel) return;
-
-
-
   const isHidden = panel.style.display === "none" || getComputedStyle(panel).display === "none";
-
-
-
   const shouldShow = typeof force === "boolean" ? force : isHidden;
-
-
-
   panel.style.display = shouldShow ? "flex" : "none";
-
-
-
+  const widget = document.getElementById("aiRobotFloatingWidget");
+  if (shouldShow) {
+    if (widget) widget.classList.remove("collapsed", "robot-ghost-mode");
+    panel.style.bottom = "";
+    requestAnimationFrame(() => {
+      const r = panel.getBoundingClientRect();
+      if (r.top < 12) {
+        panel.style.bottom = Math.round(68 - (12 - r.top)) + "px";
+      }
+    });
+  }
 };
+
+// ==============================================================================
+// STUDIO CHAT AI CO-PILOT DRAWER (ISOLATED VIA 9ROUTER :20128 / FREELLMAPI :31415)
+// ==============================================================================
+const _assistantChatHistory = [];
+let _assistantSending = false;
+
+window.openAssistantChat = function () {
+  const drawer = document.getElementById("assistantChatDrawer");
+  if (!drawer) return;
+  if (typeof window.toggleRobotHologram === "function") window.toggleRobotHologram(false);
+  const robotWidget = document.getElementById("aiRobotFloatingWidget");
+  if (robotWidget) robotWidget.classList.add("hidden-by-chat-drawer");
+  drawer.style.display = "flex";
+  if (typeof window.refreshAssistantStatus === "function") window.refreshAssistantStatus(false);
+  const inp = document.getElementById("chatInput");
+  if (inp) setTimeout(() => inp.focus(), 60);
+};
+
+window.closeAssistantChat = function () {
+  const drawer = document.getElementById("assistantChatDrawer");
+  if (drawer) drawer.style.display = "none";
+  const robotWidget = document.getElementById("aiRobotFloatingWidget");
+  if (robotWidget) robotWidget.classList.remove("hidden-by-chat-drawer");
+};
+
+window.toggleAssistantExpand = function () {
+  const drawer = document.getElementById("assistantChatDrawer");
+  const btn = document.getElementById("btnAssistantExpand");
+  if (!drawer) return;
+  const isWide = drawer.classList.toggle("assistant-drawer-wide");
+  if (btn) btn.classList.toggle("active", isWide);
+};
+
+window.toggleAssistantSettings = function () {
+  const tray = document.getElementById("assistantSettingsTray");
+  const btn = document.getElementById("btnAssistantSettings");
+  if (!tray) return;
+  const show = tray.style.display === "none" || getComputedStyle(tray).display === "none";
+  tray.style.display = show ? "flex" : "none";
+  if (btn) btn.classList.toggle("active", show);
+};
+
+function _appendInlineFormattedNodes(parent, lineText) {
+  const parts = String(lineText || "").split(/(\*\*[^*]+\*\*)/g);
+  parts.forEach((part) => {
+    if (!part) return;
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      const strong = document.createElement("strong");
+      strong.textContent = part.slice(2, -2);
+      parent.appendChild(strong);
+    } else {
+      parent.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
+function _renderCleanAssistantMessage(container, rawText) {
+  container.textContent = "";
+  const normalized = String(rawText || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  lines.forEach((rawLine) => {
+    const t = rawLine.trim();
+    if (!t) {
+      const spacer = document.createElement("div");
+      spacer.style.height = "6px";
+      container.appendChild(spacer);
+      return;
+    }
+    if (/^[-=*_]{3,}$/.test(t)) return;
+    if (/^#{1,4}\s+/.test(t) || /^\*\*(?:Tiêu đề|Thời lượng(?:\s+ước tính)?|Phần\s+\d+|Hook|Cảnh\s+\d+|Scene\s+\d+|Kết|Tóm tắt|タイトル|シーン\s*\d+|제목|장면\s*\d+)[^*]*\*\*:?$/i.test(t) || /^(?:Tiêu đề|Thời lượng(?:\s+ước tính)?|Phần\s+\d+[^:]*|Hook(?:\s*\([^)]+\))?|Cảnh\s+\d+[^:]*|Scene\s+\d+[^:]*|Kết(?:\s+đọng)?|タイトル|フック|シーン\s*\d+[^:：]*|제목|훅|장면\s*\d+[^:：]*)\s*[:：]/i.test(t)) {
+      const h = document.createElement("div");
+      h.className = "chat-md-h";
+      _appendInlineFormattedNodes(h, t.replace(/^#{1,4}\s+/, ""));
+      container.appendChild(h);
+      return;
+    }
+    if (/^[-•*]\s+/.test(t)) {
+      const b = document.createElement("div");
+      b.className = "chat-md-bullet";
+      _appendInlineFormattedNodes(b, t.replace(/^[-•*]\s+/, ""));
+      container.appendChild(b);
+      return;
+    }
+    const p = document.createElement("div");
+    p.className = "chat-md-p";
+    _appendInlineFormattedNodes(p, t);
+    container.appendChild(p);
+  });
+}
+
+function _getChatSelectedLanguage() {
+  const sel = document.getElementById("chatLanguageSelect");
+  const picked = sel ? String(sel.value || "studio").trim() : "studio";
+  if (picked && picked !== "studio") return picked;
+  return el.inLanguage ? String(el.inLanguage.value || "Auto").trim() : "Auto";
+}
+
+function _syncStudioLanguageFromChat(langValue) {
+  const clean = String(langValue || "").trim();
+  if (!clean || clean === "studio" || clean === "Auto" || !el.inLanguage) return;
+  const opt = Array.from(el.inLanguage.options).find((o) => o.value === clean);
+  if (opt && el.inLanguage.value !== clean) {
+    el.inLanguage.value = clean;
+    if (typeof state === "object" && state) state.userExplicitLanguage = true;
+    el.inLanguage.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+
+function _estimateScriptStats(rawText) {
+  const clean = String(rawText || "").trim();
+  if (!clean) return { wordCount: 0, estMinutes: 0, sceneCount: 0 };
+  const wordCount = clean.split(/\s+/).filter(Boolean).length;
+  const cjkChars = (clean.match(/[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/g) || []).length;
+  const sceneMatches = clean.match(/(?:^|\n)\s*(?:\*\*)?(?:Cảnh|Scene|シーン|장면)\s*(\d+)/gi) || [];
+  let sceneCount = sceneMatches.length;
+  sceneMatches.forEach((m) => {
+    const n = parseInt((m.match(/\d+/) || ["0"])[0], 10);
+    if (n > sceneCount) sceneCount = n;
+  });
+  let explicitMin = 0;
+  const head = clean.slice(0, 600);
+  const mExplicit = head.match(/(?:Thời lượng(?:\s+ước tính)?|Estimated Duration|所要時間|예상\s*시간)\s*[:：]\s*~?\s*(\d+(?:[.,]\d+)?)\s*(?:-\s*(\d+(?:[.,]\d+)?))?\s*(?:phút|minutes?|mins?|分|분)/i);
+  if (mExplicit) {
+    const a = parseFloat(mExplicit[1].replace(",", "."));
+    const b = mExplicit[2] ? parseFloat(mExplicit[2].replace(",", ".")) : a;
+    if (!isNaN(a) && a > 0) explicitMin = (a + b) / 2;
+  }
+  const byWords = wordCount >= 180 ? (wordCount / 140.0) : 0;
+  const byCjk = cjkChars >= 280 ? (cjkChars / 320.0) : 0;
+  const byScenes = sceneCount >= 6 ? (sceneCount * 0.35) : 0;
+  const rawMin = Math.max(explicitMin, byWords, byCjk, byScenes);
+  const estMinutes = rawMin >= 1.0 ? Math.min(60, Math.max(1, Math.round(rawMin * 2) / 2)) : 0;
+  return { wordCount, cjkChars, estMinutes, sceneCount };
+}
+
+function _isContinuationUserPrompt(text) {
+  const low = String(text || "").toLowerCase();
+  return /(viết tiếp|phần tiếp|kéo dài|mở rộng|nối tiếp|thêm cảnh|tiếp tục kịch bản|continue script)/.test(low);
+}
+
+function _collectMergedAssistantScripts(anchorHistoryIndex) {
+  const idx = typeof anchorHistoryIndex === "number" ? anchorHistoryIndex : (_assistantChatHistory.length - 1);
+  if (idx < 0 || idx >= _assistantChatHistory.length) return [];
+  const parts = [];
+  let i = idx;
+  while (i >= 0) {
+    const item = _assistantChatHistory[i];
+    if (item && item.role === "assistant" && String(item.content || "").trim()) {
+      parts.unshift(String(item.content).trim());
+      const prevUser = i > 0 ? _assistantChatHistory[i - 1] : null;
+      if (prevUser && prevUser.role === "user" && _isContinuationUserPrompt(prevUser.content) && i >= 2) {
+        i -= 2;
+        continue;
+      }
+    }
+    break;
+  }
+  return parts;
+}
+
+window.continueAssistantScript = function () {
+  const targetLang = _getChatSelectedLanguage();
+  const langClause = (targetLang && targetLang !== "Auto")
+    ? ` giữ đúng ngôn ngữ đang chọn (${targetLang}) cho Lời kể/Lời thoại,`
+    : "";
+  window.sendAssistantMessage(
+    `Hãy viết tiếp phần tiếp theo ngay sau cảnh cuối của kịch bản vừa rồi: bổ sung chi tiết diễn biến, cảm xúc, lời kể & lời thoại,${langClause} đánh số Cảnh nối tiếp liên tục (giữ nguyên tên nhân vật & giọng văn, không tóm tắt hay lặp lại các cảnh đã viết).`
+  );
+};
+
+function _appendChatBubble(role, text, opts = {}) {
+  const box = document.getElementById("chatMessagesBox");
+  if (!box) return null;
+  const wrap = document.createElement("div");
+  wrap.className = "chat-msg " + (role === "user" ? "chat-msg-user" : "chat-msg-bot");
+  const body = document.createElement("div");
+  body.className = "chat-msg-text";
+  if (role === "assistant" && !opts.isTyping) {
+    _renderCleanAssistantMessage(body, text);
+  } else {
+    body.textContent = text;
+  }
+  wrap.appendChild(body);
+
+  if (role === "assistant" && text && !opts.isTyping && !opts.isWelcome) {
+    const actions = document.createElement("div");
+    actions.className = "chat-msg-actions";
+
+    if (opts.code === "NO_PROVIDER") {
+      const dashBtn = document.createElement("button");
+      dashBtn.type = "button";
+      dashBtn.className = "btn btn-xs btn-primary";
+      dashBtn.textContent = "⚙️ Mở Dashboard 9router (:20128)";
+      dashBtn.onclick = () => window.open9RouterDashboard();
+      actions.appendChild(dashBtn);
+    } else if (!opts.isError) {
+      const histIdx = typeof opts.historyIndex === "number" ? opts.historyIndex : (_assistantChatHistory.length - 1);
+      const mergedParts = _collectMergedAssistantScripts(histIdx);
+
+      const produceBtn = document.createElement("button");
+      produceBtn.type = "button";
+      produceBtn.className = "btn btn-xs btn-produce-from-chat";
+      produceBtn.textContent = "🎬 Đẩy & Tạo Video";
+      produceBtn.title = "Chuyển kịch bản sang 03. Kịch bản để tool tự phân tích & tạo phim ngay";
+      produceBtn.onclick = () => window.pushAssistantScriptAndProduce(text);
+      actions.appendChild(produceBtn);
+
+      if (mergedParts.length >= 2) {
+        const mergeProduceBtn = document.createElement("button");
+        mergeProduceBtn.type = "button";
+        mergeProduceBtn.className = "btn btn-xs btn-produce-from-chat";
+        mergeProduceBtn.textContent = `🎬 Ghép ${mergedParts.length} phần & Tạo Video`;
+        mergeProduceBtn.title = "Gộp toàn bộ các phần kịch bản đã viết nối tiếp nhau rồi đẩy sang tạo phim";
+        mergeProduceBtn.onclick = () => window.pushAssistantScriptAndProduce(mergedParts.join("\n\n"));
+        actions.appendChild(mergeProduceBtn);
+      }
+
+      const continueBtn = document.createElement("button");
+      continueBtn.type = "button";
+      continueBtn.className = "btn btn-xs btn-secondary";
+      continueBtn.textContent = "➕ Viết tiếp dài thêm";
+      continueBtn.title = "Yêu cầu AI viết nối tiếp các cảnh tiếp theo mà không lặp phần cũ";
+      continueBtn.onclick = () => window.continueAssistantScript();
+      actions.appendChild(continueBtn);
+
+      const applyBtn = document.createElement("button");
+      applyBtn.type = "button";
+      applyBtn.className = "btn btn-xs btn-primary";
+      applyBtn.textContent = mergedParts.length >= 2 ? `📥 Chép ${mergedParts.length} phần` : "📥 Chép vào 03. Kịch bản";
+      applyBtn.onclick = () => window.applyAssistantTextToPrompt(mergedParts.length >= 2 ? mergedParts.join("\n\n") : text);
+      actions.appendChild(applyBtn);
+
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "btn btn-xs btn-secondary";
+      copyBtn.textContent = "📋 Copy";
+      copyBtn.onclick = () => {
+        navigator.clipboard?.writeText(mergedParts.length >= 2 ? mergedParts.join("\n\n") : text).catch(() => {});
+        if (typeof showToast === "function") showToast("✓ Đã copy kịch bản từ Chat AI");
+      };
+      actions.appendChild(copyBtn);
+    }
+    if (actions.children.length > 0) wrap.appendChild(actions);
+  }
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+  return wrap;
+}
+
+window.applyAssistantTextToPrompt = function (text) {
+  if (!el.inPrompt) return;
+  const cleanText = String(text || "").trim();
+  if (el.inInputMode && el.inInputMode.value !== "idea") {
+    el.inInputMode.value = "idea";
+    if (typeof state === "object" && state) state.userExplicitInputMode = true;
+    if (typeof updateInputModeFields === "function") updateInputModeFields();
+  }
+  if (el.inReferenceUrl) el.inReferenceUrl.value = "";
+  el.inPrompt.value = cleanText;
+
+  // Auto-sync video duration inMinutes cleanly when applying a multi-minute script
+  const stats = _estimateScriptStats(cleanText);
+  if (el.inMinutes && stats.estMinutes >= 1.5) {
+    const curMin = parseFloat(el.inMinutes.value || "0") || 0;
+    if (curMin < stats.estMinutes) {
+      el.inMinutes.value = String(stats.estMinutes);
+      el.inMinutes.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  // Auto-match genre & natural pacing when Chat AI authored a drama/storytelling script
+  // without ever clobbering user's explicit language or voice choice.
+  const lower = cleanText.toLowerCase();
+  const hasDialogueCues = /lời thoại|hào môn|di chúc|phản bội|gia tộc|anh cả|em út|chủ tịch|cổ phần|ly hôn|mẹ chồng|con dâu/.test(lower);
+  const currentGenre = el.inGenre ? el.inGenre.value : "";
+  const prevLang = el.inLanguage ? el.inLanguage.value : "";
+  const prevVoice = el.inVoice ? el.inVoice.value : "";
+  if (el.inGenre && (currentGenre === "documentary" || currentGenre === "auto" || !currentGenre)) {
+    let matchedGenre = "";
+    if (/khắc kỷ|marcus aurelius|seneca|stoic|thiền|tĩnh tâm/.test(lower)) matchedGenre = "stoic";
+    else if (/mafia|trinh thám|công an|cảnh sát|sát thủ|án mạng|tội phạm|hạ độc|biển thủ/.test(lower) && !hasDialogueCues) matchedGenre = "mafia_thriller";
+    else if (/kinh dị|ma quái|ám ảnh|rùng rợn/.test(lower)) matchedGenre = "psychological_horror";
+    else if (/ngôn tình|tổng tài|mối tình|tình yêu|kết hôn/.test(lower) && !/di chúc|biển thủ|cảnh sát/.test(lower)) matchedGenre = "romance_melodrama";
+    else if (hasDialogueCues || /lời kể|kịch tính|twist|bất ngờ/.test(lower)) matchedGenre = "family_drama";
+    if (matchedGenre) {
+      const opt = Array.from(el.inGenre.options).find((o) => o.value === matchedGenre);
+      if (opt) {
+        el.inGenre.value = matchedGenre;
+        el.inGenre.dispatchEvent(new Event("change", { bubbles: true }));
+        if (el.inLanguage && prevLang && prevLang !== "Auto") el.inLanguage.value = prevLang;
+        if (el.inVoice && prevVoice && prevVoice !== "auto") el.inVoice.value = prevVoice;
+      }
+    }
+  }
+  if (el.inSpeechPacing && el.inSpeechPacing.value === "slow") {
+    const gNow = el.inGenre ? el.inGenre.value : "";
+    if (gNow !== "stoic") {
+      el.inSpeechPacing.value = "normal";
+      el.inSpeechPacing.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  el.inPrompt.dispatchEvent(new Event("input", { bubbles: true }));
+  el.inPrompt.focus();
+  if (typeof showToast === "function") {
+    const durMsg = stats.estMinutes >= 1.5 ? ` (~${stats.wordCount} từ ≈ ${stats.estMinutes} phút)` : "";
+    showToast(`✓ Đã chép kịch bản${durMsg} vào 03. Kịch Bản!`);
+  }
+};
+
+window.pushAssistantScriptAndProduce = async function (text) {
+  const clean = String(text || "").trim();
+  if (!clean) return;
+  window.applyAssistantTextToPrompt(clean);
+  if (typeof state === "object" && state && (state.isRunning || state.submitting)) {
+    if (typeof showToast === "function") {
+      showToast("⚠️ Studio đang chạy tập khác — đã chép sẵn kịch bản vào ô 03. Kịch bản!", 5000);
+    }
+    return;
+  }
+  // Protect completed episodes: if the selected episode already has a finished video, auto-advance to next episode
+  if (el.inEpisode && state.loadedEpisodeData && state.loadedEpisodeData.final_video_url) {
+    const nextEp = (parseInt(el.inEpisode.value, 10) || 1) + 1;
+    el.inEpisode.value = String(nextEp);
+    state.currentEpisode = nextEp;
+    state.loadedEpisodeData = null;
+    if (typeof updateLiveButtonLabel === "function") updateLiveButtonLabel();
+  }
+  // If user still has Muse selected while Muse auth is expired, seamlessly use ComfyUI GPU
+  if (el.inImageSource && el.inImageSource.value === "muse_video") {
+    try {
+      const mRes = await fetch("/api/muse/status?test=1");
+      const mData = await mRes.json();
+      if (!mData?.test?.ok) {
+        el.inImageSource.value = "comfyui";
+        if (typeof updateImageBudgetHint === "function") updateImageBudgetHint();
+      }
+    } catch (_) {}
+  }
+  window.closeAssistantChat();
+  if (typeof showToast === "function") {
+    showToast("🎬 Đã đẩy kịch bản — Tool đang tự phân tích & tạo video!", 5000);
+  }
+  if (typeof submitProduction === "function") {
+    submitProduction("live", { force_new: true });
+  } else if (el.btnLive) {
+    el.btnLive.click();
+  }
+};
+
+window.refreshAssistantStatus = async function (notifyUser = false) {
+  const badge = document.getElementById("assistantRouterBadge");
+  const note = document.getElementById("assistantBackendNote");
+  const sel = document.getElementById("chatModelSelect");
+  try {
+    const res = await fetch("/api/assistant/status", { cache: "no-store" });
+    const data = await res.json();
+    const running = Boolean(data.running);
+    const pCount = Number(data.provider_count || 0);
+    const backend = String(data.active_backend || "none");
+    const fRunning = Boolean(data.freellmapi_running);
+    if (badge) {
+      if (backend === "9router") {
+        badge.className = "chat-status-badge online";
+        badge.textContent = `● Sẵn sàng (9router • ${pCount || 1} nguồn)`;
+      } else if (backend === "freellmapi" || backend === "studio_ai") {
+        badge.className = "chat-status-badge online";
+        badge.textContent = backend === "studio_ai" ? "● Sẵn sàng (Tuấn Stor / Gemini)" : "● Sẵn sàng viết kịch bản";
+      } else if (running) {
+        badge.className = "chat-status-badge warn";
+        badge.textContent = "● 9router bật — Chưa đăng nhập nguồn AI";
+      } else if (fRunning) {
+        badge.className = "chat-status-badge warn";
+        badge.textContent = "● Thiếu khóa kết nối cục bộ";
+      } else {
+        badge.className = "chat-status-badge offline";
+        badge.textContent = "● Chưa có nguồn AI";
+      }
+    }
+    if (note) {
+      note.textContent = backend === "9router"
+        ? "Đang dùng 9router (:20128) tách riêng."
+        : (backend === "studio_ai"
+          ? "Đang dùng Tuấn Stor / Gemini Studio (tự dự phòng)."
+          : (backend === "freellmapi"
+            ? "Đang dùng nguồn AI cục bộ + dự phòng Tuấn Stor / Gemini."
+            : "Mở Dashboard 9router để đăng nhập hoặc bật FreeLLMAPI."));
+    }
+    if (sel) {
+      const prev = sel.value || "auto";
+      sel.innerHTML = `<option value="auto">✨ Tự chọn model tốt nhất</option>`;
+      (data.models || []).forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        sel.appendChild(opt);
+      });
+      if (Array.from(sel.options).some((o) => o.value === prev)) sel.value = prev;
+    }
+    if (notifyUser && typeof showToast === "function") {
+      showToast(data.ready ? `✓ Trợ Lý AI đã sẵn sàng (${backend})` : "Chưa có nguồn AI sẵn sàng");
+    }
+    return data;
+  } catch (err) {
+    if (badge) {
+      badge.className = "chat-status-badge offline";
+      badge.textContent = "● Lỗi kết nối máy chủ Studio";
+    }
+    return { ok: false, running: false, ready: false };
+  }
+};
+
+window.startAssistantRouter = async function () {
+  const btn = document.getElementById("btnStart9Router");
+  const badge = document.getElementById("assistantRouterBadge");
+  if (btn) btn.disabled = true;
+  if (badge) {
+    badge.className = "chat-status-badge warn";
+    badge.textContent = "⏳ Đang bật 9router (:20128)...";
+  }
+  try {
+    const res = await fetch("/api/assistant/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const data = await res.json();
+    await window.refreshAssistantStatus(false);
+    if (!data.running) {
+      _appendChatBubble("assistant", data.error || "Không thể bật 9router.", { isError: true });
+    }
+  } catch (err) {
+    _appendChatBubble("assistant", "Lỗi bật 9router: " + err.message, { isError: true });
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+window.open9RouterDashboard = async function () {
+  try {
+    const res = await fetch("/api/assistant/open_dashboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const data = await res.json();
+    await window.refreshAssistantStatus(false);
+    if (typeof showToast === "function") {
+      showToast(data.message || "Đã mở Dashboard 9router (http://127.0.0.1:20128/dashboard)");
+    }
+  } catch (err) {
+    window.open("http://127.0.0.1:20128/dashboard", "_blank");
+  }
+};
+
+window.clearAssistantChat = function () {
+  _assistantChatHistory.length = 0;
+  const box = document.getElementById("chatMessagesBox");
+  if (!box) return;
+  box.innerHTML = "";
+  _appendChatBubble("assistant", "Đã xóa lịch sử trò chuyện. Sẵn sàng viết kịch bản & đẩy sang tạo video!", { isWelcome: true });
+};
+
+window.runAssistantQuickPreset = function (presetKey) {
+  const curGenre = el.inGenre?.value || "auto";
+  const curPrompt = (el.inPrompt?.value || "").trim();
+  const chatLangSel = document.getElementById("chatLanguageSelect");
+  let promptText = "";
+  if (presetKey === "jp_idea") {
+    if (chatLangSel) {
+      chatLangSel.value = "Japanese";
+      _syncStudioLanguageFromChat("Japanese");
+    }
+    promptText = "Hãy gợi ý 1 kịch bản kể chuyện triết lý/tâm lý Nhật Bản (hoặc lịch sử Edo) trọn vẹn: viết Tiêu đề, Hook, Lời kể và Lời thoại hoàn toàn bằng tiếng Nhật (日本語) tự nhiên dễ nghe, kèm mô tả hình minh họa nền trắng cho từng cảnh.";
+  } else if (presetKey === "kr_idea") {
+    if (chatLangSel) {
+      chatLangSel.value = "Korean";
+      _syncStudioLanguageFromChat("Korean");
+    }
+    promptText = "Hãy gợi ý 1 kịch bản Drama gia đình Hàn Quốc (사연) hoặc Yadam cổ trang có cú twist bất ngờ: viết Tiêu đề, Hook, Lời kể và Lời thoại hoàn toàn bằng tiếng Hàn (한국어) giàu cảm xúc, kèm mô tả hình minh họa cho từng cảnh.";
+  } else if (presetKey === "long_script") {
+    const targetLang = _getChatSelectedLanguage();
+    const langHint = (targetLang && targetLang !== "Auto")
+      ? `bằng ngôn ngữ '${targetLang}' (Lời kể và Lời thoại viết tự nhiên chuẩn bản xứ bằng ${targetLang})`
+      : "theo đúng ngôn ngữ đã chọn";
+    promptText = curPrompt
+      ? `Hãy viết kịch bản phim dài chi tiết khoảng 6-8 phút (~900-1.100 từ, chia 18-22 cảnh rõ ràng ${langHint}, kèm hình ảnh + lời kể + lời thoại giàu cảm xúc, tuyệt đối không tóm tắt) phát triển từ chủ đề/ý tưởng sau:\n\n${curPrompt}`
+      : `Hãy viết 1 kịch bản kể chuyện chi tiết dài khoảng 6-8 phút (~900-1.100 từ, chia 18-22 cảnh ${langHint} có mở đầu Hook, thắt nút leo thang, cao trào và cú twist cuối) cho thể loại '${curGenre}', kèm mô tả hình ảnh từng cảnh để dựng video.`;
+  } else if (presetKey === "refine_prompt") {
+    promptText = curPrompt
+      ? `Hãy viết lại cho mượt, giàu hình ảnh điện ảnh hơn và chia nhịp cao trào cho ý tưởng/kịch bản sau:\n\n${curPrompt}`
+      : "Hãy gợi ý 1 prompt mẫu 3-4 câu thật súc tích để mình dán vào ô Ý tưởng sản xuất ngay.";
+  } else if (presetKey === "hook_seo") {
+    promptText = `Với thể loại '${curGenre}'${curPrompt ? ` và nội dung '${curPrompt.slice(0, 220)}'` : ""}, hãy viết 3 tiêu đề CTR cao + 1 câu Hook 2 dòng cho Thumbnail.`;
+  }
+  if (promptText) window.sendAssistantMessage(promptText);
+};
+
+window.sendAssistantMessage = async function (overrideText) {
+  if (_assistantSending) return;
+  const inp = document.getElementById("chatInput");
+  const btn = document.getElementById("btnChatSend");
+  const sel = document.getElementById("chatModelSelect");
+  const raw = typeof overrideText === "string" ? overrideText : (inp ? inp.value : "");
+  const text = String(raw || "").trim();
+  if (!text) return;
+
+  if (!overrideText && inp) inp.value = "";
+  _appendChatBubble("user", text);
+  _assistantChatHistory.push({ role: "user", content: text });
+
+  _assistantSending = true;
+  if (btn) btn.disabled = true;
+  const typingBubble = _appendChatBubble("assistant", "⏳ Đang soạn kịch bản / trả lời...", { isTyping: true });
+
+  const chosenLang = _getChatSelectedLanguage();
+  try {
+    const res = await fetch("/api/assistant/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: _assistantChatHistory.slice(-24),
+        model: sel ? sel.value : "auto",
+        genre: el.inGenre ? el.inGenre.value : "auto",
+        language: chosenLang,
+        auto_start: true,
+      }),
+    });
+    const data = await res.json();
+    if (typingBubble) typingBubble.remove();
+
+    if (data.ok && data.reply) {
+      _assistantChatHistory.push({ role: "assistant", content: data.reply });
+      _appendChatBubble("assistant", data.reply, { historyIndex: _assistantChatHistory.length - 1 });
+    } else {
+      _appendChatBubble("assistant", data.error || "Không nhận được phản hồi từ 9router.", {
+        isError: true,
+        code: data.code || "",
+      });
+    }
+    window.refreshAssistantStatus(false);
+  } catch (err) {
+    if (typingBubble) typingBubble.remove();
+    _appendChatBubble("assistant", "Lỗi kết nối Chat AI: " + err.message, { isError: true });
+  } finally {
+    _assistantSending = false;
+    if (btn) btn.disabled = false;
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("chatInput");
+  if (inp) {
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        window.sendAssistantMessage();
+      }
+    });
+  }
+  const chatLangSel = document.getElementById("chatLanguageSelect");
+  if (chatLangSel) {
+    chatLangSel.addEventListener("change", () => {
+      _syncStudioLanguageFromChat(chatLangSel.value);
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const drawer = document.getElementById("assistantChatDrawer");
+      if (drawer && drawer.style.display !== "none") window.closeAssistantChat();
+    }
+  });
+});
 
 
 
@@ -21655,7 +22385,7 @@ window.openSeoModal = async function (forceRegen = false) {
 
 
 
-    const apiRes=await fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}${forceRegen ? "&force_regenerate=1" : ""}`,{cache:"no-store"});
+    const apiRes=await fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}${forceRegen ? "&force_regenerate=1&explicit_regen=1" : ""}`,{cache:"no-store"});
 
 
 
@@ -21706,7 +22436,11 @@ window.openSeoModal = async function (forceRegen = false) {
 
 
 
-      showToast("Đã tải gói đăng bài và kiểm tra nội bộ.");
+      if (data.thumbnail_error) {
+        showToast("⚠️ " + data.thumbnail_error);
+      } else {
+        showToast("Đã tải gói đăng bài và kiểm tra nội bộ.");
+      }
 
 
 
@@ -21932,11 +22666,11 @@ window.renderSeoPackageUI = function (data) {
 
 
 
-  const metaTotal = score.total_score || 90;
+  const metaTotal = Number.isFinite(Number(score.total_score)) ? Number(score.total_score) : 0;
 
 
 
-  let masterScore = 94;
+  let masterScore = metaTotal;
 
 
 
@@ -21944,15 +22678,7 @@ window.renderSeoPackageUI = function (data) {
 
 
 
-    masterScore = Math.max(maxTitleScore, Math.round(maxTitleScore * 0.6 + metaTotal * 0.4));
-
-
-
-  } else {
-
-
-
-    masterScore = Math.max(metaTotal, 90);
+    masterScore = Math.round(maxTitleScore * 0.6 + metaTotal * 0.4);
 
 
 
@@ -21960,7 +22686,7 @@ window.renderSeoPackageUI = function (data) {
 
 
 
-  masterScore = Math.min(100, Math.max(70, masterScore));
+  masterScore = Math.min(100, Math.max(0, Math.round(masterScore)));
 
 
 
@@ -22064,99 +22790,62 @@ window.renderSeoPackageUI = function (data) {
 
 
 
-  // 4 Master KPI Mini-Cards
+  // 4 Master KPI Mini-Cards (Real audited scores, no inflated fallback)
 
+  const comp = data.component_scores || {};
+  const parseCompScore = (entry, fallbackVal) => {
+    const raw = String(entry?.score || "");
+    const m = raw.match(/(\d+)/);
+    return m ? Number(m[1]) : fallbackVal;
+  };
 
-
-  const titleScoreNum = maxTitleScore > 0 ? maxTitleScore : 93;
-
-
+  const bd = score.breakdown || [];
+  const calcTitlePct = bd.length >= 2 ? Math.round(((bd[0].score + bd[1].score) / 35) * 100) : parseCompScore(comp.title, metaTotal);
+  const titleScoreNum = maxTitleScore > 0 ? maxTitleScore : calcTitlePct;
 
   put("kpiScoreTitle", `${titleScoreNum}/100`);
 
-
-
   const kpiBarTitle = document.getElementById("kpiBarTitle");
-
-
 
   if (kpiBarTitle) kpiBarTitle.style.width = `${titleScoreNum}%`;
 
+  const firstTitleChar = data.titles?.[0]?.char_count || data.titles?.[0]?.title?.length || 0;
 
-
-  const firstTitleChar = data.titles?.[0]?.char_count || data.titles?.[0]?.title?.length || 65;
-
-
-
-  put("kpiMetaTitle", `${firstTitleChar} ký tự · Đạt chuẩn vàng CTR 60-95`);
-
-
-
-
+  put("kpiMetaTitle", `${firstTitleChar} ký tự · ${comp.title?.rating || (titleScoreNum >= 85 ? "Chuẩn CTR 45-95" : "Cần khớp từ khóa tiêu đề")}`);
 
 
 
   const chapCount = (data.chapters || []).length;
 
+  const descPts = bd.length >= 4 ? Math.round(((bd[2].score + bd[3].score) / 35) * 100) : parseCompScore(comp.description, metaTotal);
 
-
-  const descScoreDisplay = chapCount >= 3 ? "100/100" : "90/100";
-
-
-
-  put("kpiScoreDesc", descScoreDisplay);
-
-
+  put("kpiScoreDesc", `${descPts}/100`);
 
   const kpiBarDesc = document.getElementById("kpiBarDesc");
 
+  if (kpiBarDesc) kpiBarDesc.style.width = `${descPts}%`;
 
-
-  if (kpiBarDesc) kpiBarDesc.style.width = chapCount >= 3 ? "100%" : "90%";
-
-
-
-  put("kpiMetaDesc", `${chapCount} Chapters tự động · Có mốc 00:00`);
-
-
-
-
+  put("kpiMetaDesc", `${chapCount} Chapters · ${comp.description?.rating || (descPts >= 85 ? "Chuẩn mật độ từ khóa" : "Cần bổ sung từ khóa mở đầu")}`);
 
 
 
   const tagList = data.tags || [];
 
-
-
   const tagChars = data.tags_character_count || (tagList.join(", ").length);
 
-
-
-  const tagScoreNum = tagChars >= 400 ? 100 : (tagChars >= 250 ? 95 : 90);
-
-
+  const tagScoreNum = bd.length >= 6 ? Math.round((bd[5].score / 15) * 100) : parseCompScore(comp.tags, metaTotal);
 
   put("kpiScoreTags", `${tagScoreNum}/100`);
 
-
-
   const kpiBarTags = document.getElementById("kpiBarTags");
-
-
 
   if (kpiBarTags) kpiBarTags.style.width = `${tagScoreNum}%`;
 
-
-
-  put("kpiMetaTags", `${tagList.length} tags (${tagChars}/500 ký tự)`);
-
+  put("kpiMetaTags", `${tagList.length} tags (${tagChars}/500 ký tự · ${score.title_overlap_tags ?? "?"} tag khớp tiêu đề)`);
 
 
 
-
-
-
-  const thumbScore = data.thumbnail_checks?.total_score || 100;
+  const thumbScore = data.thumbnail_checks?.total_score ?? parseCompScore(comp.thumbnail, 0);
 
 
 
@@ -22589,16 +23278,24 @@ window.renderSeoPackageUI = function (data) {
 
 
 
-  // The 16:9 Long Video tab is STRICTLY 16:9 widescreen HD (1280x720)
-  const isVerticalShort = false;
+  // Respect 9:16 vertical Shorts cover aspect ratio vs 16:9 widescreen thumbnail
+  const isVerticalShort = Boolean(data.is_short || data.is_vertical_short);
   const cardTitle = document.getElementById("seoThumbCardTitle");
   if (cardTitle) {
-    cardTitle.textContent = "🖼️ Ảnh Thu Nhỏ Thumbnail HD (1280x720 - 16:9 Ngang)";
+    cardTitle.textContent = isVerticalShort
+      ? "📱 Bìa Dọc Shorts HD (1080x1920 - 9:16 Dọc)"
+      : "🖼️ Ảnh Thu Nhỏ Thumbnail HD (1280x720 - 16:9 Ngang)";
   }
   if (thumbImg && thumbImg.parentElement) {
-    thumbImg.parentElement.style.aspectRatio = "16/9";
-    thumbImg.parentElement.style.maxWidth = "";
-    thumbImg.parentElement.style.margin = "";
+    if (isVerticalShort) {
+      thumbImg.parentElement.style.aspectRatio = "9/16";
+      thumbImg.parentElement.style.maxWidth = "270px";
+      thumbImg.parentElement.style.margin = "0 auto";
+    } else {
+      thumbImg.parentElement.style.aspectRatio = "16/9";
+      thumbImg.parentElement.style.maxWidth = "";
+      thumbImg.parentElement.style.margin = "";
+    }
   }
 
   if (data.thumbnail_url && thumbImg) {
@@ -22929,7 +23626,7 @@ window.renderSeoPackageUI = function (data) {
 
 
   const preferredTab = (window.currentSeoTab === "short" || (state && state.activePreviewMode === "short")) ? "short" : "long";
-  window.switchSeoPackTab(preferredTab);
+  window.switchSeoPackTab(preferredTab, true);
 
 
 
@@ -22963,7 +23660,10 @@ window.currentSeoTab = "long";
 
 
 
-window.switchSeoPackTab = function (tab) {
+window.switchSeoPackTab = function (tab, skipRender = false) {
+  if (window._inSwitchSeoPackTab) return;
+  window._inSwitchSeoPackTab = true;
+  try {
 
 
 
@@ -23084,7 +23784,7 @@ window.switchSeoPackTab = function (tab) {
       window.renderShortsPackageUI(window.currentSeoData || state.currentSeoData);
     }
     if (!window.currentSeoData || !window.currentSeoData.shorts_package) {
-      fetch(`/api/episode/seo?series=${encodeURIComponent(seriesName)}&episode=${epNum}`)
+      fetch(`/api/episode/seo?series=${encodeURIComponent(seriesName)}&episode=${epNum}&read_only=1`)
         .then(r => r.json())
         .then(d => {
           if (d && !d.error) {
@@ -23186,7 +23886,7 @@ window.switchSeoPackTab = function (tab) {
 
 
     if (longContent) longContent.style.display = "flex";
-    if (typeof window.renderSeoPackageUI === "function" && (window.currentSeoData || state.currentSeoData)) {
+    if (!skipRender && typeof window.renderSeoPackageUI === "function" && (window.currentSeoData || state.currentSeoData)) {
       window.renderSeoPackageUI(window.currentSeoData || state.currentSeoData);
     }
 
@@ -23230,6 +23930,9 @@ window.switchSeoPackTab = function (tab) {
 
 
   }
+  } finally {
+    window._inSwitchSeoPackTab = false;
+  }
 
 };
 
@@ -23263,7 +23966,7 @@ window.renderShortsPackageUI = function (data) {
     shortUrl = `/media/productions/${slugName}/${epFolder}/00_DANG_BAI_YOUTUBE/02_VIDEO_SHORTS_9x16.mp4?v=${Date.now()}`;
   }
   if (shortPreview) {
-    shortPreview.src = shortUrl;
+    shortPreview.src = _ensurePlayablePreviewUrl(shortUrl);
     shortPreview.style.display = "block";
     if (shortPlaceholder) shortPlaceholder.style.display = "none";
     try { shortPreview.load(); } catch (_) {}
@@ -23481,7 +24184,7 @@ window.regenerateEpisodeShortModal = async function () {
 
 
 
-        preview.src = data.video_url;
+        preview.src = _ensurePlayablePreviewUrl(data.video_url);
 
 
 
@@ -25598,7 +26301,7 @@ window.regenerateThumbnailHook = async function () {
 
 
 
-  const fontScale = (fontSelect && fontSelect.value) || "standard";
+  const fontScale = (fontSelect && fontSelect.value) || "viral";
 
 
 
@@ -25630,13 +26333,20 @@ window.regenerateThumbnailHook = async function () {
 
 
 
-    const res = await fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}&genre=${encodeURIComponent((document.getElementById("seoThumbnailGenreStyle")||{}).value||"auto")}&hook_text=${encodeURIComponent(newHook)}&scene_num=${sceneNum}&side=${side}&font_scale=${encodeURIComponent(fontScale)}`);
+    const res = await fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}&force_regenerate=1&explicit_regen=1&genre=${encodeURIComponent((document.getElementById("seoThumbnailGenreStyle")||{}).value||"auto")}&hook_text=${encodeURIComponent(newHook)}&scene_num=${sceneNum}&side=${side}&font_scale=${encodeURIComponent(fontScale)}`);
 
 
 
     const updated = await res.json();
 
-
+    if (updated && updated.thumbnail_error) {
+      if (updated.thumbnail_url) {
+        currentSeoData = updated;
+        renderSeoPackageUI(updated);
+      }
+      showToast("⚠️ " + updated.thumbnail_error);
+      return;
+    }
 
     if (updated && updated.thumbnail_url) {
 
@@ -25650,7 +26360,7 @@ window.regenerateThumbnailHook = async function () {
 
 
 
-      showToast("Đã cập nhật ảnh Thumbnail chữ to khổng lồ 50/50!");
+      showToast("✅ Đã gửi prompt cho ChatGPT Web render & tải thumbnail hoàn thiện!");
 
 
 
@@ -25708,7 +26418,7 @@ window.generateFierceThumbnail = async function () {
 
 
 
-  const fontScale = (fontSelect && fontSelect.value) || "standard";
+  const fontScale = (fontSelect && fontSelect.value) || "viral";
 
 
 
@@ -25748,13 +26458,21 @@ window.generateFierceThumbnail = async function () {
 
 
 
-    const res = await fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}&action=generate_fierce_thumbnail&genre=${encodeURIComponent((document.getElementById("seoThumbnailGenreStyle")||{}).value||"auto")}&hook_text=${encodeURIComponent(newHook)}&font_scale=${encodeURIComponent(fontScale)}&side=right`);
+    const sideVal = ((document.getElementById("seoThumbnailSideSelect") || {}).value) || "auto";
+    const res = await fetch(`/api/episode/seo?series=${encodeURIComponent(series)}&episode=${episode}&action=generate_fierce_thumbnail&explicit_regen=1&genre=${encodeURIComponent((document.getElementById("seoThumbnailGenreStyle")||{}).value||"auto")}&hook_text=${encodeURIComponent(newHook)}&font_scale=${encodeURIComponent(fontScale)}&side=${encodeURIComponent(sideVal)}`);
 
 
 
     const updated = await res.json();
 
-
+    if (updated && updated.thumbnail_error) {
+      if (updated.thumbnail_url) {
+        currentSeoData = updated;
+        renderSeoPackageUI(updated);
+      }
+      showToast("⚠️ " + updated.thumbnail_error);
+      return;
+    }
 
     if (updated && updated.thumbnail_url) {
 
@@ -25768,7 +26486,7 @@ window.generateFierceThumbnail = async function () {
 
 
 
-      showToast("🔥 Đã kích hoạt Thumbnail nhân vật biểu cảm gay gắt & chữ khổng lồ!");
+      showToast("🔥 Đã dùng ChatGPT Web tạo & tải thumbnail hoàn thiện!");
 
 
 
@@ -26716,6 +27434,9 @@ window.fetchYouTubeChannels = async function () {
 
 
 
+    if (arguments[0] === true) {
+      showToast("🔄 Đang kiểm tra và làm mới trạng thái kết nối các kênh...", "info");
+    }
     const res = await fetch("/api/youtube/channels");
 
 
@@ -26954,6 +27675,12 @@ window.fetchYouTubeChannels = async function () {
 
 
 
+    }
+
+
+
+    if (arguments[0] === true) {
+      showToast("✅ Đã cập nhật trạng thái kết nối các kênh YouTube!", "success");
     }
 
 
@@ -27757,52 +28484,41 @@ window.fetchChannelPlaylists = fetchChannelPlaylists;
 
 
 window.reauthYouTubeChannel = async function (channelId) {
-
-
-
   try {
-
-
-
     const res = await fetch(`/api/youtube/auth_url?channel_id=${encodeURIComponent(channelId)}`);
-
-
-
     const data = await res.json();
-
-
-
     if (!data.ok || !data.auth_url) {
-
-
-
       throw new Error(data.error || "Không thể tạo liên kết xác thực Google.");
-
-
-
     }
-
-
-
     const w = 620, h = 720;
-
-
-
     const left = (screen.width - w) / 2;
-
-
-
     const top = (screen.height - h) / 2;
+    const authWindow = window.open(data.auth_url, "GoogleOAuthReauth", `width=${w},height=${h},top=${top},left=${left}`);
+    showToast("🔑 Đang mở cửa sổ ủy quyền Google...", "info");
 
+    const onReauthMsg = async (event) => {
+      if (event.data && event.data.type === "YOUTUBE_AUTH_SUCCESS") {
+        window.removeEventListener("message", onReauthMsg);
+        showToast(`🎉 Cấp quyền kênh "${event.data.name || 'YouTube'}" thành công!`, "success");
+        await window.fetchYouTubeChannels();
+      }
+    };
+    window.addEventListener("message", onReauthMsg);
 
-
-    window.open(data.auth_url, "GoogleOAuthReauth", `width=${w},height=${h},top=${top},left=${left}`);
-
-
-
-    showToast("🔑 Đang mở cửa sổ ủy quyền cấp quyền Playlist Google...", "info");
-
-
+    let checks = 0;
+    const pollInterval = setInterval(async () => {
+      checks++;
+      if (authWindow && authWindow.closed) {
+        clearInterval(pollInterval);
+        window.removeEventListener("message", onReauthMsg);
+        await window.fetchYouTubeChannels();
+        return;
+      }
+      if (checks > 40) {
+        clearInterval(pollInterval);
+        window.removeEventListener("message", onReauthMsg);
+      }
+    }, 1500);
 
   } catch (err) {
 
@@ -31222,7 +31938,7 @@ window.openYouTubeAdvancedModal = async function () {
   let sData = {};
   if (curSeries && curSeries !== "auto") {
     try {
-      const seoRes = await fetch(`/api/episode/seo?series=${encodeURIComponent(curSeries)}&episode=${epNum}`);
+      const seoRes = await fetch(`/api/episode/seo?series=${encodeURIComponent(curSeries)}&episode=${epNum}&read_only=1`);
       if (seoRes.ok) {
         const fetchedData = await seoRes.json();
         if (fetchedData && typeof fetchedData === "object" && !fetchedData.error) {
@@ -31385,7 +32101,7 @@ window.openYouTubeAdvancedModal = async function () {
   }
 
   if (videoPlayer) {
-    videoPlayer.src = localVideoUrl;
+    videoPlayer.src = _ensurePlayablePreviewUrl(localVideoUrl);
     videoPlayer.style.display = "block";
     if (videoPosterPlaceholder) videoPosterPlaceholder.style.display = "none";
     videoPlayer.onloadedmetadata = function () {
@@ -33677,11 +34393,11 @@ window.refreshQueueUI = async function() {
 
 
 
+      const rawProv = String(it.image_provider || "").toLowerCase();
+      const provDisplay = (rawProv === "flowkit" || rawProv === "mcp_v2" || rawProv === "flow") ? "Google Flow" : (rawProv === "muse_video" ? "Muse AI" : (rawProv === "v2_tuanstor" ? "Cloud AI Pro" : (it.image_provider || "AI")));
       const modePill = it.production_mode === "cinematic_drama"
-
         ? `<span style="background:rgba(245,158,11,0.15);color:#fbbf24;padding:1px 6px;border-radius:4px;font-size:0.68rem;font-weight:600;">🎬 Muse AI Video</span>`
-
-        : `<span style="background:rgba(99,102,241,0.15);color:#818cf8;padding:1px 6px;border-radius:4px;font-size:0.68rem;font-weight:600;">🎙️ Thuyết Minh (${it.image_provider})</span>`;
+        : `<span style="background:rgba(99,102,241,0.15);color:#818cf8;padding:1px 6px;border-radius:4px;font-size:0.68rem;font-weight:600;">🎙️ Thuyết Minh (${provDisplay})</span>`;
 
 
 
@@ -33867,7 +34583,7 @@ window.addCurrentConfigToQueue = async function() {
 
       production_mode: productionMode,
 
-      image_provider: productionMode === "cinematic_drama" ? "muse_video" : imageProvider,
+      image_provider: imageProvider || "comfyui",
 
       subtitle_style: subtitleStyle,
 
@@ -33983,7 +34699,7 @@ window.submitBulkImportQueue = async function() {
 
       production_mode: prodMode,
 
-      image_provider: prodMode === "cinematic_drama" ? "muse_video" : (el.inImageSource ? el.inImageSource.value : "comfyui"),
+      image_provider: (el.inImageSource && el.inImageSource.value) ? el.inImageSource.value : "comfyui",
 
       minutes: mins,
 

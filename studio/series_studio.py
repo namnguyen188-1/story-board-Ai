@@ -2086,6 +2086,22 @@ def force_translate_chunk_to_language(client, model: str, chunk: dict, target_la
 
 
 
+def _slice_premise_for_batch(prompt_text: str, batch_pos: int, batch_size: int, total_scenes: int) -> str:
+    """Preserves full long scripts up to 20k chars, or aligns proportional chunks for mega-scripts."""
+    txt = str(prompt_text or "")
+    if len(txt) <= 20000:
+        return txt
+    total = max(1, int(total_scenes or 1))
+    intro = txt[:3800]
+    rest = txt[3800:]
+    start_ratio = max(0.0, min(0.95, float(batch_pos) / float(total)))
+    end_ratio = max(start_ratio + 0.15, min(1.0, float(batch_pos + max(1, batch_size)) / float(total)))
+    window = 16000
+    center_start = max(0, int(len(rest) * start_ratio) - 1500)
+    chunk_end = min(len(rest), max(center_start + window, int(len(rest) * end_ratio) + 1500))
+    return f"{intro}\n...\n{rest[center_start:chunk_end]}"
+
+
 def make_bible(client, model, prompt, series,genre="documentary",style="color_cinematic"):
     from studio_modes import ART
     genre_spec = ART.get(genre, "")
@@ -2100,7 +2116,7 @@ def make_bible(client, model, prompt, series,genre="documentary",style="color_ci
          "- narrator_style: voiceover tone, cadence, rhythm tailored to the genre. "
          "- core_moral_theme: profound human life lesson, emotional awakening, or moral truth. "
          "- series_hook_framework: central overarching mystery, quest, or dramatic stakes linking episodes together. "
-         f"Preserve character appearance across episodes. Series: {series}. Premise: {prompt[:5500]}")
+         f"Preserve character appearance across episodes. Series: {series}. Premise: {prompt[:24000]}")
 
 
 
@@ -2394,12 +2410,14 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
     is_short_pacing = (float(getattr(args, "minutes", 2.0) or 2.0) <= 1.05) or (getattr(args, "aspect_ratio", "") == "9:16") or (getattr(args, "is_short", False))
 
-    if getattr(args, "scene_seconds", 0) <= 0:
+    if is_short_pacing:
+        # Shorts (<= 60s) pacing MUST be 6-8s per scene (never 25s) to guarantee dynamic visual retention and fill 55-58s
+        if getattr(args, "scene_seconds", 0) <= 0 or getattr(args, "scene_seconds", 0) > 8:
+            args.scene_seconds = 7.5
+    elif getattr(args, "scene_seconds", 0) <= 0:
 
         g_clean = str(getattr(args, "genre", "")).lower()
-        if is_short_pacing:
-            args.scene_seconds = 4
-        elif any(g in g_clean for g in ("whiteboard", "colored_marker")):
+        if any(g in g_clean for g in ("whiteboard", "colored_marker")):
             args.scene_seconds = 6
         elif any(g in g_clean for g in ("drama", "family_drama", "hoa_drama", "action", "narrative")):
             args.scene_seconds = 8
@@ -4231,7 +4249,10 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
                     wps = 1.9 if speech_pace == "slow" or args.genre in ("stoic", "documentary", "history") else (2.4 if speech_pace == "fast" else 2.1)
 
-                    if args.input_mode == "idea" and (speech_pace == "slow" or args.genre in ("stoic", "documentary", "history")):
+                    if is_short_pacing:
+                        # Shorts narration needs brisk, viral delivery to fill 55-58 seconds across 8 scenes (~18-20 words/scene)
+                        wps = 2.4 if speech_pace == "fast" else 2.2
+                    elif args.input_mode == "idea" and (speech_pace == "slow" or args.genre in ("stoic", "documentary", "history")):
 
                         wps = 1.45
 
@@ -4511,7 +4532,8 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
 
-                         "Write deep, calm, evocative narration with an unhurried, contemplative rhythm (~115-120 words/minute) and natural pauses (using commas, dashes —, and periods) between thoughts. Do NOT rush or cram too many words! JSON only, with key 'scenes', "
+                         "Write gripping, expressive, natural storytelling with engaging emotional cadence (~135-150 words/minute) and purposeful dramatic beats (commas, dashes —, periods). Avoid dry or robotic textbook summaries!\n"
+                         "USER / CHAT-AI SCRIPT PRESERVATION RULE: If the Episode premise already contains vivid Hooks ('Hook'), dialogue lines ('Lời thoại'), or punchy lines ('Lời kể'), preserve and weave those exact compelling conflict beats and dialogue lines into 'narration' rather than flattening them into vague summaries. JSON only, with key 'scenes', "
 
 
 
@@ -4660,7 +4682,7 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
 
 
-                         f"Episode premise: {prompt[:5000]}. "
+                         f"Episode premise: {_slice_premise_for_batch(prompt, pos, n, scene_total)}. "
 
                          f"{continuity_context} "
 
@@ -4867,25 +4889,32 @@ def produce_plan(args, series_dir, episode_dir, prompt):
                         # Narrative Storytelling / Documentary / History branch: write-narrative-scene-prompts blueprint
                         request = re.sub(
                             r"1\. SCENE 1 .*?(?=2\. MIDDLE SCENES)",
-                            "1. NARRATIVE COLD OPEN (COMPELLING HOOK & EXPEDITION/HISTORICAL PREMISE): Open with an intriguing question, "
-                            "a forgotten historical fact, or a breathtaking panoramic visual setup. Spoken line is 1 single authoritative, "
-                            "immersive Voiceover Narrator (no theatrical shouting or life-or-death character panic).\n",
+                            "1. NARRATIVE GOLDEN HOOK (FIRST 30 SECONDS - HIGH-RETENTION COLD OPEN): "
+                            "NEVER start with generic definitions, greetings, or slow history lectures. "
+                            "Start immediately in Scene 1 with an explosive psychological paradox, a high-stakes counter-intuitive truth, "
+                            "or an unanswered curiosity gap that challenges the viewer's core beliefs. "
+                            "Spoken line is 1 single authoritative, magnetic, deeply immersive Voiceover Narrator.\n",
                             request, flags=re.S)
                         request = re.sub(
                             r"3\. FINAL SCENE .*?(?=4\. CHARACTER & WORLD CONTINUITY)",
-                            "3. NARRATIVE FINAL SCENE: Deliver an inspiring, thought-provoking reflection or historical conclusion "
-                            "that leaves a lasting impression on the viewer.\n",
+                            "3. NARRATIVE FINAL SCENE (DEEP RESOLUTION & THOUGHT-PROVOKING CALL): "
+                            "Deliver an inspiring, transformative insight that leaves a lasting emotional resonance on the viewer, "
+                            "seamlessly leading into the closing philosophical reflection.\n",
                             request, flags=re.S)
-                        request += ("\nNARRATIVE OVERRIDE: Single voiceover narrator. Image prompts must describe pure visuals only (40-80 English words) "
-                                    "with dynamic cinematic camera (wide establishing shots, medium details, aerial views). Absolutely NO 9-field acting bloat, "
-                                    "no character dialogues inside image prompts, no forced classical Roman statues/emperor references unless the topic is specifically classical Rome.")
+                        request += ("\nNARRATIVE OVERRIDE & VISUAL RETENTION RULES (TOP CREATOR MASTERCLASS): "
+                                    "1. Single authoritative voiceover narrator. "
+                                    "2. Image prompts MUST be pure visuals only (40-80 English words) with NO dialogue, NO acting instructions. "
+                                    "3. SHOT SCALE ROTATION MANDATE: Alternate shot scales dynamically across scenes to prevent visual fatigue "
+                                    "(rotate between: Extreme Close-Up of eyes/chiseled stone/flame -> Epic Wide panoramic landscape/forum -> "
+                                    "Medium Gesture/hands/scrolls -> Symbolic Metaphor of hourglass/chess/falling embers). "
+                                    "4. Absolutely NO forced repetition of identical statue poses; ensure varied angles (low angle, profile, top-down).")
 
                     if args.input_mode == "idea":
                         # Load the actual installed skill based on genre & format. Preserve JSON schema
                         # for image, narration, subtitles and legacy project compatibility.
                         from story_skill_bridge import skill_prompt
-                        if speech_pace == "slow":
-                            request = request.replace("~115-120 words/minute", "~85-95 words/minute")
+                        if speech_pace == "slow" and args.genre in ("stoic", "philosophy", "jp_zen_story"):
+                            request = request.replace("~135-150 words/minute", "~95-110 words/minute")
                         request += skill_prompt(
                             genre=args.genre,
                             production_mode=getattr(args, "production_mode", "auto"),
@@ -5390,7 +5419,10 @@ def produce_plan(args, series_dir, episode_dir, prompt):
 
             print(f"[SKILL_EXPORT_WARNING] {sk_err}. Đang tiếp tục kế hoạch sản xuất chính...", flush=True)
 
-
+    try:
+        data["scenes"] = inject_spoken_cta_into_scenes(data.get("scenes", []), language=getattr(args, "language", "Spanish"), genre=getattr(args, "genre", "stoic"))
+    except Exception as cta_err:
+        print(f"[CTA_INJECT_WARNING] {cta_err}", flush=True)
 
     write_json(plan_file,data)
 
@@ -5608,13 +5640,21 @@ def offline_fixtures(scene, scene_dir, width, height):
 
 
 
-def subtitle_json(scene, duration, path):
+def subtitle_json(scene, duration, path, is_vertical=False):
 
     narration = str(scene.get("narration") or "").strip()
 
     if not narration:
 
         return False
+
+    try:
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None and ea.subtitle_json_if_cjk(scene, duration, path, is_vertical=bool(is_vertical)):
+            return True
+    except Exception:
+        pass
 
 
 
@@ -5813,6 +5853,8 @@ def render_one(job_path):
 
 
     width,height=job["width"],job["height"]
+    scene_num = int(scene.get("scene_number", 1))
+    is_vertical = height > width
 
 
 
@@ -6034,6 +6076,11 @@ def render_one(job_path):
 
 
 
+        if job.get("image_provider") != "muse_video" and (not image.exists() or image.stat().st_size < 1000):
+            ep_root_img = scene_dir.parent.parent / f"scene_{scene_num:03d}.png"
+            if ep_root_img.is_file() and ep_root_img.stat().st_size > 1000:
+                shutil.copy2(ep_root_img, image)
+
         if job.get("image_provider") != "muse_video" and (not image.exists() or image.stat().st_size<1000):
 
 
@@ -6043,7 +6090,40 @@ def render_one(job_path):
 
 
             if job.get("image_provider") == "flowkit":
-                raise RuntimeError("FLOWKIT_REMOVED_SELECT_MCP_V2")
+                try:
+                    from flowkit_client import generate_image
+                except ImportError:
+                    from studio.flowkit_client import generate_image
+                from mcp_v2_batch import image_prompt as _fk_build_prompt
+                fk_prompt = job.get("image_prompt") or _fk_build_prompt(scene, bible)
+                try:
+                    generate_image(
+                        fk_prompt,
+                        str(image),
+                        aspect_ratio="16:9" if not is_vertical else "9:16",
+                        image_model="NANO_BANANA_2",
+                        webtool_mode="hidden",
+                        timeout=120,
+                        scene_num=scene_num
+                    )
+                except Exception as fk_err:
+                    print(f"[FLOWKIT_SCENE_FALLBACK] FlowKit cảnh {scene_num} lỗi ({fk_err}). Tự động chuyển sang Cloud AI / GPU nội bộ...", flush=True)
+                    try:
+                        import v2_tuanstor_image
+                        if v2_tuanstor_image.is_ready():
+                            v2_tuanstor_image.make_image(fk_prompt, image)
+                        else:
+                            raise RuntimeError("TUANSTOR_NOT_READY")
+                    except Exception:
+                        from comfyui_image_provider import make_image as _comfy_make_image
+                        _comfy_make_image(
+                            fk_prompt,
+                            image,
+                            visual_style=job.get("visual_style", "whiteboard"),
+                            genre=job.get("genre", "documentary"),
+                            width=width,
+                            height=height,
+                        )
             elif job.get("image_provider") == "mcp_v2":
 
 
@@ -6665,6 +6745,13 @@ def render_one(job_path):
 
                         pass
 
+                gen_eng = Path(str(generated) + ".engine.json")
+                if gen_eng.exists():
+                    try:
+                        shutil.copy2(gen_eng, Path(str(audio) + ".engine.json"))
+                    except Exception:
+                        pass
+
 
 
 
@@ -6923,7 +7010,7 @@ def render_one(job_path):
 
 
 
-    if not silent.exists() or not qc_silent(silent):
+    if not silent.exists() or not qc_silent(silent, width, height):
 
 
 
@@ -7439,7 +7526,7 @@ def render_one(job_path):
 
 
 
-        subtitle_json(scene,sec,js)
+        subtitle_json(scene,sec,js,is_vertical=bool(height>width))
 
 
 
@@ -7535,7 +7622,9 @@ def render_one(job_path):
 
 
 
-            custom_font_size=job.get("subtitle_size", 0)
+            custom_font_size=job.get("subtitle_size", 0),
+
+            language=job.get("language", "auto")
 
 
 
@@ -7610,6 +7699,14 @@ def render_one(job_path):
 
 
 
+    tts_engine_used = None
+    eng_meta_file = Path(str(audio) + ".engine.json")
+    if eng_meta_file.is_file():
+        try:
+            tts_engine_used = read_json(eng_meta_file).get("engine")
+        except Exception:
+            pass
+
     report={"status":"PASS","scene":scene["scene_number"],"qc":qc,
 
 
@@ -7626,6 +7723,7 @@ def render_one(job_path):
 
 
 
+            **({"tts_engine": tts_engine_used} if tts_engine_used else {}),
             "created":stamp()}
 
 
@@ -7666,38 +7764,11 @@ def render_one(job_path):
 
 
 
-def qc_silent(path):
-
-
-
-
-
-
-
+def qc_silent(path, w=None, h=None):
     try:
-
-
-
-
-
-
-
-        return qc_clip(path,False)["duration_seconds"]>0.5
-
-
-
-
-
-
-
+        expected_wh = (w, h) if (w and h) else None
+        return qc_clip(path, False, expected_wh)["duration_seconds"] > 0.5
     except Exception:
-
-
-
-
-
-
-
         return False
 
 
@@ -7768,6 +7839,77 @@ def qc_complete(path,w,h):
 
 
 
+
+
+def inject_spoken_cta_into_scenes(scenes: list, language: str = "Spanish", genre: str = "stoic") -> list:
+    """Seamlessly injects authentic, natural spoken verbal CTAs into narration audio:
+    1. Early Engagement Hook (~45s-75s, Scene 3): Gentle reminder to Like if message resonates.
+    2. Finale Retention & Discussion Hook (Penultimate Scene): Subscribe + debate question for comments.
+    Guarantees that narration sounds 100% natural and culturally native without breaking immersion.
+    """
+    if not isinstance(scenes, list) or len(scenes) < 4:
+        return scenes
+
+    from studio_modes import is_vietnamese_lang, is_spanish_lang
+    lang = str(language or "Spanish").lower().strip()
+    g = str(genre or "stoic").lower().strip()
+
+    is_short = len(scenes) <= 8
+    is_story_drama = any(k in g for k in ("drama", "thriller", "horror", "romance", "western", "action", "animation", "documentary", "history")) and ("stoic" not in g)
+
+    # Language and genre contextualization (Vietnamese MUST never match Spanish 'es')
+    if is_vietnamese_lang(lang):
+        if any(k in g for k in ("stoic", "stoi", "triết")):
+            cta_like = "Nếu bài học này chạm đến bạn, hãy tặng video một lượt thích để cùng lan tỏa giá trị tích cực này nhé."
+            cta_sub = "Đăng ký kênh để cùng rèn luyện bản lĩnh và làm chủ tâm trí mỗi tuần. Bạn tâm đắc nhất điều gì, hãy để lại bình luận bên dưới nhé."
+        else:
+            cta_like = "Nếu câu chuyện này chạm đến cảm xúc của bạn, hãy dành tặng video một lượt thích nhé."
+            cta_sub = "Đăng ký kênh để đón xem những tập kịch tính tiếp theo. Theo bạn, ai mới là người đáng thương nhất trong câu chuyện này?"
+    elif is_spanish_lang(lang):
+        if any(k in g for k in ("stoic", "stoi", "filosofia", "sabiduria")):
+            cta_like = "Si estas lecciones resuenan con tu búsqueda de serenidad, tómate un segundo para dejar un me gusta y ayudarnos a expandir este mensaje estoico."
+            cta_sub = "Suscríbete al canal para continuar forjando una fortaleza mental inquebrantable cada semana. ¿Cuál de estos principios estoicos pondrás en práctica hoy? Compártelo en los comentarios."
+        elif any(k in g for k in ("drama", "family", "hoa")):
+            cta_like = "Si la historia te conmueve, regálanos un me gusta para apoyar este episodio."
+            cta_sub = "Suscríbete para no perderte el desenlace del próximo capítulo. ¿Qué habrías hecho tú en su lugar? Déjalo en los comentarios."
+        elif any(k in g for k in ("western", "cowboy", "frontier")):
+            cta_like = "Si valoras el coraje frente a la tormenta, deja un me gusta para cabalgar juntos en la frontera."
+            cta_sub = "Suscríbete a Wild Frontier Chronicles para el próximo episodio. ¿Crees que tomó la decisión correcta? Comparte tu opinión en los comentarios."
+        else:
+            cta_like = "Si encuentras valor en esta historia, no olvides dejar tu me gusta para apoyar el canal."
+            cta_sub = "Suscríbete para más episodios cada semana. ¿Qué opinas de esta lección? Déjalo en los comentarios."
+    else: # English / Default
+        if any(k in g for k in ("stoic", "stoi")):
+            cta_like = "If these timeless insights resonate with your journey, take a brief moment to leave a like and help share this wisdom with more seekers."
+            cta_sub = "Subscribe to continue forging an unbreakable mindset every week. Which of these principles will you apply today? Share your thoughts below."
+        elif any(k in g for k in ("western", "frontier")):
+            cta_like = "If you admire the resilience of the frontier, take a second to hit that like button."
+            cta_sub = "Subscribe to Wild Frontier Chronicles for the next chapter. Would you have survived the pass? Tell us in the comments."
+        else:
+            cta_like = "If this story speaks to you, please consider leaving a quick like to support the journey."
+            cta_sub = "Subscribe for more episodes every week. What is your takeaway from today? Let us know in the comments."
+
+    # For tight short story/drama videos (<= 8 scenes), never interrupt the climax twist with generic promo blurbs;
+    # the visual animated Subscribe CTA overlay handles engagement cleanly without breaking story immersion.
+    if is_short and is_story_drama:
+        return scenes
+
+    if not is_short:
+        # Early like CTA: Scene index 2 (Scene 3, approx 45s-75s)
+        target_early_idx = min(2, len(scenes) - 2)
+        s_early = scenes[target_early_idx]
+        narr_early = s_early.get("narration", "")
+        if cta_like not in narr_early and not any(k in narr_early.lower() for k in ("me gusta", "like", "lượt thích")):
+            s_early["narration"] = narr_early.rstrip() + " " + cta_like
+
+    # Finale sub & comment CTA: Penultimate scene (or last scene for shorts)
+    target_late_idx = len(scenes) - 1 if is_short else max(2, len(scenes) - 2)
+    s_late = scenes[target_late_idx]
+    narr_late = s_late.get("narration", "")
+    if cta_sub not in narr_late and not any(k in narr_late.lower() for k in ("suscríbete", "subscribe", "đăng ký")):
+        s_late["narration"] = narr_late.rstrip() + " " + cta_sub
+
+    return scenes
 
 
 def compute_cta_times(dur: float, is_vertical: bool = False) -> list:
@@ -7846,7 +7988,103 @@ def compute_cta_times(dur: float, is_vertical: bool = False) -> list:
 
 
 
-def apply_cinematic_cta_and_audio(source_video, output_video, width, height):
+def _enforce_episode_tts_voice_consistency(episode_dir: Path, scenes: list, args, width: int, height: int) -> None:
+    """Guarantees every spoken scene in an episode uses one consistent narrator engine/voice.
+    Prevents jarring mid-episode switches (e.g., Gemini warm voice in Scenes 1-2 switching to
+    robotic fallback in Scene 3+ if Gemini TTS keys exhaust quota mid-episode).
+    """
+    if getattr(args, "mode", "live") != "live" or len(scenes) < 2:
+        return
+    spoken_entries = []
+    for i, sc in enumerate(scenes, 1):
+        narr = str((sc or {}).get("narration") or "").strip()
+        if not narr:
+            continue
+        sdir = episode_dir / "scenes" / f"scene_{i:04d}"
+        eng_path = sdir / "audio.wav.engine.json"
+        if eng_path.is_file():
+            try:
+                eng = str(read_json(eng_path).get("engine") or "").strip()
+                if eng:
+                    spoken_entries.append((i, sdir, sc, eng))
+            except Exception:
+                pass
+    engines = {e for _, _, _, e in spoken_entries}
+    if len(engines) <= 1:
+        return
+
+    # If multiple engines were used (e.g. 'gemini' on early scenes + 'edge_tts'/'gtts' on later scenes),
+    # unify all spoken scenes onto the highest-quality non-gemini fallback present (prefer 'edge_tts' over 'gtts')
+    # so the narrator's timbre stays 100% uniform from opening hook to ending.
+    if "edge_tts" in engines:
+        target_eng = "edge_tts"
+    elif "gtts" in engines:
+        target_eng = "gtts"
+    else:
+        return
+
+    mismatched = [(i, sdir, sc, e) for i, sdir, sc, e in spoken_entries if e != target_eng]
+    if not mismatched:
+        return
+
+    print(
+        f"[VOICE_CONSISTENCY_LOCK] Phát hiện đổi giọng giữa tập ({sorted(engines)}). "
+        f"Đồng bộ {len(mismatched)} cảnh sang 1 giọng thống nhất ({target_eng})...",
+        flush=True,
+    )
+    from tools import generate_tts_audio_tool_fn, merge_audio_video_tool_fn, burn_subtitles_to_video_tool_fn, utils
+    prev_force = os.environ.get("STUDIO_FORCE_TTS_ENGINE")
+    os.environ["STUDIO_FORCE_TTS_ENGINE"] = target_eng
+    try:
+        for idx, sdir, sc, old_eng in mismatched:
+            job_p = sdir / "job.json"
+            job_cfg = read_json(job_p) if job_p.is_file() else {}
+            utils.set_output_dir(str(sdir))
+            audio_p = sdir / "audio.wav"
+            silent_p = sdir / "silent.mp4"
+            merged_p = sdir / "merged.mp4"
+            final_p = sdir / "final.mp4"
+            js_p = sdir / "subtitles.json"
+
+            lang = job_cfg.get("language") or getattr(args, "language", "Vietnamese")
+            vname = job_cfg.get("voice_name") or getattr(args, "voice_name", "Charon")
+            gen_wav = generate_tts_audio_tool_fn(sc["narration"], language=lang, voice_name=vname)
+            if not gen_wav or not Path(gen_wav).is_file():
+                continue
+            if Path(gen_wav).resolve() != audio_p.resolve():
+                shutil.copy2(gen_wav, audio_p)
+                for suf in (".words.json", ".engine.json"):
+                    src_s = Path(str(gen_wav) + suf)
+                    if src_s.is_file():
+                        shutil.copy2(src_s, Path(str(audio_p) + suf))
+            if silent_p.is_file():
+                ret_m = merge_audio_video_tool_fn(str(silent_p), str(audio_p), str(merged_p))
+                if not Path(ret_m).is_file():
+                    continue
+                if job_cfg.get("subtitles", True) and sc["narration"].strip() and job_cfg.get("subtitle_style", "karaoke_viral") != "none":
+                    _, sec = ffprobe(merged_p)
+                    subtitle_json(sc, sec, js_p, is_vertical=bool(height > width))
+                    tmp_burn = sdir / "final_burn.mp4"
+                    tmp_burn.unlink(missing_ok=True)
+                    ret_b = burn_subtitles_to_video_tool_fn(
+                        str(merged_p), str(js_p), str(tmp_burn),
+                        subtitle_style=job_cfg.get("subtitle_style", "karaoke_viral"),
+                        video_height=height, video_width=width,
+                        custom_font_size=job_cfg.get("subtitle_size", 0),
+                        language=lang,
+                    )
+                    if Path(ret_b).is_file() and Path(ret_b).resolve() != final_p.resolve():
+                        shutil.move(str(ret_b), str(final_p))
+                else:
+                    shutil.copy2(merged_p, final_p)
+    finally:
+        if prev_force is None:
+            os.environ.pop("STUDIO_FORCE_TTS_ENGINE", None)
+        else:
+            os.environ["STUDIO_FORCE_TTS_ENGINE"] = prev_force
+
+
+def apply_cinematic_cta_and_audio(source_video, output_video, width, height, scene_boundaries=None):
 
 
 
@@ -7981,7 +8219,7 @@ def apply_cinematic_cta_and_audio(source_video, output_video, width, height):
     # Hollywood Master Sound Design (Multi-act BGM, Dynamic Ducking, Timed SFX)
     try:
         from studio_sound_design import apply_hollywood_audio_master
-        if apply_hollywood_audio_master(source_p, output_p, cta_path if cta_path.is_file() else None, times, width, height, ENGINE):
+        if apply_hollywood_audio_master(source_p, output_p, cta_path if cta_path.is_file() else None, times, width, height, ENGINE, scene_boundaries=scene_boundaries):
             print(f"[CINEMATIC_CTA] Master am thanh dien anh Hollywood & Dynamic Ducking thanh cong 100%!", flush=True)
             return
     except Exception as exc:
@@ -9813,47 +10051,39 @@ def run(args):
 
 
     if args.input_mode=="link":
+        target_series=PRODUCTIONS/slug(args.series)
+        target_ep=target_series/f"episode_{args.episode:03d}"
+        data_path=target_ep/"reference_analysis.json"
 
-
-
-
-
-
-
-        url=youtube_url(args.reference_url or prompt)
-
-
-
-
-
-
+        ref_cand = str(args.reference_url or prompt or "").strip()
+        url = None
+        try:
+            url = youtube_url(ref_cand)
+        except Exception:
+            if data_path.is_file():
+                try:
+                    c_data = read_json(data_path)
+                    cand_link = c_data.get("canonical_url") or c_data.get("source_url") or c_data.get("url")
+                    if cand_link:
+                        url = youtube_url(cand_link)
+                except Exception:
+                    pass
+            if not url and (target_ep / "plan.json").is_file():
+                try:
+                    p_cfg = read_json(target_ep / "plan.json").get("config") or {}
+                    cand_link = p_cfg.get("reference_url")
+                    if cand_link:
+                        url = youtube_url(cand_link)
+                except Exception:
+                    pass
+            if not url and ((target_ep / "plan_parts").is_dir() or (target_ep / "scenes").is_dir()):
+                print(f"[CLONE] Khong co link moi trong lenh goi nhung tap {args.episode} da co san du lieu. Tiep tuc an toan...", flush=True)
+                url = "https://www.youtube.com/watch?v=00000000000"
+            if not url:
+                url = youtube_url(ref_cand)
 
         if args.mode=="live":
-
-
-
-
-
-
-
-            target_series=PRODUCTIONS/slug(args.series)
-
-
-
-
-
-
-
-            target_ep=target_series/f"episode_{args.episode:03d}"
-
-
-
-
-
-
-
             data_path=target_ep/"reference_analysis.json"
-
 
 
 
@@ -11133,7 +11363,15 @@ def run(args):
 
 
     if args.mode=="live" and args.image_provider=="flowkit":
-        raise RuntimeError("FLOWKIT_REMOVED_SELECT_MCP_V2")
+        from studio.flowkit_client import generate_episode_images_flowkit
+        try:
+            generate_episode_images_flowkit(scenes,plan["bible"],
+                series=args.series,episode=args.episode,episode_dir=episode_dir,
+                aspect_ratio="9:16" if getattr(args, "aspect_ratio", "") == "9:16" else "16:9",
+                image_model="NANO_BANANA_2",
+                max_new_images=getattr(args, "mcp_max_images", None))
+        except Exception as exc:
+            raise exc
     elif args.mode=="live" and args.image_provider=="mcp_v2":
         from mcp_v2_batch import generate_episode_images
 
@@ -11364,9 +11602,9 @@ def run(args):
             if scene_img_provider == "comfyui" and is_narrative_cinematic:
                 is_hook_motion_video = True
                 print(f"\n⚡ [AUTO_HOOK_VIDEO] 🎬 Cảnh 1 là Cold Open Hook (30s): Tự động dùng ComfyUI AnimateDiff SDXL tạo video chuyển động thật trên GPU nội bộ!", flush=True)
-            elif (scene_img_provider != "muse_video"
-                and getattr(args, "image_provider", "") != "flowkit"
-                and scene_img_provider != "flowkit" and getattr(args, "motion_mode", "ken_burns") == "flow_video"):
+            elif (scene_img_provider not in ("muse_video", "comfyui", "flowkit")
+                and getattr(args, "image_provider", "") not in ("flowkit", "comfyui")
+                and getattr(args, "motion_mode", "ken_burns") == "flow_video"):
                 try:
                     import muse_accounts
                     ready_accs = muse_accounts.get_ready_accounts()
@@ -12753,7 +12991,22 @@ def run(args):
 
 
 
+        try:
+            _enforce_episode_tts_voice_consistency(episode_dir, scenes, args, width, height)
+        except Exception as vc_err:
+            print(f"[VOICE_CONSISTENCY_WARN] {vc_err}", flush=True)
+
         ordered=[episode_dir/"scenes"/f"scene_{i:04d}"/"final.mp4" for i in range(1,len(scenes)+1)]
+
+        scene_boundaries = []
+        cum_sec = 0.0
+        for p_clip in ordered:
+            try:
+                _, cdur = ffprobe(p_clip)
+                cum_sec += float(cdur or 0.0)
+                scene_boundaries.append(round(cum_sec, 3))
+            except Exception:
+                pass
 
 
 
@@ -12801,7 +13054,7 @@ def run(args):
 
 
 
-        apply_cinematic_cta_and_audio(raw_concat,final,width,height)
+        apply_cinematic_cta_and_audio(raw_concat,final,width,height,scene_boundaries=scene_boundaries)
 
 
 
@@ -13129,7 +13382,15 @@ def run(args):
 
 
 
-                force_regenerate=True,
+                force_regenerate=False,
+
+
+
+
+
+
+
+                explicit_regen=False,
 
 
 
@@ -13145,7 +13406,10 @@ def run(args):
 
 
 
-            print(f"[SEO] Da tao goi dang bai YouTube cho '{args.series} - Tap {args.episode}'! Kiem tra noi bo: {seo_data.get('metadata_checks', {}).get('total_score', 'chua do')}/100", flush=True)
+            if seo_data.get("thumbnail_error"):
+                print(f"[SEO] ⚠️ ChatGPT Web Thumbnail loi: {seo_data.get('thumbnail_error')}", flush=True)
+            else:
+                print(f"[SEO] Da tao goi dang bai YouTube cho '{args.series} - Tap {args.episode}' (Thumbnail: {seo_data.get('thumbnail_backend', 'chatgpt_web')})! Kiem tra noi bo: {seo_data.get('metadata_checks', {}).get('total_score', 'chua do')}/100", flush=True)
 
 
 
@@ -13594,7 +13858,7 @@ def parser():
 
 
 
-    r.add_argument("--image-provider",choices=["gemini","v2_tuanstor","mcp_v2","comfyui","muse_video"],
+    r.add_argument("--image-provider",choices=["gemini","v2_tuanstor","flowkit","mcp_v2","comfyui","muse_video"],
 
 
 
@@ -13602,7 +13866,7 @@ def parser():
 
 
 
-                   default="mcp_v2")
+                   default="flowkit")
 
 
 

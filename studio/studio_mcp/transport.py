@@ -44,11 +44,15 @@ def _isolated(row):
     state=Path(row["state_dir"]).resolve()
     home=Path.home().resolve()
     allowed_profile=(
+        (HOME.parent/"profiles").resolve(),
+        (HOME/"flow_accounts").resolve(),
         home/".storyboard-studio-private-chrome-default",
         home/".storyboard-studio-private-chrome-accounts",
         home/".storyboard-studio-flow-accounts",
     )
     allowed_state=(
+        (HOME.parent/"profiles").resolve(),
+        (HOME/"flow_accounts").resolve(),
         home/".storyboard-studio-private-state-default",
         home/".storyboard-studio-private-mcp-accounts",
         home/".storyboard-studio-flow-mcp",

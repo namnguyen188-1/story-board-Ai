@@ -120,7 +120,7 @@ def add_job(config: dict, auto_activate: bool = False) -> dict:
     series = str(config.get("series", "My Series")).strip() or "My Series"
     episode = int(config.get("episode", 1))
     prod_mode = str(config.get("production_mode", "narrative")).strip().lower()
-    img_prov = str(config.get("image_provider", "muse_video" if prod_mode == "cinematic_drama" else "mcp_v2"))
+    img_prov = str(config.get("image_provider", "muse_video" if prod_mode == "cinematic_drama" else "flowkit"))
     input_mode = str(config.get("input_mode", "idea"))
     ref_url = str(config.get("reference_url", "")).strip()
     prompt = str(config.get("prompt", "")).strip()
@@ -194,7 +194,7 @@ def bulk_add_jobs(raw_links: list[str] | str, base_config: dict) -> dict:
     start_ep = int(base_config.get("episode", 1))
     series = str(base_config.get("series", "Series Phim")).strip() or "Series Phim"
     prod_mode = str(base_config.get("production_mode", "cinematic_drama")).strip().lower()
-    img_prov = "muse_video" if prod_mode == "cinematic_drama" else str(base_config.get("image_provider", "mcp_v2"))
+    img_prov = "muse_video" if prod_mode == "cinematic_drama" else str(base_config.get("image_provider", "flowkit"))
 
     for idx, line in enumerate(lines):
         ep_num = start_ep + idx

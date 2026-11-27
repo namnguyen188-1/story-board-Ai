@@ -2763,7 +2763,11 @@ def run_cinematic_drama(args: Any) -> int:
 
 
 
-            force_regenerate=True,
+            force_regenerate=False,
+
+
+
+            explicit_regen=False,
 
 
 

@@ -38,7 +38,8 @@ def resolve_skill_name(genre: str = "documentary", production_mode: str = "auto"
 
     # 3. Cinematic Drama (multi-role drama)
     if pm == "cinematic_drama" or g in ("drama", "family_drama", "theatrical_drama", "mafia_thriller",
-                                        "romance_melodrama", "psychological_horror", "western", "action"):
+                                        "romance_melodrama", "psychological_horror", "western", "action",
+                                        "kr_sayeon_drama"):
         return "write-video-scene-prompts"
 
     # 4. Narrative Storytelling / Documentary / History (1-voice narrative)
@@ -85,6 +86,15 @@ def skill_prompt(genre: str = "documentary", production_mode: str = "auto",
     pack = installed_skill(skill_name)
     contents = pack["contents"]
 
+    ea_note = ""
+    try:
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            ea_note = ea.east_asia_skill_addendum(genre, is_short=is_short) or ""
+    except Exception:
+        ea_note = ""
+
     if skill_name == "write-viral-shorts-prompts":
         return (
             f"\nINSTALLED SKILL: write-viral-shorts-prompts. Skill SHA256: {pack['sha256']}\n"
@@ -98,6 +108,7 @@ def skill_prompt(genre: str = "documentary", production_mode: str = "auto",
             "- Scene 1: Must be Act 1 Super Hook (curiosity-gap audio hook + striking visual hook).\n"
             "- Final Scene: Must be Act 3 Climax & Seamless Infinite Loop connecting to Scene 1.\n"
             "- Visual framing: 9:16 vertical safe zone framing; keep subject centered.\n"
+            + ea_note
         )
     elif skill_name == "write-narrative-scene-prompts":
         return (
@@ -113,6 +124,7 @@ def skill_prompt(genre: str = "documentary", production_mode: str = "auto",
             "DO NOT include dialogue lines, acting cues, or 9-field labels inside the visual prompt!\n"
             "- Dynamic visual variety: Alternate between wide establishing landscapes, aerial views, and detailed close-ups.\n"
             "- Visual continuity: Align faithfully with the topic and Series Bible.\n"
+            + ea_note
         )
     else:
         # write-video-scene-prompts (used for drama and stoic benchmark)
@@ -128,6 +140,7 @@ def skill_prompt(genre: str = "documentary", production_mode: str = "auto",
             "text_overlay, so downstream images/TTS/subtitles remain compatible. "
             "Write purposeful scene actions and keep the story and characters continuous. "
             "Don't introduce a reference-image dependency. Don't fabricate source-video details.\n"
+            + ea_note
         )
 
 

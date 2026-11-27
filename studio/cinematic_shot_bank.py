@@ -324,16 +324,19 @@ def generate_master_shot_bank(
     width: int = 1280,
     height: int = 720,
     force_rebuild: bool = False,
+    shot_bank: list[dict] | None = None,
+    genre: str = "stoic",
 ) -> dict[str, Path]:
     """Generates or loads the 24 curated Master Shots into the shot bank directory.
     Returns a dictionary mapping shot_id -> image_path.
     """
+    active_bank = shot_bank if shot_bank is not None else STOIC_SHOT_BANK
     shot_bank_dir.mkdir(parents=True, exist_ok=True)
     shot_map: dict[str, Path] = {}
 
-    print(f"\n[SHOT_BANK] Initializing Cinematic Master Shot Bank ({len(STOIC_SHOT_BANK)} shots)...", flush=True)
+    print(f"\n[SHOT_BANK] Initializing Cinematic Master Shot Bank ({len(active_bank)} shots, genre={genre})...", flush=True)
 
-    for i, shot in enumerate(STOIC_SHOT_BANK, 1):
+    for i, shot in enumerate(active_bank, 1):
         s_id = shot["id"]
         img_file = shot_bank_dir / f"{s_id}.png"
         shot_map[s_id] = img_file
@@ -349,7 +352,7 @@ def generate_master_shot_bank(
                 output=img_file,
                 reference_path=None,
                 visual_style="color_cinematic",
-                genre="stoic",
+                genre=genre,
                 width=width,
                 height=height,
             )
@@ -470,13 +473,33 @@ def ensure_shot_bank_and_montage(
 ) -> None:
     """Entry point: pre-renders shot bank if needed, and maps shots across all scenes."""
     genre_clean = str(genre or "").lower().strip()
-    # HARD ISOLATION: Only Stoic/Philosophy genres can use this Stoic Master Shot Bank
-    if any(other in genre_clean for other in ("drama", "western", "whiteboard", "marker", "animation", "action", "horror")):
-        print(f"[SHOT_BANK_GUARD] Skipping shot bank for non-stoic genre: {genre_clean}", flush=True)
-        return
-
     shot_bank_dir = episode_dir / "shot_bank"
     scenes_dir = episode_dir / "scenes"
+
+    try:
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            bank_info = ea.resolve_shot_bank_for_genre(genre_clean)
+            if bank_info:
+                prefix, ea_bank = bank_info
+                shot_map = generate_master_shot_bank(
+                    shot_bank_dir=shot_bank_dir / prefix,
+                    image_provider=image_provider,
+                    width=width,
+                    height=height,
+                    shot_bank=ea_bank,
+                    genre=genre_clean,
+                )
+                ea.apply_east_asia_shot_bank_montage(scenes, genre_clean, shot_map, scenes_dir)
+                return
+    except Exception as ea_err:
+        print(f"[SHOT_BANK_EA] Fallback note: {ea_err}", flush=True)
+
+    # HARD ISOLATION: Only Stoic/Philosophy genres can use this Stoic Master Shot Bank
+    if any(other in genre_clean for other in ("drama", "western", "whiteboard", "marker", "animation", "action", "horror", "jp_", "kr_")):
+        print(f"[SHOT_BANK_GUARD] Skipping shot bank for non-stoic genre: {genre_clean}", flush=True)
+        return
 
     shot_map = generate_master_shot_bank(
         shot_bank_dir=shot_bank_dir,

@@ -1,0 +1,9 @@
+{
+  "mode": "local",
+  "use_colab_gpu": false,
+  "colab_host": "127.0.0.1:8189",
+  "local_host": "127.0.0.1:8188",
+  "colab_device": "Tesla T4 (15.6 GB VRAM)",
+  "local_device": "NVIDIA GeForce RTX 3060 Ti (8 GB VRAM)",
+  "active_device": "Google Colab Tesla T4 (Cloud GPU)"
+}

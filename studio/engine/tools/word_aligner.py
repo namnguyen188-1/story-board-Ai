@@ -25,21 +25,21 @@ def resolve_voice_and_rates(
 ) -> tuple:
     """Resolves Edge-TTS neural voice code, rate and pitch parameters."""
     l = str(language or "").lower().strip()
-    if any(k in l for k in ("viet", "vn", "tiếng việt")):
+    if any(k in l for k in ("viet", "tiếng việt", "tieng viet")) or l in ("vi", "vn", "vi-vn"):
         lang_code = "vi"
-    elif any(k in l for k in ("russ", "ru")):
+    elif any(k in l for k in ("russ", "рус")) or l in ("ru", "ru-ru", "nga"):
         lang_code = "ru"
-    elif any(k in l for k in ("span", "es")):
+    elif any(k in l for k in ("span", "español", "espanol", "tây ban nha")) or l in ("es", "es-es", "es-mx", "esp"):
         lang_code = "es"
-    elif any(k in l for k in ("chin", "zh")):
+    elif any(k in l for k in ("chin", "中文", "mandarin")) or l in ("zh", "zh-cn", "zh-tw"):
         lang_code = "zh"
-    elif any(k in l for k in ("jap", "ja")):
+    elif any(k in l for k in ("jap", "日本語")) or l in ("ja", "ja-jp", "jp"):
         lang_code = "ja"
-    elif any(k in l for k in ("kor", "ko")):
+    elif any(k in l for k in ("kor", "한국")) or l in ("ko", "ko-kr", "kr"):
         lang_code = "ko"
-    elif any(k in l for k in ("fren", "fr")):
+    elif any(k in l for k in ("fren", "français")) or l in ("fr", "fr-fr"):
         lang_code = "fr"
-    elif any(k in l for k in ("germ", "de")):
+    elif any(k in l for k in ("germ", "deutsch")) or l in ("de", "de-de"):
         lang_code = "de"
     else:
         lang_code = "en"
@@ -95,6 +95,24 @@ def chunk_words_into_subtitle_phrases(
     """
     if not words:
         return []
+
+    try:
+        studio_root = str(Path(__file__).resolve().parents[2])
+        if studio_root not in os.sys.path:
+            os.sys.path.insert(0, studio_root)
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            is_vert = max_chars_per_chunk <= 24 or max_words_per_chunk <= 2
+            cjk_chunks = ea.chunk_words_if_cjk(
+                words,
+                is_vertical=is_vert,
+                max_duration_seconds=max_duration_seconds,
+            )
+            if cjk_chunks:
+                return cjk_chunks
+    except Exception:
+        pass
 
     subtitles = []
     current_chunk = []

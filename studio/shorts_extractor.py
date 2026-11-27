@@ -35,6 +35,14 @@ def get_available_fontfile() -> Optional[str]:
     return None
 
 
+def _is_es_lang(lang: str) -> bool:
+    import re as _re
+    l = str(lang or "").lower().strip()
+    if any(k in l for k in ("vi", "viet", "tiếng việt")):
+        return False
+    return bool(_re.search(r"(?:^|[\s_\-/,(])(?:es|es-[a-z]{2}|esp|spa|spanish|español|espanol)(?:$|[\s_\-/,)])", l)) or "tây ban nha" in l
+
+
 def detect_episode_language(ep_dir: Path) -> str:
     """Detect language of the episode from pack or plan."""
     pack_path = ep_dir / "youtube_publish_pack.json"
@@ -44,11 +52,11 @@ def detect_episode_language(ep_dir: Path) -> str:
             lang = str(data.get("language", "")).lower()
             if "ru" in lang or "nga" in lang or "russian" in lang:
                 return "ru"
-            if "vi" in lang or "viet" in lang:
+            if "viet" in lang or lang.strip() in ("vi", "vi-vn"):
                 return "vi"
-            if "es" in lang or "span" in lang:
+            if _is_es_lang(lang):
                 return "es"
-            if "en" in lang or "eng" in lang:
+            if "eng" in lang or lang.strip() in ("en", "en-us", "en-gb"):
                 return "en"
         except Exception:
             pass
@@ -60,11 +68,11 @@ def detect_episode_language(ep_dir: Path) -> str:
             lang = str(data.get("language", "")).lower()
             if "ru" in lang:
                 return "ru"
-            if "vi" in lang:
+            if "viet" in lang or lang.strip() in ("vi", "vi-vn"):
                 return "vi"
-            if "es" in lang:
+            if _is_es_lang(lang):
                 return "es"
-            if "en" in lang:
+            if "eng" in lang or lang.strip() in ("en", "en-us", "en-gb"):
                 return "en"
         except Exception:
             pass
@@ -79,7 +87,7 @@ def get_language_banners(lang: str) -> Tuple[str, str]:
         return ("ШОКИРУЮЩИЙ ПОВОРОТ", "ПОЛНАЯ СЕРИЯ НА КАНАЛЕ")
     elif "vi" in lang_lower or "viet" in lang_lower:
         return ("SỰ THẬT BỊ PHƠI BÀY", "XEM TRỌN BỘ TẬP TRÊN KÊNH")
-    elif "es" in lang_lower or "span" in lang_lower:
+    elif _is_es_lang(lang_lower):
         return ("EL ARTE DEL SILENCIO", "VER EPISODIO COMPLETO EN EL CANAL")
     else:
         return ("WAIT FOR THE END...", "WATCH FULL EPISODE ON CHANNEL")

@@ -9,17 +9,69 @@ Supports:
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
 import re
 import time
 import random
 import socket
+import json
+import threading
 from pathlib import Path
 
-# Enforce a 75-second hard ceiling on all underlying TCP/HTTP sockets so calls cannot hang indefinitely
+TTS_COOLDOWN_FILE = Path(__file__).resolve().parent / "runtime" / "gemini_tts_key_cooldowns.json"
+_TTS_COOLDOWN_LOCK = threading.Lock()
+
+
+def _key_digest(key: str) -> str:
+    return hashlib.sha256(str(key or "").encode("utf-8")).hexdigest()[:12]
+
+
+def _load_tts_cooldowns() -> dict[str, float]:
+    now = time.time()
+    try:
+        if TTS_COOLDOWN_FILE.is_file():
+            raw = json.loads(TTS_COOLDOWN_FILE.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                return {k: float(v) for k, v in raw.items() if float(v) > now}
+    except Exception:
+        pass
+    return {}
+
+
+def _mark_tts_key_cooldown(key: str, seconds: float) -> None:
+    if not key:
+        return
+    until = time.time() + max(10.0, float(seconds))
+    digest = _key_digest(key)
+    with _TTS_COOLDOWN_LOCK:
+        try:
+            TTS_COOLDOWN_FILE.parent.mkdir(parents=True, exist_ok=True)
+            data = _load_tts_cooldowns()
+            data[digest] = max(float(data.get(digest, 0.0)), until)
+            tmp = TTS_COOLDOWN_FILE.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            tmp.replace(TTS_COOLDOWN_FILE)
+        except Exception:
+            pass
+
+
+def _parse_tts_retry_cooldown(exc: Exception) -> float:
+    msg = str(exc or "").lower()
+    if "generate_content_free_tier_requests" in msg or "perday" in msg or "per day" in msg:
+        return 3600.0 * 4.0
+    m = re.search(r"retrydelay['\"]?\s*[:=]\s*['\"]?(\d+)", msg, re.I)
+    if m:
+        try:
+            return min(14400.0, max(60.0, float(m.group(1))))
+        except Exception:
+            pass
+    return 120.0
+
+# Enforce a 45-second hard ceiling on all underlying TCP/HTTP sockets so calls cannot hang indefinitely
 try:
-    socket.setdefaulttimeout(75.0)
+    socket.setdefaulttimeout(45.0)
 except Exception:
     pass
 
@@ -35,17 +87,17 @@ if hasattr(sys.stderr, "reconfigure"):
         pass
 
 FALLBACKS = {
-    "gemini-3.5-flash": ("gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash"),
-    "gemini-3.5-flash": ("gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-3.8-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest"),
-    "gemini-flash-lite-latest": ("gemini-3.5-flash", "gemini-3.8-flash"),
-    "gemini-3.6-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-3.7-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-2.5-flash": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-3.5-flash-lite": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-3.1-flash-lite": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-3.1-flash-lite-preview": ("gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"),
-    "gemini-flash-latest": ("gemini-3.5-flash", "gemini-flash-lite-latest"),
+    "gemini-3.8-flash": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.5-flash"),
+    "gemini-3.5-flash": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.8-flash"),
+    "gemini-3.5-flash-lite": ("gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.8-flash", "gemini-3.5-flash"),
+    "gemini-flash-lite-latest": ("gemini-3.5-flash-lite", "gemini-3-flash-preview", "gemini-3.8-flash", "gemini-3.5-flash"),
+    "gemini-3-flash-preview": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-3.5-flash"),
+    "gemini-3.6-flash": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-3.5-flash"),
+    "gemini-3.7-flash": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-3.5-flash"),
+    "gemini-2.5-flash": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.1-flash-lite": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-3.1-flash-lite-preview": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash"),
+    "gemini-flash-latest": ("gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.8-flash"),
     "gemini-nano-banana-2.1": ("gemini-3.1-flash-image", "gemini-3.1-flash-lite-image"),
     "gemini-3.8-flash-tts": ("gemini-2.5-flash-preview-tts",),
     "gemini-2.5-flash-preview-tts": ("gemini-3.8-flash-tts",),
@@ -161,47 +213,55 @@ class ApiKeyPool:
         self._keys = list(keys) if keys else []
         self._exhausted_until: dict[str, float] = {}
         self._active_idx = 0
+        self._lock = threading.Lock()
 
     def refresh(self):
-        if not self._keys:
-            self._keys = get_all_api_keys()
+        with self._lock:
+            if not self._keys:
+                self._keys = get_all_api_keys()
 
     @property
     def keys(self) -> list[str]:
-        if not self._keys:
-            self.refresh()
-        return self._keys
+        with self._lock:
+            if not self._keys:
+                self._keys = get_all_api_keys()
+            return list(self._keys)
 
     def mark_exhausted(self, key: str, cooldown_seconds: float = 60.0):
-        self._exhausted_until[key] = time.time() + cooldown_seconds
+        with self._lock:
+            self._exhausted_until[key] = time.time() + cooldown_seconds
 
     def is_available(self, key: str) -> bool:
-        return time.time() >= self._exhausted_until.get(key, 0)
+        with self._lock:
+            return time.time() >= self._exhausted_until.get(key, 0)
 
     def get_ordered_keys(self) -> list[str]:
-        all_k = self.keys
-        if not all_k:
-            return [""]
-        available = [k for k in all_k if self.is_available(k)]
-        if not available:
-            # All keys are in cooldown; reset cooldown so we can retry the pool
-            self._exhausted_until.clear()
-            available = list(all_k)
+        with self._lock:
+            all_k = list(self._keys) if self._keys else get_all_api_keys()
+            if not self._keys:
+                self._keys = list(all_k)
+            if not all_k:
+                return [""]
+            available = [k for k in all_k if time.time() >= self._exhausted_until.get(k, 0)]
+            if not available:
+                self._exhausted_until.clear()
+                available = list(all_k)
 
-        ordered = []
-        start = self._active_idx % len(all_k)
-        for i in range(len(all_k)):
-            k = all_k[(start + i) % len(all_k)]
-            if k in available and k not in ordered:
-                ordered.append(k)
-        for k in all_k:
-            if k not in ordered:
-                ordered.append(k)
-        return ordered
+            ordered = []
+            start = self._active_idx % len(all_k)
+            for i in range(len(all_k)):
+                k = all_k[(start + i) % len(all_k)]
+                if k in available and k not in ordered:
+                    ordered.append(k)
+            for k in all_k:
+                if k not in ordered:
+                    ordered.append(k)
+            return ordered
 
     def set_active_key(self, key: str):
-        if key in self._keys:
-            self._active_idx = self._keys.index(key)
+        with self._lock:
+            if key in self._keys:
+                self._active_idx = self._keys.index(key)
 
 
 def call_with_retry(
@@ -277,13 +337,144 @@ def is_text_only_contents(contents):
     return True
 
 
+def _load_freellmapi_provider():
+    """Import freellmapi_provider from package or top-level studio path."""
+    try:
+        from . import freellmapi_provider
+        return freellmapi_provider
+    except (ImportError, ValueError):
+        try:
+            import freellmapi_provider
+            return freellmapi_provider
+        except ImportError:
+            return None
+
+
+def _contents_to_messages(contents) -> list[dict]:
+    """Convert Gemini SDK contents payload to OpenAI-compatible chat messages."""
+    if isinstance(contents, str):
+        prompt_text = contents
+    elif isinstance(contents, list):
+        prompt_text = "\n".join(str(c) for c in contents)
+    elif hasattr(contents, "parts"):
+        prompt_text = "\n".join(str(getattr(p, "text", p)) for p in contents.parts)
+    else:
+        prompt_text = str(contents or "")
+    return [
+        {
+            "role": "system",
+            "content": "You are a professional screenwriter and story designer. Return strictly valid JSON or formatted content as requested. Do not wrap in extra prose.",
+        },
+        {"role": "user", "content": prompt_text},
+    ]
+
+
+def _clean_markdown_reply(reply_text: str) -> str:
+    """Strip outer markdown code fences from LLM text/JSON replies."""
+    clean_reply = reply_text.strip()
+    if clean_reply.startswith("```json"):
+        clean_reply = clean_reply[7:].strip()
+    elif clean_reply.startswith("```"):
+        clean_reply = clean_reply[3:].strip()
+    if clean_reply.endswith("```"):
+        clean_reply = clean_reply[:-3].strip()
+    return clean_reply
+
+
 class ResilientModels:
     """Wrapper around models namespace that executes multi-key failover and multi-model fallback."""
 
     def __init__(self, client_parent: ResilientClient):
         self._parent = client_parent
 
+    def _try_freellmapi(self, contents, stage_label: str):
+        """Attempt text completion through local FreeLLMAPI proxy if enabled and ready."""
+        provider = _load_freellmapi_provider()
+        if not provider or not is_text_only_contents(contents):
+            return None
+        cfg = provider.get_config()
+        if cfg.get("mode") == "off" or not cfg.get("api_key"):
+            return None
+        reply_text = provider.generate_chat_completion(
+            messages=_contents_to_messages(contents),
+            model=cfg.get("model") or "auto",
+        )
+        clean_reply = _clean_markdown_reply(reply_text)
+        active_model = cfg.get("model") or "auto"
+        print(
+            f"[FREELLMAPI_{stage_label}_SUCCESS] FreeLLMAPI ({active_model}) đã tạo nội dung thành công ({len(clean_reply)} chars)!",
+            flush=True,
+        )
+        from types import SimpleNamespace
+        return SimpleNamespace(text=clean_reply)
+
     def generate_content(self, *, model, **kwargs):
+        is_text_non_tts = is_text_only_contents(kwargs.get("contents")) and "tts" not in str(model).lower()
+        freellm_tried = False
+
+        # 0. Primary Preference (if user explicitly selected FreeLLMAPI as primary)
+        if is_text_non_tts:
+            fl_mod = _load_freellmapi_provider()
+            if fl_mod and fl_mod.get_config().get("mode") == "primary":
+                freellm_tried = True
+                try:
+                    res = self._try_freellmapi(kwargs.get("contents"), "PRIMARY")
+                    if res is not None:
+                        return res
+                except Exception as e_fl:
+                    print(f"[FREELLMAPI_NOTICE] FreeLLMAPI: {e_fl}. Tự động chuyển sang Cloud AI / Gemini...", flush=True)
+
+        # 1. Primary Preference: If Tuấn Stor Gateway is configured and preferred, execute directly via Tuấn Stor!
+        try:
+            from . import tuansuapi_provider
+        except (ImportError, ValueError):
+            try:
+                import tuansuapi_provider
+            except ImportError:
+                tuansuapi_provider = None
+
+        if tuansuapi_provider and is_text_only_contents(kwargs.get("contents")):
+            gw_cfg = tuansuapi_provider.get_gateway_config()
+            prefer_tuan = os.getenv("PREFER_TUANSU", "1") == "1" and gw_cfg.get("enabled") == "1" and gw_cfg.get("api_key")
+            if prefer_tuan and "tts" not in str(model).lower():
+                try:
+                    contents = kwargs.get("contents")
+                    prompt_text = ""
+                    if isinstance(contents, str):
+                        prompt_text = contents
+                    elif isinstance(contents, list):
+                        prompt_text = "\n".join(str(c) for c in contents)
+                    elif hasattr(contents, "parts"):
+                        prompt_text = "\n".join(str(getattr(p, "text", p)) for p in contents.parts)
+                    else:
+                        prompt_text = str(contents or "")
+
+                    messages = [
+                        {"role": "system", "content": "You are a professional screenwriter and story designer. Return strictly valid JSON or formatted content as requested. Do not wrap in extra prose."},
+                        {"role": "user", "content": prompt_text}
+                    ]
+                    active_text_model = gw_cfg.get("text_model") or "gemini-flash-3.8-fast"
+                    reply_text = tuansuapi_provider.generate_chat_completion(
+                        messages=messages,
+                        model=active_text_model
+                    )
+                    clean_reply = reply_text.strip()
+                    if clean_reply.startswith("```json"):
+                        clean_reply = clean_reply[7:].strip()
+                    elif clean_reply.startswith("```"):
+                        clean_reply = clean_reply[3:].strip()
+                    if clean_reply.endswith("```"):
+                        clean_reply = clean_reply[:-3].strip()
+
+                    print(
+                        f"[TUANSU_GATEWAY_SUCCESS] Đã tạo nội dung thành công qua Tuấn Stor ({active_text_model}) ({len(clean_reply)} chars)!",
+                        flush=True,
+                    )
+                    from types import SimpleNamespace
+                    return SimpleNamespace(text=clean_reply)
+                except Exception as e_tuan:
+                    print(f"[TUANSU_GATEWAY_NOTICE] Tuấn Stor: {e_tuan}. Tự động fallback sang Google Gemini pool...", flush=True)
+
         models = [model]
         if os.getenv("STORYBOARD_DISABLE_MODEL_FALLBACK", "0") != "1":
             models.extend(FALLBACKS.get(model, ()))
@@ -292,9 +483,25 @@ class ResilientModels:
         pool = self._parent.pool
 
         for model_i, candidate_model in enumerate(models):
+            is_tts_req = "tts" in str(candidate_model).lower() or bool(
+                kwargs.get("config") and "AUDIO" in (getattr(kwargs.get("config"), "response_modalities", None) or [])
+            )
             ordered_keys = pool.get_ordered_keys()
+            if is_tts_req:
+                tts_cooldowns = _load_tts_cooldowns()
+                if tts_cooldowns:
+                    fresh_keys = [k for k in ordered_keys if _key_digest(k) not in tts_cooldowns]
+                    cooled_keys = [k for k in ordered_keys if _key_digest(k) in tts_cooldowns]
+                    if fresh_keys:
+                        ordered_keys = fresh_keys
+                    else:
+                        ordered_keys = cooled_keys[:3]
             consecutive_quota_fails = 0
+            consecutive_server_fails = 0
+            abandon_current_model = False
             for key_i, key in enumerate(ordered_keys):
+                if abandon_current_model:
+                    break
                 # Retrieve client instance for this key
                 client_inst = self._parent.get_client_for_key(key)
                 target_fn = getattr(client_inst.models, "generate_content", None)
@@ -325,6 +532,7 @@ class ResilientModels:
 
                         if status == 404 or "not found" in str(exc).lower() or "no longer available" in str(exc).lower():
                             print(f"[GEMINI_MODEL_UNAVAILABLE] model={candidate_model} không khả dụng (404). Chuyển sang model dự phòng tiếp theo...", flush=True)
+                            abandon_current_model = True
                             break
                         if not is_temporary(exc):
                             print(
@@ -335,25 +543,27 @@ class ResilientModels:
 
                         if is_quota_error(exc, status):
                             pool.mark_exhausted(key)
+                            if is_tts_req:
+                                _mark_tts_key_cooldown(key, _parse_tts_retry_cooldown(exc))
                             consecutive_quota_fails += 1
                             print(
                                 f"[GEMINI_QUOTA_KEY_FAILOVER] Khóa #{key_i + 1} ({mask_key(key)}) chạm hạn mức Quota ({status or 429}).",
                                 flush=True,
                             )
-                            is_tts_req = "tts" in str(candidate_model).lower() or bool(
-                                kwargs.get("config") and "AUDIO" in getattr(kwargs.get("config"), "response_modalities", [])
-                            )
-                            if consecutive_quota_fails >= 3 and is_tts_req:
+                            tts_scan_limit = min(len(ordered_keys), 20)
+                            if is_tts_req and consecutive_quota_fails >= tts_scan_limit:
                                 print(
-                                    f"[GEMINI_TTS_FAST_FALLBACK] 3 khóa liên tiếp chạm hạn mức Quota ({status or 429}). Ngắt quét sớm để chuyển ngay sang Edge-TTS trong 1s!",
+                                    f"[GEMINI_TTS_FAST_FALLBACK] {consecutive_quota_fails} khóa TTS chạm hạn mức Quota ({status or 429}). Ngắt quét để chuyển sang giọng Neural dự phòng!",
                                     flush=True,
                                 )
+                                abandon_current_model = True
                                 break
-                            elif consecutive_quota_fails >= 5:
+                            elif (not is_tts_req) and consecutive_quota_fails >= 3:
                                 print(
-                                    f"[GEMINI_QUOTA_FAST_FAILOVER] 5 khóa liên tiếp chạm hạn mức Quota ({status or 429}). Ngắt quét khóa để chuyển nhanh sang engine dự phòng!",
+                                    f"[GEMINI_QUOTA_FAST_FAILOVER] 3 khóa cùng thuộc Project chạm hạn mức Quota ({status or 429}). Ngắt quét khóa để chuyển nhanh sang model dự phòng!",
                                     flush=True,
                                 )
+                                abandon_current_model = True
                                 break
                             if key_i < len(ordered_keys) - 1:
                                 next_k = ordered_keys[key_i + 1]
@@ -362,6 +572,16 @@ class ResilientModels:
                                     flush=True,
                                 )
                             break  # Move immediately to next key
+
+                        if status in (500, 502, 503, 504):
+                            consecutive_server_fails += 1
+                            if consecutive_server_fails >= 2:
+                                print(
+                                    f"[GEMINI_SERVER_FAST_FAILOVER] Model {candidate_model} gặp lỗi máy chủ ({status}) liên tiếp 2 lần. Tự động chuyển ngay sang model dự phòng!",
+                                    flush=True,
+                                )
+                                abandon_current_model = True
+                                break
 
                         # For transient 500/503/network
                         print(
@@ -374,9 +594,9 @@ class ResilientModels:
             # If all keys exhausted for this candidate model, let's inform and try next candidate model
             if model_i < len(models) - 1:
                 next_mod = models[model_i + 1]
-                if "tts" in str(candidate_model).lower() and "tts" in str(next_mod).lower() and consecutive_quota_fails >= 3:
+                if "tts" in str(candidate_model).lower() and "tts" in str(next_mod).lower() and consecutive_quota_fails >= min(len(ordered_keys), 20):
                     print(
-                        f"[GEMINI_TTS_FAST_FALLBACK] Cả pool khóa đều hết Quota TTS ({candidate_model}). Ngắt chuyển đổi sang Edge-TTS ngay lập tức!",
+                        f"[GEMINI_TTS_FAST_FALLBACK] Cả pool khóa khả dụng đều hết Quota TTS ({candidate_model}). Chuyển sang giọng Neural dự phòng!",
                         flush=True,
                     )
                     break
@@ -455,6 +675,15 @@ class ResilientModels:
                 except Exception as gw_exc:
                     print(f"[FAILOVER_GATEWAY_ERROR] API Bên Thứ Ba thất bại: {gw_exc}", flush=True)
 
+        # Tier-3 Failover: FreeLLMAPI local OpenAI-compatible proxy
+        if is_text_non_tts and not freellm_tried:
+            try:
+                res = self._try_freellmapi(kwargs.get("contents"), "FAILOVER")
+                if res is not None:
+                    return res
+            except Exception as fl_exc:
+                print(f"[FREELLMAPI_FAILOVER_ERROR] FreeLLMAPI thất bại: {fl_exc}", flush=True)
+
         # If everything exhausted, raise TransientGeminiFailure
         code = status_code(last_exc)
         label = "429 QUOTA_OR_RATE_LIMIT" if code == 429 else "503 CAPACITY" if code == 503 else f"{code or 'NETWORK'}"
@@ -487,7 +716,7 @@ class ResilientClient:
 
         try:
             from google import genai
-            client = genai.Client(api_key=key)
+            client = genai.Client(api_key=key, http_options={"timeout": 60000})
             self._client_cache[key] = client
             return client
         except Exception:

@@ -333,16 +333,90 @@ def boot_once():
     except Exception as exc:
         print(f"[AUTO_FLOW] Khởi động Chrome ngầm thông báo: {exc}", flush=True)
 
+def _cdp_minimize_port(port):
+    try:
+        import urllib.request, json
+        import websockets.sync.client as ws
+        v = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=1.5).read())
+        with ws.connect(v["webSocketDebuggerUrl"], open_timeout=2) as c:
+            c.send(json.dumps({'id': 1, 'method': 'Target.getTargets'}))
+            targets = json.loads(c.recv())['result']['targetInfos']
+            pages = [t for t in targets if t.get('type') == 'page']
+            if pages:
+                c.send(json.dumps({'id': 2, 'method': 'Browser.getWindowForTarget', 'params': {'targetId': pages[0]['targetId']}}))
+                win_id = json.loads(c.recv())['result']['windowId']
+                c.send(json.dumps({'id': 3, 'method': 'Browser.setWindowBounds', 'params': {'windowId': win_id, 'bounds': {'windowState': 'minimized'}}}))
+                c.recv()
+    except Exception:
+        pass
+
+
 def login_auto_finish_loop():
-    """Disabled: FlowKit handles all browser operations directly without loops."""
-    return
+    """Observe authenticated transitions and finish login without window flicker.
+
+    A verified Google Flow session is minimized as soon as authentication is complete.
+    """
+    from .accounts import (
+        active_account, flow_auth_status, manual_login_active,
+        clear_manual_login, _pid_browser_for_account,
+    )
+    from studio_flow_accounts import (
+        is_chrome_minimized, minimize_chrome_window, lock_chrome_minimized_async,
+    )
+    while True:
+        try:
+            account = active_account()
+            is_manual = manual_login_active(account_id=account["id"]) if account else False
+            time.sleep(2.0 if is_manual else 10.0)
+            if not account:
+                continue
+            pid = _pid_browser_for_account(account)
+            if not pid:
+                continue
+            observed = flow_auth_status(account)
+            if observed.get("authenticated"):
+                port = account.get("cdp_port", 9460)
+                _cdp_minimize_port(port)
+                if not is_chrome_minimized(pid):
+                    minimize_chrome_window(pid)
+                    lock_chrome_minimized_async(pid)
+                clear_manual_login()
+                if not _CURRENT.get("ready"):
+                    ensure_ready("auto", allow_open=False, account=account)
+        except Exception:
+            time.sleep(5.0)
+            continue
 
 
 def login_auto_finish_once(*, allow_unrequested=False):
-    """Disabled: FlowKit handles all browser operations directly without loops."""
-    return "FLOWKIT_ACTIVE"
+    """One safe, testable pass; minimize immediately once Google Flow auth is verified."""
+    from .accounts import (
+        active_account, manual_login_active, clear_manual_login,
+        flow_auth_status, _pid_browser_for_account, any_running_production,
+    )
+    from studio_flow_accounts import minimize_chrome_window, lock_chrome_minimized_async
+    account = active_account()
+    if not account:
+        return "NO_ACTIVE_ACCOUNT"
+    pid = _pid_browser_for_account(account)
+    if not pid:
+        return "CHROME_NOT_RUNNING"
+    auth = flow_auth_status(account)
+    if not auth.get("authenticated"):
+        return "LOGIN_NOT_VERIFIED"
+    port = account.get("cdp_port", 9460)
+    _cdp_minimize_port(port)
+    minimized = minimize_chrome_window(pid)
+    lock_chrome_minimized_async(pid)
+    clear_manual_login()
+    if not any_running_production():
+        ensure_ready("auto", allow_open=False, account=account)
+    return "MINIMIZED_AFTER_VERIFIED_LOGIN" if minimized else "CHROME_WINDOW_NOT_FOUND"
 
 
 def start_bootstrap():
-    """Disabled: MCP V2 bootstrap replaced by FlowKit."""
-    return None
+    t = threading.Thread(target=boot_once, name="StoryboardAutoFlowBootstrap", daemon=True)
+    t.start()
+    follow = threading.Thread(target=login_auto_finish_loop, name="StoryboardAutoFlowLoginFinish", daemon=True)
+    follow.start()
+    return t

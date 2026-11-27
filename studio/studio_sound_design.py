@@ -167,13 +167,13 @@ def build_multiact_soundtrack(duration: float, engine_dir: Path, output_bgm_wav:
     if not primary or not primary.is_file():
         return False
 
-    # For short clips (<60s), loop single primary track with fade
-    if dur < 60.0 or not tension or not resolve:
+    # Multi-act progression even on compact 24s-60s story clips (smooth 1.5s-3.0s crossfades)
+    if dur < 24.0 or not tension or not resolve:
         cmd = [
             "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
             "-stream_loop", "-1", "-i", str(primary),
             "-t", f"{dur:.2f}",
-            "-af", f"afade=t=out:st={dur-2.5:.2f}:d=2.5",
+            "-af", f"afade=t=in:st=0:d=0.6,afade=t=out:st={max(0.5, dur-2.0):.2f}:d=2.0",
             "-c:a", "pcm_s16le",
             str(output_bgm_wav)
         ]
@@ -181,12 +181,13 @@ def build_multiact_soundtrack(duration: float, engine_dir: Path, output_bgm_wav:
         return res.returncode == 0 and output_bgm_wav.is_file()
 
     # Multi-act progression:
-    # Act 1: 0 to 15% of dur
-    # Act 2: 15% to 75% of dur
-    # Act 3: 75% to 100% of dur
-    d_act1 = max(10.0, dur * 0.15)
-    d_act2 = max(20.0, dur * 0.60)
-    d_act3 = max(10.0, dur - d_act1 - d_act2)
+    # Act 1: 0 to 20% of dur (Hook / Mystery)
+    # Act 2: 20% to 75% of dur (Escalating Tension)
+    # Act 3: 75% to 100% of dur (Climax & Resolution)
+    xf_dur = 1.6 if dur < 60.0 else 3.0
+    d_act1 = max(4.0, dur * 0.20)
+    d_act2 = max(8.0, dur * 0.55)
+    d_act3 = max(4.0, dur - d_act1 - d_act2)
 
     tmp_dir = output_bgm_wav.parent / "temp_audio_acts"
     tmp_dir.mkdir(parents=True, exist_ok=True)
@@ -196,9 +197,9 @@ def build_multiact_soundtrack(duration: float, engine_dir: Path, output_bgm_wav:
 
     try:
         # Render looped acts
-        for src, d_act, out_path in [(mystery, d_act1 + 3.0, a1_path),
-                                     (tension, d_act2 + 3.0, a2_path),
-                                     (resolve, d_act3 + 3.0, a3_path)]:
+        for src, d_act, out_path in [(mystery, d_act1 + xf_dur, a1_path),
+                                     (tension, d_act2 + xf_dur, a2_path),
+                                     (resolve, d_act3 + xf_dur, a3_path)]:
             subprocess.run([
                 "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
                 "-stream_loop", "-1", "-i", str(src),
@@ -213,9 +214,9 @@ def build_multiact_soundtrack(duration: float, engine_dir: Path, output_bgm_wav:
             "-i", str(a2_path),
             "-i", str(a3_path),
             "-filter_complex",
-            "[0:a][1:a]acrossfade=d=3.0:c1=tri:c2=tri[m1];"
-            "[m1][2:a]acrossfade=d=3.0:c1=tri:c2=tri[m2];"
-            f"[m2]afade=t=out:st={dur-3.0:.2f}:d=3.0[aout]",
+            f"[0:a][1:a]acrossfade=d={xf_dur:.1f}:c1=tri:c2=tri[m1];"
+            f"[m1][2:a]acrossfade=d={xf_dur:.1f}:c1=tri:c2=tri[m2];"
+            f"[m2]afade=t=in:st=0:d=0.6,afade=t=out:st={max(0.5, dur-2.2):.2f}:d=2.2[aout]",
             "-map", "[aout]",
             "-t", f"{dur:.2f}",
             "-c:a", "pcm_s16le",
@@ -245,11 +246,12 @@ def build_multiact_soundtrack(duration: float, engine_dir: Path, output_bgm_wav:
 def compose_cinematic_sfx_stem(duration: float,
                                cta_times: list[float],
                                engine_dir: Path,
-                               output_sfx_wav: Path) -> bool:
+                               output_sfx_wav: Path,
+                               scene_boundaries: Optional[list[float]] = None) -> bool:
     """Arranges precision SFX cues along the timeline:
-    - T=0.8s: Cinematic Boom (Sub-bass impact on hook)
-    - T=1.0s to 12.0s: Suspense clock ticking (urgency in cold open)
-    - Act transitions: Subtle riser or sub-bass drop
+    - T=0.3s: Cinematic Boom (Sub-bass impact right on hook opening)
+    - T=1.2s to 7.2s: Subtle Suspense clock ticks (urgency in cold open)
+    - Scene transitions / Act transitions: Soft transition whoosh & Climax riser
     - CTA timestamps: Transition whoosh
     """
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -266,56 +268,67 @@ def compose_cinematic_sfx_stem(duration: float,
     mix_tags = []
     idx = 0
 
-    # 1. Hook Sub-bass Impact at 0.8s
+    # 1. Hook Sub-bass Impact at 0.3s
     if boom.is_file():
         inputs.extend(["-i", str(boom)])
-        filter_parts.append(f"[{idx}:a]adelay=800|800,volume=0.55[sfx_boom]")
+        filter_parts.append(f"[{idx}:a]adelay=300|300,volume=0.48[sfx_boom]")
         mix_tags.append("[sfx_boom]")
         idx += 1
 
-    # 2. Suspense Clock Ticks during Hook (1.5s to 10.5s, every 1.0s)
-    if clock.is_file() and dur > 15.0:
+    # 2. Subtle Suspense Clock Ticks during Cold Open Hook
+    if clock.is_file() and dur > 18.0:
         inputs.extend(["-i", str(clock)])
         clock_idx = idx
         idx += 1
         tick_tags = []
-        tick_count = min(10, int(min(dur * 0.4, 10)))
+        tick_count = min(6, int(min(dur * 0.25, 6)))
         filter_parts.append(f"[{clock_idx}:a]asplit={tick_count}" + "".join(f"[clk_{i}]" for i in range(tick_count)))
         for i in range(tick_count):
-            t_ms = int((1.5 + i * 1.0) * 1000)
+            t_ms = int((1.2 + i * 1.0) * 1000)
             filter_parts.append(f"[clk_{i}]adelay={t_ms}|{t_ms}[clk_d_{i}]")
             tick_tags.append(f"[clk_d_{i}]")
         all_clks = "".join(tick_tags)
-        filter_parts.append(f"{all_clks}amix=inputs={tick_count}:dropout_transition=0,volume=0.25[sfx_clock]")
+        filter_parts.append(f"{all_clks}amix=inputs={tick_count}:dropout_transition=0,volume=0.14[sfx_clock]")
         mix_tags.append("[sfx_clock]")
 
-    # 3. Act Transition Riser at 75% mark
-    if riser.is_file() and dur > 60.0:
-        climax_t = max(5.0, dur * 0.75 - 3.5)
+    # 3. Act Transition Riser ahead of the climax beat (works for short 22s+ and long episodes)
+    if riser.is_file() and dur >= 22.0:
+        climax_t = max(4.0, dur * 0.72 - 2.8)
         climax_ms = int(climax_t * 1000)
         inputs.extend(["-i", str(riser)])
-        filter_parts.append(f"[{idx}:a]adelay={climax_ms}|{climax_ms},volume=0.45[sfx_riser]")
+        filter_parts.append(f"[{idx}:a]adelay={climax_ms}|{climax_ms},volume=0.40[sfx_riser]")
         mix_tags.append("[sfx_riser]")
         idx += 1
 
-    # 4. CTA Overlays Whooshes
-    if whoosh.is_file() and cta_times:
+    # 4. Scene-Transition Soft Whooshes + CTA Overlays Whooshes
+    transition_times = list(cta_times or [])
+    if scene_boundaries:
+        last_w = -10.0
+        for bt in scene_boundaries:
+            b_sec = float(bt)
+            if 2.0 < b_sec < dur - 2.0 and (b_sec - last_w) >= 5.0:
+                if not any(abs(b_sec - ct) < 1.5 for ct in transition_times):
+                    transition_times.append(max(0.2, b_sec - 0.35))
+                    last_w = b_sec
+    transition_times = sorted(set(round(t, 2) for t in transition_times))[:10]
+
+    if whoosh.is_file() and transition_times:
         inputs.extend(["-i", str(whoosh)])
         w_idx = idx
         idx += 1
-        if len(cta_times) == 1:
-            w_ms = int(cta_times[0] * 1000)
-            filter_parts.append(f"[{w_idx}:a]adelay={w_ms}|{w_ms},volume=0.40[sfx_whoosh]")
+        if len(transition_times) == 1:
+            w_ms = int(transition_times[0] * 1000)
+            filter_parts.append(f"[{w_idx}:a]adelay={w_ms}|{w_ms},volume=0.28[sfx_whoosh]")
             mix_tags.append("[sfx_whoosh]")
         else:
-            filter_parts.append(f"[{w_idx}:a]asplit={len(cta_times)}" + "".join(f"[w_{i}]" for i in range(len(cta_times))))
+            filter_parts.append(f"[{w_idx}:a]asplit={len(transition_times)}" + "".join(f"[w_{i}]" for i in range(len(transition_times))))
             w_tags = []
-            for i, t in enumerate(cta_times):
+            for i, t in enumerate(transition_times):
                 w_ms = int(t * 1000)
                 filter_parts.append(f"[w_{i}]adelay={w_ms}|{w_ms}[w_d_{i}]")
                 w_tags.append(f"[w_d_{i}]")
             all_ws = "".join(w_tags)
-            filter_parts.append(f"{all_ws}amix=inputs={len(cta_times)}:dropout_transition=0,volume=0.40[sfx_whoosh]")
+            filter_parts.append(f"{all_ws}amix=inputs={len(transition_times)}:dropout_transition=0,volume=0.26[sfx_whoosh]")
             mix_tags.append("[sfx_whoosh]")
 
     if not mix_tags:
@@ -355,7 +368,8 @@ def apply_hollywood_audio_master(source_video: Path,
                                  cta_times: list[float],
                                  width: int,
                                  height: int,
-                                 engine_dir: Path) -> bool:
+                                 engine_dir: Path,
+                                 scene_boundaries: Optional[list[float]] = None) -> bool:
     """Master audio and video mixing pipeline for full episodes:
     1. Video: Overlays social CTA animations cleanly (if cta_path is valid).
     2. Audio Sidechain Ducking: Voiceover drives dynamic ducking on multi-act BGM stem
@@ -398,8 +412,8 @@ def apply_hollywood_audio_master(source_video: Path,
             print(f"[SOUND_DESIGN_WARN] Không tạo được BGM đa chương hồi, sử dụng fallback.", flush=True)
 
         # Step B: Build SFX Cues Stem
-        print(f"[SOUND_DESIGN] 💥 Bố trí các điểm nhấn âm thanh (Hook Boom, Suspense Clock, Risers, CTA Whoosh)...", flush=True)
-        if not compose_cinematic_sfx_stem(dur, cta_times, engine_dir, sfx_stem):
+        print(f"[SOUND_DESIGN] 💥 Bố trí các điểm nhấn âm thanh (Hook Boom, Suspense Clock, Risers, Scene Transition Whoosh)...", flush=True)
+        if not compose_cinematic_sfx_stem(dur, cta_times, engine_dir, sfx_stem, scene_boundaries=scene_boundaries):
             print(f"[SOUND_DESIGN_WARN] Không tạo được SFX stem, bỏ qua SFX.", flush=True)
 
         # Step C: Compose master FFmpeg filter
@@ -446,21 +460,23 @@ def apply_hollywood_audio_master(source_video: Path,
                 last_v = out_tag
             final_v = last_v
 
-        # Audio filters: Dynamic Sidechain Ducking + Loudness Normalization
+        # Audio filters: Broadcast Warm Voice EQ + Dynamic Sidechain Ducking + Loudness Normalization
         a_filters = []
         audio_mix_inputs = ["[v_mix]"]
 
-        # Voice split for sidechain detection
-        a_filters.append("[0:a]asplit=2[v_mix][v_sc]")
+        # Warm vocal studio polish (clean rumble, subtle presence, gentle glue compression)
+        a_filters.append(
+            "[0:a]highpass=f=75,equalizer=f=220:width_type=h:width=160:g=1.8,"
+            "equalizer=f=3200:width_type=h:width=1000:g=2.2,"
+            "acompressor=threshold=-20dB:ratio=2.4:attack=12:release=140:makeup=1.5dB,"
+            "asplit=2[v_mix][v_sc]"
+        )
 
-        # Dynamic ducked BGM
+        # Dynamic ducked BGM (present and evocative in breaths/transitions, tucked warmly under voice)
         if bgm_input_idx is not None:
-            a_filters.append(f"[{bgm_input_idx}:a]volume=0.28[bgm_raw]")
-            # Sidechain Ducking:
-            # threshold=0.035, ratio=8.0 (ducks BGM by ~14dB during voice)
-            # attack=25ms (rapid response), release=550ms (smooth swell during voice pauses)
+            a_filters.append(f"[{bgm_input_idx}:a]volume=0.34[bgm_raw]")
             a_filters.append(
-                f"[bgm_raw][v_sc]sidechaincompress=threshold=0.035:ratio=8.0:attack=25:release=550[bgm_ducked]"
+                f"[bgm_raw][v_sc]sidechaincompress=threshold=0.025:ratio=6.5:attack=20:release=420[bgm_ducked]"
             )
             audio_mix_inputs.append("[bgm_ducked]")
 

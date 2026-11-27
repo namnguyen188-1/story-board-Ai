@@ -82,7 +82,14 @@ description: Chuyên gia thiết kế thumbnail YouTube độc lập qua Google 
 
 ---
 
-## 4. LỆNH GỌI THỰC THI TRONG STORYBOARD AI
+## 4. LỆNH GỌI THỰC THI TỰ ĐỘNG TRONG STORYBOARD AI (ĐƠN NHIỆM ON-DEMAND)
+
+> [!TIP]
+> **NGUYÊN TẮC HOẠT ĐỘNG TỰ ĐỘNG & TIẾT KIỆM TÀI NGUYÊN:**
+> Storyboard AI tự động quản lý vòng đời trình duyệt. Tuyệt đối **không mở cả 2 trình duyệt cùng lúc**.
+> - Khi gọi `engine="flow"`: Storyboard AI tự động đóng ChatGPT Web (nếu đang chạy), chỉ mở Google Flow.
+> - Khi gọi `engine="chatgpt"`: Storyboard AI tự động đóng Google Flow (nếu đang chạy), chỉ mở ChatGPT Web.
+> - Sau khi sinh ảnh xong, tự động giải phóng bộ nhớ RAM và GPU, không làm nặng máy.
 
 ```python
 from studio.seo_packager import generate_thumbnail_with_flow
@@ -92,11 +99,12 @@ result = generate_thumbnail_with_flow(
     series_name="tên_series",
     genre="stoic",                     # Thể loại video
     aspect_ratio="9:16",               # '9:16' cho Shorts, '16:9' cho video dài
-    hook_text="DOMINA TU MENTE",       # Câu chữ 3D Flow tự vẽ vào ảnh với màu vàng kim / hổ phách
-    custom_prompt=None                 # Tự động ráp prompt kèm text nếu None
+    hook_text="DOMINA TU MENTE",       # Câu chữ 3D tự vẽ vào ảnh với màu vàng kim / hổ phách
+    custom_prompt=None,                # Tự động ráp prompt kèm text nếu None
+    engine="flow"                      # 'flow' (Google Flow) hoặc 'chatgpt' (ChatGPT Web) hoặc 'tuanstor'
 )
 
-# Kết quả: Flow tự vẽ ảnh + chữ 3D vàng kim rực rỡ, code tự xoá watermark ngôi sao, lưu thẳng vào:
+# Kết quả: Tự động vẽ ảnh + chữ 3D vàng kim rực rỡ, khử watermark, lưu thẳng vào:
 # - thumbnail_shorts.jpg (nếu 9:16)
 # - thumbnail_seo.jpg (nếu 16:9)
 # - 00_DANG_BAI_YOUTUBE/

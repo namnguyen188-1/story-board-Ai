@@ -97,11 +97,14 @@ def make_image(prompt, output, reference_path=None, *, session=None, timeout=110
             original.load()
             if original.width<256 or original.height<256:
                 raise ValueError("Image resolution too low")
-            # Never distort the original 1:1 source. Pad to 16:9 for the whiteboard.
             rgb=original.convert("RGB")
             if abs(rgb.width/rgb.height-16/9)>0.01:
-                rgb=ImageOps.pad(rgb,(1536,864),color="white",
-                     method=Image.Resampling.LANCZOS,centering=(0.5,0.5))
+                if "whiteboard" in text.lower():
+                    rgb=ImageOps.pad(rgb,(1536,864),color="white",
+                         method=Image.Resampling.LANCZOS,centering=(0.5,0.5))
+                else:
+                    rgb=ImageOps.fit(rgb,(1536,864),
+                         method=Image.Resampling.LANCZOS,centering=(0.5,0.5))
             target=Path(output)
             target.parent.mkdir(parents=True,exist_ok=True)
             temp=target.with_name(target.stem+"."+uuid.uuid4().hex+".png")

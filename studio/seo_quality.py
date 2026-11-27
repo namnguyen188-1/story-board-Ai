@@ -29,6 +29,16 @@ from PIL import Image, ImageStat
 
 
 
+def _is_vi_lang(lang: str) -> bool:
+    l = str(lang or "").lower().strip()
+    return bool(re.search(r"(?:^|[\s_\-/,(])(?:vi|vi-[a-z]{2}|vie|vn|viet|vietnamese)(?:$|[\s_\-/,)])", l)) or ("tiếng việt" in l) or ("vietnam" in l)
+
+def _is_es_lang(lang: str) -> bool:
+    l = str(lang or "").lower().strip()
+    if not l or _is_vi_lang(l):
+        return False
+    return bool(re.search(r"(?:^|[\s_\-/,(])(?:es|es-[a-z]{2}|esp|spa|spanish|español|espanol|tây ban nha)(?:$|[\s_\-/,)])", l))
+
 ENGINE_VERSION = 'grounded-seo-2026.10.22.2'
 
 SOURCES = {
@@ -69,6 +79,8 @@ LOCALE = {
     'Italian': ('Episodio', 'Capitoli', 'Iscriviti per i prossimi episodi.', 'Quale momento ti ha colpito?', 'Guarda l’episodio completo sul canale.'),
 
     'Japanese': ('エピソード', 'チャプター', '次の動画もぜひご覧ください。', '印象に残った場面を教えてください。', '本編はチャンネルでご覧ください。'),
+
+    'Korean': ('에피소드', '챕터', '구독과 좋아요를 누르시면 다음 이야기도 가장 먼저 받아보실 수 있습니다.', '가장 인상 깊었던 장면이나 생각을 댓글로 남겨주세요.', '전체 영상은 채널에서 확인하실 수 있습니다.'),
 
     'Chinese': ('第', '章节', '订阅频道观看后续内容。', '哪个片段令你印象深刻？', '请在频道观看完整视频。'),
 
@@ -187,7 +199,11 @@ def canonical_language(value):
 
         'fr':'French','french':'French','francais':'French','pt':'Portuguese','portuguese':'Portuguese','portugues':'Portuguese',
 
-        'ru':'Russian','russian':'Russian','ja':'Japanese','japanese':'Japanese','zh':'Chinese','chinese':'Chinese','it':'Italian','italian':'Italian'}
+        'ru':'Russian','russian':'Russian','ja':'Japanese','jp':'Japanese','japanese':'Japanese','tieng nhat':'Japanese','nhat ban':'Japanese',
+
+        'ko':'Korean','kr':'Korean','korean':'Korean','tieng han':'Korean','han quoc':'Korean',
+
+        'zh':'Chinese','chinese':'Chinese','it':'Italian','italian':'Italian'}
 
     return aliases.get(val, str(value or '').capitalize())
 
@@ -242,6 +258,8 @@ def is_target_language(text, language):
         'Italian': set('gli della una per nella vita tuo'.split()),
     }
     lang = canonical_language(language)
+    if lang in ('Japanese', 'Korean') and re.search(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]', str(text or '')):
+        return True
     if lang == 'English':
         foreign = sum(t in signatures['Spanish'] - english for t in tokens)
         return not (foreign >= 3 and foreign > sum(t in english for t in tokens))
@@ -436,7 +454,11 @@ def is_grounded(text, context):
 
         return False
 
-    corpus, source_words, source_numbers = _grounding_data(context.get('evidence_text',''))
+    ev_src = context.get('evidence_text') or ''
+    if not ev_src:
+        ev_src = f"{narrative_text(context)} {context.get('title', '')} {context.get('summary', '')}".strip()
+
+    corpus, source_words, source_numbers = _grounding_data(ev_src)
 
     query = normalize(text)
 
@@ -453,6 +475,30 @@ def is_grounded(text, context):
         if num not in source_numbers:
 
             return False
+
+    if re.search(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]', query):
+        cjk_chunks = re.findall(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]+', query)
+        stems = set()
+        for ch in cjk_chunks:
+            if len(ch) <= 2:
+                stems.add(ch)
+            else:
+                for idx in range(len(ch) - 1):
+                    stems.add(ch[idx:idx + 2])
+        ea_vocab = {
+            '禅', '沈黙', '江戸', '侍', '心', '人生', '朗読', '睡眠', '物語', '知恵', '哲学', '人間', '感情', '習慣',
+            '조선', '야담', '침묵', '마음', '이야', '사연', '인생', '지혜', '가족', '선비', '비밀',
+        }
+        ref_only_cjk = {
+            w for w in re.findall(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]{2,}', normalize(context.get('reference_title', '')))
+            if w not in corpus and w not in ea_vocab
+        }
+        if any(rw in query for rw in ref_only_cjk):
+            return False
+        if not stems:
+            return False
+        hits = sum(1 for st in stems if (st in corpus or st in ea_vocab))
+        return (hits / float(len(stems))) >= 0.20
 
     tokens = [w for w in words(query) if w not in STOP and w not in GENERIC and len(w)>1]
 
@@ -518,11 +564,11 @@ def topic_phrases(context):
 
     candidates=[]
 
-    for sentence in re.split(r'[.!?\n:;]',source):
+    for sentence in re.split(r'[.!?\n:;。！？、，]+',source):
 
         original = re.findall(r"[^\W_]+(?:['’][^\W_]+)?",sentence,re.UNICODE)
 
-        for size in (5,4,3,2):
+        for size in (5,4,3,2,1):
 
             for i in range(max(0,len(original)-size+1)):
 
@@ -533,6 +579,12 @@ def topic_phrases(context):
                     continue
 
                 normalized=[w for w in words(' '.join(chunk)) if w not in STOP and w not in GENERIC]
+
+                if size == 1:
+                    single = chunk[0]
+                    if re.search(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]', single) and 2 <= len(single) <= 22:
+                        candidates.append(single.lower())
+                    continue
 
                 if len(normalized)>=2:
 
@@ -596,11 +648,21 @@ def episode_chapters(context):
 
     candidates = []
     offset = 0.0
+    dangling_tail = {
+        'por', 'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'que', 'y', 'o', 'en', 'con', 'para', 'al', 'su',
+        'of', 'to', 'in', 'on', 'the', 'a', 'an', 'and', 'or', 'for', 'with', 'from', 'by', 'as',
+        'của', 'và', 'cho', 'trong', 'trên', 'với', 'về', 'từ', 'để', 'những', 'các', 'là', 'mà',
+    }
     for idx, s in enumerate(scenes):
         s_dur = scene_durs[idx]
         candidates_text = [s.get('text_overlay'), s.get('narration'), s.get('dialogue'), s.get('summary')]
-        title = next((clean_text(t, 100) for t in candidates_text if t and is_target_language(t, context.get('language', 'English'))), '')
-        title = ' '.join(title.split()[:8]).rstrip(' ,:;-')
+        raw_t = next((clean_text(t, 120) for t in candidates_text if t and is_target_language(t, context.get('language', 'English'))), '')
+        # Stop at sentence punctuation first if within 2..8 words
+        sent_head = re.split(r'[.!?;。！？]', raw_t, maxsplit=1)[0].strip()
+        toks = (sent_head if len(sent_head.split()) >= 3 else raw_t).split()[:7]
+        while len(toks) > 2 and toks[-1].lower().strip(',:;') in dangling_tail:
+            toks.pop()
+        title = ' '.join(toks).rstrip(' ,:;-')
         if title and (not candidates or offset - candidates[-1]['seconds'] >= 25.0):
             candidates.append({'scene_num': s.get('scene_number', idx + 1), 'seconds': offset, 'time': timestamp(offset), 'title': title.title(), 'timing_source': 'rendered'})
         offset += s_dur
@@ -698,9 +760,10 @@ def fallback_content(context):
         raw_text = s.get('narration') or s.get('dialogue') or ''
         cleaned = re.sub(r'^[A-Z][a-zA-Z\s\.]*:\s*', '', raw_text).strip()
         prot = re.sub(r'\b(Dr|Mr|Mrs|Ms|Prof|Sr|Jr)\.', r'\1<DOT>', cleaned)
-        for sent in re.split(r'(?<=[.!?])\s+', prot):
+        for sent in re.split(r'(?<=[.!?。！？])\s*', prot):
             sent = sent.replace('<DOT>', '.').strip()
-            if len(sent) >= 15 and len(sent.split()) >= 3:
+            has_cjk_sent = bool(re.search(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]', sent))
+            if (has_cjk_sent and len(sent) >= 8) or (len(sent) >= 15 and len(sent.split()) >= 3):
                 narration_candidates.append(sent)
     candidates += narration_candidates
     if not any(s.get('narration') or s.get('dialogue') for s in context.get('scenes',[])):
@@ -708,7 +771,8 @@ def fallback_content(context):
     titles=[]
     for val in candidates:
         val=sanitize_title(clean_text(val,100))
-        if not val or len(val) < 15 or len(val.split()) < 3:
+        has_cjk_val = bool(re.search(r'[\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]', str(val or '')))
+        if not val or (has_cjk_val and len(val) < 6) or (not has_cjk_val and (len(val) < 15 or len(val.split()) < 3)):
             continue
         val = re.sub(r'[,:;\s]+(?:and|or|the|a|an|to|of|in|with|for|that|which|is|was|by|at)$', '', val, flags=re.I).strip()
         val = val.rstrip(' ,;:.-')
@@ -730,6 +794,55 @@ def fallback_content(context):
     return {'primary_keyword':primary,'titles':titles,'description_hook':synopsis,'story_synopsis':'',
         'thumbnail_hook_text':primary.upper(),'tags':phrases[:12],
         'hashtags':hashtags_for(context,phrases),'pinned_comment':LOCALE.get(lang,LOCALE['English'])[3]}
+
+
+def extract_title_keyphrases(title: str) -> list[str]:
+    """Extracts 2-4 word search keyphrases present inside the title for Triple-Match SEO."""
+    raw = sanitize_title(str(title or ''))
+    if not raw:
+        return []
+    phrases: list[str] = []
+    for seg in [s.strip() for s in re.split(r'[:|\-–—]+', raw) if s.strip()]:
+        toks = re.findall(r'[^\W_]+', seg.casefold(), re.UNICODE)
+        if 1 <= len(toks) <= 4 and ' '.join(toks) not in STOP:
+            phrases.append(' '.join(toks))
+        for n in (3, 2):
+            for i in range(len(toks) - n + 1):
+                g = toks[i:i + n]
+                if g[0] in STOP or g[-1] in STOP:
+                    continue
+                if any(w in {'y', 'o', 'and', 'or', 'và', 'hay'} for w in g):
+                    continue
+                if sum(1 for w in g if w not in STOP and len(w) > 2) < 2:
+                    continue
+                p = ' '.join(g)
+                if 6 <= len(p) <= 45 and p not in phrases:
+                    phrases.append(p)
+    return phrases[:8]
+
+
+def align_primary_keyword_with_title(best_title: str, current_primary: str, language: str = 'Spanish', genre: str = 'auto') -> str:
+    """Guarantees primary_keyword strongly matches best_title for real VidIQ Triple Match."""
+    title_s = str(best_title or '').strip()
+    cur_s = clean_text(current_primary, 60)
+    if not title_s:
+        return cur_s
+    norm_t = normalize(title_s)
+    norm_cur = normalize(cur_s)
+    if norm_cur and norm_cur in norm_t:
+        return cur_s
+    if cur_s:
+        cur_toks = [w for w in norm_cur.split() if len(w) > 2 and w not in STOP and w not in COMMON_STOP_WORDS]
+        if cur_toks and all(tok in norm_t for tok in cur_toks):
+            return cur_s
+    # Otherwise extract the strongest real 2-3 word keyphrase directly from best_title
+    cands = extract_title_keyphrases(title_s)
+    multi = [c for c in cands if ' ' in c and len(c) >= 8]
+    if multi:
+        return multi[0]
+    if cands:
+        return cands[0]
+    return cur_s
 
 
 def ensure_high_ctr_title(val, t_type, context, idx=0):
@@ -756,6 +869,24 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
     is_western = any(k in genre for k in ("western", "cowboy", "frontier"))
     is_stoic = any(k in genre for k in ("stoic", "stoicism", "stoi"))
     is_doc = any(k in genre for k in ("kham-pha", "doc", "history", "ancient", "discovery"))
+    is_cjk_lang = any(k in lang for k in ("jap", "ja", "kor", "ko"))
+
+    if is_cjk_lang or any(k in genre for k in ("jp_", "kr_")):
+        res = (clean_core or val).strip(" |:-–")[:90].strip()
+        if is_short and res and "#shorts" not in res.lower():
+            res = f"{res[:82].strip()} #Shorts"
+        return res
+
+    # Preserve grounded AI titles that are already rich, in target language, and non-generic!
+    has_bad_cliche = bool(re.search(r'ultimate.*changes everything|untold truth|hidden truth', clean_core, re.I))
+    if clean_core and len(clean_core) >= 38 and not has_bad_cliche and is_target_language(clean_core, context.get("language") or "English"):
+        res = clean_core
+        if len(res) > 90:
+            cut = res[:90]
+            res = (cut.rsplit(" ", 1)[0] if " " in cut else cut).strip(" |:-–")
+        if is_short and "#shorts" not in res.lower():
+            res = f"{res[:82].strip()} #Shorts"
+        return res
 
     # Theme detection from prompt
     is_ep2_stoic = any(k in prompt for k in ("buông bỏ", "kỳ vọng", "expectativas", "soltar", "kiểm soát")) or (ep_num == 2 and is_stoic)
@@ -765,7 +896,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
         if is_stoic:
             if is_ep2_stoic:
                 # Episode 2: Nghệ Thuật Buông Bỏ Kỳ Vọng
-                if "spa" in lang or "es" in lang:
+                if _is_es_lang(lang):
                     if idx == 0 or "high" in str(t_type).lower():
                         title_res = "ESTOICISMO: El Arte de Soltar las Expectativas y Recuperar Tu Poder Mental #Shorts"
                     elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -788,7 +919,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                         title_res = "3 Stoic Lessons to Stop Expecting Approval and Master Your Own Destiny #Shorts"
             else:
                 # Episode 1: Làm Chủ Sự Tĩnh Lặng Trước Chỉ Trích / Pausa 3s
-                if "spa" in lang or "es" in lang:
+                if _is_es_lang(lang):
                     if idx == 0 or "high" in str(t_type).lower():
                         title_res = "ESTOICISMO: La Regla de los 3 Segundos de Marco Aurelio Contra el Insulto #Shorts"
                     elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -817,7 +948,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                     title_res = "Lựa Chọn Cay Đắng Của Người Thợ Săn: Silas Vane Đứng Vững Trước Kẻ Thù #Shorts"
                 else:
                     title_res = "Phim Viễn Tây: Lời Thề Bất Diệt Của Silas Vane Giữa Hẻm Núi Băng Giá #Shorts"
-            elif "spa" in lang or "es" in lang:
+            elif _is_es_lang(lang):
                 if idx == 0 or "high" in str(t_type).lower():
                     title_res = "Deuda de Sangre: Por Qué Silas Vane Jamás Se Rindió en las Montañas Heladas #Shorts"
                 elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -839,7 +970,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                     title_res = "Sự Thật Bị Lãng Quên: Lý Do Họ Cố Tình Xóa Bỏ Dấu Tích Văn Minh Này #Shorts"
                 else:
                     title_res = "Khám Phá Lịch Sử: Điều Bí Ẩn Mà Giới Khảo Cổ Suốt Trăm Năm Không Dám Nói #Shorts"
-            elif "spa" in lang or "es" in lang:
+            elif _is_es_lang(lang):
                 if idx == 0 or "high" in str(t_type).lower():
                     title_res = "SECRETO ANCESTRAL: El Descubrimiento Oculto Bajo Tierra Durante Siglos #Shorts"
                 elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -877,7 +1008,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                     val = "Marcus Aurelius: Sai Lầm Khiến Bạn Thất Vọng Vì Kỳ Vọng Vào Người Khác"
                 else:
                     val = "3 Bài Học Khắc Kỷ Giúp Bạn Chấm Dứt Thất Vọng và Làm Chủ Tuyệt Đối Bản Thân"
-            elif "spa" in lang or "es" in lang:
+            elif _is_es_lang(lang):
                 if idx == 0 or "high" in str(t_type).lower():
                     val = "ESTOICISMO: El Arte de Soltar las Expectativas y Recuperar Tu Poder Mental"
                 elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -899,7 +1030,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                     val = "Marcus Aurelius: Bí Quyết Giữ Sự Tĩnh Lặng Khi Bị Xúc Phạm và Khiêu Khích"
                 else:
                     val = "3 Nguyên Tắc Khắc Kỷ Đỉnh Cao Để Làm Chủ Tâm Trí Trước Mọi Lời Sỉ Nhục"
-            elif "spa" in lang or "es" in lang:
+            elif _is_es_lang(lang):
                 if idx == 0 or "high" in str(t_type).lower():
                     val = "ESTOICISMO: La Regla de los 3 Segundos de Marco Aurelio Contra el Insulto"
                 elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -921,7 +1052,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                 val = "Lựa Chọn Cay Đắng Của Người Thợ Săn: Silas Vane Đứng Vững Trước Kẻ Thù Tàn Bạo"
             else:
                 val = "Phim Viễn Tây Đỉnh Cao: Trận Chiến Sinh Tử Của Silas Vane Giữa Hẻm Núi Băng Giá"
-        elif "spa" in lang or "es" in lang:
+        elif _is_es_lang(lang):
             if idx == 0 or "high" in str(t_type).lower():
                 val = "Deuda de Sangre: Por Qué Silas Vane Jamás Se Rindió en las Montañas Heladas"
             elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -943,7 +1074,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
                 val = "Sự Thật Bị Lãng Quên: Lý Do Họ Cố Tình Xóa Bỏ Dấu Tích Của Nền Văn Minh Này"
             else:
                 val = "Khám Phá Lịch Sử: Điều Bí Ẩn Mà Giới Khảo Cổ Suốt Hàng Trăm Năm Không Dám Tiết Lộ"
-        elif "spa" in lang or "es" in lang:
+        elif _is_es_lang(lang):
             if idx == 0 or "high" in str(t_type).lower():
                 val = "SECRETO ANCESTRAL: El Descubrimiento Oculto Bajo Tierra Durante Siglos Enteros"
             elif idx == 1 or "curiosity" in str(t_type).lower():
@@ -973,7 +1104,7 @@ def ensure_high_ctr_title(val, t_type, context, idx=0):
     elif len(val) < 70:
         if "vie" in lang or "vi" in lang:
             val = f"{val} | Khám Phá Bí Mật Chấn Động"
-        elif "spa" in lang or "es" in lang:
+        elif _is_es_lang(lang):
             val = f"{val} | El Secreto Revelado"
         else:
             val = f"{val} | The Untold Story Revealed"
@@ -1099,68 +1230,128 @@ def check_metadata(title, description, tags, primary_keyword, chapters, pinned_c
     description = str(description or '').strip()
     tags = tags or []
     chapters = chapters or []
+    primary = str(primary_keyword or '').strip()
 
-    def item(category, passed, max_score, detail):
+    def item(category, score_val, max_score, detail, pass_threshold=None):
+        thresh = max_score if pass_threshold is None else pass_threshold
         return {
             'category': category,
             'type': 'Actionable',
-            'score': max_score if passed else 0,
-            'max': max_score,
-            'passed': bool(passed),
+            'score': int(score_val),
+            'max': int(max_score),
+            'passed': bool(score_val >= thresh),
             'detail': detail
         }
 
-    # 1. Title Length & Mobile Optimization (42-70 chars, optimal 45-62)
+    # 1. Title Length & CTR Range (45-95 chars ideal)
     t_len = len(title)
-    t_len_ok = (42 <= t_len <= 70) or (0 < t_len <= 100)
+    if 45 <= t_len <= 95:
+        t_score = 20
+        t_detail = f'{t_len}/100 ký tự (Chuẩn CTR 45-95 ký tự)'
+    elif 25 <= t_len <= 100:
+        t_score = 12
+        t_detail = f'{t_len}/100 ký tự (Nên đặt 45-95 ký tự)'
+    else:
+        t_score = 0
+        t_detail = f'{t_len}/100 ký tự (Quá ngắn hoặc vượt giới hạn)'
 
-    # 2. Description Length (> 500 chars)
+    # 2. Primary Keyword strictly present inside Title (Triple Match Pillar 1 - NO FAKE or True!)
+    norm_title = normalize(title)
+    norm_primary = normalize(primary)
+    primary_tokens = [w for w in norm_primary.split() if len(w) > 2 and w not in STOP and w not in COMMON_STOP_WORDS]
+    exact_in_title = bool(norm_primary and norm_primary in norm_title)
+    all_toks_in_title = bool(primary_tokens and all(w in norm_title for w in primary_tokens))
+    partial_toks_in_title = bool(primary_tokens and sum(1 for w in primary_tokens if w in norm_title) >= max(1, (len(primary_tokens) + 1) // 2))
+    if exact_in_title or all_toks_in_title:
+        kw_title_score = 15
+        kw_title_detail = f"Khớp trọn cụm '{primary}' trong tiêu đề"
+    elif partial_toks_in_title:
+        kw_title_score = 8
+        kw_title_detail = f"Chỉ khớp một phần '{primary}' trong tiêu đề"
+    else:
+        kw_title_score = 0
+        kw_title_detail = f"Tiêu đề chưa chứa từ khóa chính '{primary}'"
+
+    # 3. Description Depth & Natural Keyword Repetition (>= 600 chars & >= 2 mentions)
     d_len = len(description)
-    d_len_ok = (400 <= d_len <= 5000)
+    norm_desc = normalize(description)
+    kw_desc_hits = norm_desc.count(norm_primary) if norm_primary else 0
+    if not kw_desc_hits and primary_tokens and all(w in norm_desc for w in primary_tokens):
+        kw_desc_hits = 1
+    if d_len >= 600 and kw_desc_hits >= 2:
+        d_score = 20
+        d_detail = f'{d_len}/5000 ký tự · Lặp từ khóa {kw_desc_hits} lần'
+    elif d_len >= 350 and kw_desc_hits >= 1:
+        d_score = 12
+        d_detail = f'{d_len}/5000 ký tự · Cần lặp thêm từ khóa tự nhiên ({kw_desc_hits} lần)'
+    elif d_len >= 200:
+        d_score = 6
+        d_detail = f'{d_len}/5000 ký tự (Mô tả còn mỏng hoặc thiếu từ khóa)'
+    else:
+        d_score = 0
+        d_detail = f'{d_len}/5000 ký tự (Quá ngắn)'
 
-    # 3. Primary Keyword in Title (Triple Match & high-intent search query)
-    kw_in_title = bool(title) and (
-        is_keyword_matched(primary_keyword or '', title) or
-        any(p in title.lower() for p in [p.lower() for p in str(primary_keyword or '').split() if len(p) > 2]) or
-        any(t.lower() in title.lower() for t in tags if len(t) >= 3) or
-        True
-    )
-
-    # 4. Primary Keyword in Description (Above the fold & throughout)
-    kw_in_desc = bool(description) and (
-        is_keyword_matched(primary_keyword or '', description) or
-        any(p in description.lower() for p in str(primary_keyword or '').split() if len(p) > 2) or
-        True
-    )
+    # 4. Primary Keyword in First 220 Chars (Above the Fold - NO FAKE or True!)
+    fold = normalize(description[:220])
+    in_fold_exact = bool(norm_primary and (norm_primary in fold or (primary_tokens and all(w in fold for w in primary_tokens))))
+    if in_fold_exact:
+        fold_score = 15
+        fold_detail = f"Từ khóa '{primary}' nằm ngay 220 ký tự đầu"
+    elif kw_desc_hits >= 1:
+        fold_score = 7
+        fold_detail = "Có từ khóa trong mô tả nhưng chưa nằm ở 2 câu đầu"
+    else:
+        fold_score = 0
+        fold_detail = f"Thiếu từ khóa '{primary}' trong phần mở đầu mô tả"
 
     # 5. Video Chapters / Timestamps (>= 3 chapters starting at 00:00)
-    has_chapters = len(chapters) >= 3 or bool(re.search(r'\b00:00\b', description))
+    has_chapters = len(chapters) >= 3 and (bool(re.search(r'\b0?0:00\b', description)) or (chapters[0].get('time') in ('00:00', '0:00')))
+    chap_score = 15 if has_chapters else (6 if len(chapters) >= 1 else 0)
+    chap_detail = f"{len(chapters)} phân đoạn (Chuẩn Google Key Moments)" if has_chapters else "Thiếu tối thiểu 3 chapters bắt đầu từ 00:00"
 
-    # 6. Tags Count & Character Volume (20+ tags, 350-500 chars)
+    # 6. Tags Volume + Title Overlap (Real VidIQ Triple Match!)
     tag_str = ', '.join(tags)
     tag_count = len(tags)
     tag_chars = len(tag_str)
-    tags_ok = bool(tags) and (tag_chars <= 500) and (tag_chars >= 250 or tag_count >= 10) and (len(set(t.casefold() for t in tags)) == tag_count)
+    title_overlap = sum(
+        1 for t in tags
+        if normalize(t) and (
+            normalize(t) in norm_title
+            or len([w for w in normalize(t).split() if len(w) > 2 and w not in STOP and w in norm_title]) >= 2
+        )
+    )
+    no_dups = len(set(t.casefold() for t in tags)) == tag_count
+    if tags and no_dups and 320 <= tag_chars <= 500 and tag_count >= 15 and title_overlap >= 3:
+        tag_score = 15
+        tag_detail = f'{tag_count} tags, {tag_chars}/500 ký tự · {title_overlap} tag khớp tiêu đề (Triple Match)'
+    elif tags and no_dups and tag_chars >= 200 and tag_chars <= 500 and title_overlap >= 1:
+        tag_score = 9
+        tag_detail = f'{tag_count} tags, {tag_chars}/500 ký tự · {title_overlap} tag khớp tiêu đề (Cần >=3)'
+    else:
+        tag_score = 4 if tags else 0
+        tag_detail = f'{tag_count} tags ({tag_chars}/500 ký tự), {title_overlap} tag khớp tiêu đề'
 
     checks = [
-        item('Tiêu đề chuẩn vàng CTR (70-95 ký tự, Power Words)', t_len_ok, 20, f'{t_len}/100 ký tự (Đầy đủ Cốt truyện & Đỉnh cao CTR)'),
-        item('Từ khóa chủ đề trong tiêu đề & Triple Match', kw_in_title, 15, 'Khớp từ khóa mục tiêu hoặc cụm chủ đề chính'),
-        item('Mô tả chuẩn SEO Hollywood (>1000 ký tự, Hook trên nếp gấp)', d_len_ok, 20, f'{d_len}/5000 ký tự (Đầy đủ cốt truyện & Lore)'),
-        item('Từ khóa chủ đề trong mô tả (Nếp gấp 200 ký tự đầu)', kw_in_desc, 15, 'Khớp từ khóa mục tiêu trong phần mô tả'),
-        item('Phân đoạn Chapters & Timestamps (Bắt đầu 00:00)', has_chapters, 15, f"{len(chapters)} phân đoạn (Chuẩn Google Key Moments)"),
-        item('Thẻ Tags phủ sóng thuật toán (400-500 ký tự)', tags_ok, 15, f'{tag_count} tags, {tag_chars}/500 ký tự (Đa tầng thực thể)')
+        item('Tiêu đề chuẩn CTR (45-95 ký tự)', t_score, 20, t_detail, pass_threshold=18),
+        item('Từ khóa chính trong tiêu đề (Triple Match)', kw_title_score, 15, kw_title_detail, pass_threshold=15),
+        item('Mô tả sâu & mật độ từ khóa tự nhiên', d_score, 20, d_detail, pass_threshold=18),
+        item('Từ khóa nằm ngay 220 ký tự đầu mô tả', fold_score, 15, fold_detail, pass_threshold=15),
+        item('Phân đoạn Chapters & Timestamps (từ 00:00)', chap_score, 15, chap_detail, pass_threshold=15),
+        item('Thẻ Tags phủ sóng & trùng cụm Tiêu đề', tag_score, 15, tag_detail, pass_threshold=13),
     ]
     total = sum(c['score'] for c in checks)
     return {
         'source': 'vidiq_actionable_100_audit',
-        'label': 'Kiểm tra VidIQ & YouTube SEO Thực Chiến',
+        'label': 'Kiểm tra VidIQ & YouTube SEO Thực Chất',
         'total_score': total,
         'max_score': 100,
         'actionable_score': total,
         'max_actionable': 100,
-        'performance_score': 100 if total >= 95 else (90 if total >= 80 else 75),
+        'performance_score': total,
         'max_performance': 100,
-        'rating': f'VidIQ SEO Thực Chiến: {total}/100 ({"VIRAL_MASTER_A_PLUS" if total == 100 else ("A_EXCELLENT" if total >= 90 else "B_STANDARD")})',
+        'title_overlap_tags': title_overlap,
+        'keyword_density_desc': kw_desc_hits,
+        'rating': f'VidIQ SEO Thực Chất: {total}/100 ({"VIRAL_MASTER_A_PLUS" if total >= 95 else ("A_EXCELLENT" if total >= 85 else ("B_NEEDS_ALIGN" if total >= 65 else "LOW_SCORE_NEEDS_FIX"))})',
         'breakdown': checks,
         'limitations': []
     }
@@ -1268,7 +1459,7 @@ def calculate_publishing_schedule(language='auto', genre='auto'):
 
 
 def enrich(package):
-    # 1. Upgrade Titles & Ensure 100/100 Golden Length & Structure
+    # 1. Upgrade Titles cleanly while preserving grounded content
     titles_list = package.get('titles') or []
     if titles_list:
         ctx_stub = {
@@ -1286,11 +1477,67 @@ def enrich(package):
                 upgraded = ensure_high_ctr_title(entry['title'], entry.get('type', ''), ctx_stub, idx=idx)
                 entry['title'] = upgraded
                 entry['char_count'] = len(upgraded)
-                entry['seo_score'] = 100 if idx == 0 else (98 if idx == 1 else 96)
-                entry['ctr_potential'] = "Đỉnh Cao (Top 1% CTR)" if idx == 0 else "Rất Cao (Top 3% CTR)"
         if titles_list and isinstance(titles_list[0], dict) and titles_list[0].get('title'):
             package['best_title'] = titles_list[0]['title']
             package['primary_title'] = titles_list[0]['title']
+
+    # 1b. Align primary_keyword strictly with best_title for real VidIQ Triple Match
+    aligned_kw = align_primary_keyword_with_title(
+        package.get('best_title') or '',
+        package.get('primary_keyword') or '',
+        language=package.get('language', 'Spanish'),
+        genre=package.get('genre', 'stoic'),
+    )
+    if aligned_kw:
+        package['primary_keyword'] = aligned_kw
+
+    # 1c. Ensure opening 220 chars & body of description contain primary_keyword naturally (>= 2 hits)
+    cur_desc = str(package.get('description') or '').strip()
+    if aligned_kw and cur_desc:
+        norm_kw = normalize(aligned_kw)
+        norm_fold = normalize(cur_desc[:220])
+        if norm_kw and norm_kw not in norm_fold:
+            lang_lower = str(package.get('language', 'Spanish')).lower()
+            if _is_es_lang(lang_lower):
+                lead = f"Sobre {aligned_kw}: "
+            elif 'vie' in lang_lower or 'vi' in lang_lower:
+                lead = f"Chủ đề {aligned_kw}: "
+            else:
+                lead = f"Exploring {aligned_kw}: "
+            cur_desc = lead + cur_desc[0:1].lower() + cur_desc[1:]
+        norm_desc = normalize(cur_desc)
+        if norm_kw and norm_desc.count(norm_kw) < 2:
+            lang_lower = str(package.get('language', 'Spanish')).lower()
+            if _is_es_lang(lang_lower):
+                reinforce = f"Enfoque clave: {aligned_kw}."
+            elif 'vie' in lang_lower or 'vi' in lang_lower:
+                reinforce = f"Nội dung trọng tâm: {aligned_kw}."
+            else:
+                reinforce = f"Core focus: {aligned_kw}."
+            if "\n\n#" in cur_desc:
+                body_p, hash_p = cur_desc.rsplit("\n\n#", 1)
+                cur_desc = f"{body_p}\n\n{reinforce}\n\n#{hash_p}"
+            else:
+                cur_desc = f"{cur_desc}\n\n{reinforce}"
+        package['description'] = cur_desc[:4950]
+
+    # 1d. Sync Tags cleanly with best_title + primary_keyword (real Triple Match)
+    try:
+        from seo_genre_profiles import enrich_and_maximize_tags
+        synced_tags = enrich_and_maximize_tags(
+            base_tags=package.get('tags') or [],
+            primary_kw=aligned_kw or package.get('primary_keyword', ''),
+            genre=package.get('genre', 'documentary'),
+            language=package.get('language', 'Spanish'),
+            series_name=package.get('series', ''),
+            episode_num=int(package.get('episode') or 1),
+            subj=aligned_kw or '',
+            title_text=package.get('best_title') or '',
+        )
+        if synced_tags:
+            package['tags'] = synced_tags
+    except Exception:
+        pass
 
     # 2. Ensure chapters start at 00:00 and have at least 3 chapters
     raw_chapters = package.get('chapters') or []
@@ -1306,7 +1553,7 @@ def enrich(package):
 
     if not chapters or len(chapters) < 3 or chapters[0].get('time') != '00:00':
         lang_lower = str(package.get('language', 'Spanish')).lower()
-        if 'spa' in lang_lower or 'es' in lang_lower:
+        if _is_es_lang(lang_lower):
             chapters = [
                 {'time': '00:00', 'title': 'Introducción y El Desafío'},
                 {'time': '00:15', 'title': 'El Secreto de la Calma Consciente'},
@@ -1326,8 +1573,8 @@ def enrich(package):
             ]
         package['chapters'] = chapters
 
-    # 3. Check Metadata on the UPGRADED titles & content (Guaranteed 100/100)
-    package['metadata_checks'] = check_metadata(
+    # 3. Check Metadata honestly (NO fake 100/100!)
+    meta = check_metadata(
         package.get('best_title'),
         package.get('description'),
         package.get('tags'),
@@ -1335,25 +1582,44 @@ def enrich(package):
         package.get('chapters'),
         package.get('pinned_comment')
     )
-    package['vidiq_score'] = package['metadata_checks']
+    package['metadata_checks'] = meta
+    package['vidiq_score'] = meta
     package.setdefault('official_vidiq', {'status': 'not_connected', 'source': None, 'total_score': None, 'measured_at': None})
     package['youtube_analytics'] = {'status': 'not_measured', 'ctr': None, 'watch_time': None, 'retention': None}
     package['publishing_schedule'] = calculate_publishing_schedule(package.get('language', 'auto'), package.get('genre', 'auto'))
     package['market_benchmark'] = unknown_market()
 
-    thumb = thumbnail_check(package.get('thumbnail_file'))
+    thumb = thumbnail_check(package.get('thumbnail_file'), genre=package.get('genre', 'stoic'))
     package['thumbnail_vidiq_scorecard'] = thumb
     package['thumbnail_checks'] = thumb
 
-    package['component_scores'] = {
-        'title': {'score': '100/100', 'rating': 'Chuẩn Vàng CTR (70-95 ký tự)'},
-        'description': {'score': '100/100', 'rating': 'Chuẩn SEO Hollywood (>1000 ký tự)'},
-        'tags': {'score': '100/100', 'rating': 'Phủ Sóng Thuật Toán (450/500 ký tự)'},
-        'thumbnail': {'score': f"{max(thumb.get('total_score', 95), 95)}/100", 'rating': 'Kỹ thuật ảnh Chuẩn A+'}
-    }
+    bd = meta.get('breakdown') or []
+    t_pts = round(((bd[0]['score'] + bd[1]['score']) / 35.0) * 100) if len(bd) >= 2 else meta.get('total_score', 0)
+    d_pts = round(((bd[2]['score'] + bd[3]['score']) / 35.0) * 100) if len(bd) >= 4 else meta.get('total_score', 0)
+    tg_pts = round((bd[5]['score'] / 15.0) * 100) if len(bd) >= 6 else meta.get('total_score', 0)
+    th_pts = int(thumb.get('total_score') or 0)
 
-    for entry in package.get('titles') or []:
-        entry['review_status'] = 'Đề xuất biên tập; chưa đo hiệu quả'
+    # Reflect honest title scores from actual Triple-Match alignment
+    for idx, entry in enumerate(titles_list):
+        if isinstance(entry, dict):
+            single_meta = check_metadata(
+                entry.get('title', ''),
+                package.get('description'),
+                package.get('tags'),
+                align_primary_keyword_with_title(entry.get('title', ''), package.get('primary_keyword', ''), language=package.get('language', 'Spanish')),
+                package.get('chapters'),
+            )
+            s_val = int(single_meta.get('total_score', 0))
+            entry['seo_score'] = s_val
+            entry['ctr_potential'] = "Đỉnh Cao (Top 1% CTR)" if s_val >= 95 else ("Rất Cao (Top 5% CTR)" if s_val >= 85 else "Cần tối ưu thêm từ khóa")
+            entry['review_status'] = 'Đề xuất biên tập; chưa đo hiệu quả'
+
+    package['component_scores'] = {
+        'title': {'score': f'{t_pts}/100', 'rating': 'Chuẩn CTR & Từ khóa' if t_pts >= 90 else 'Cần khớp từ khóa tiêu đề'},
+        'description': {'score': f'{d_pts}/100', 'rating': 'Chuẩn SEO Mô tả' if d_pts >= 90 else 'Cần bổ sung từ khóa mở đầu'},
+        'tags': {'score': f'{tg_pts}/100', 'rating': 'Triple Match Chuẩn' if tg_pts >= 90 else 'Cần tăng tag trùng tiêu đề'},
+        'thumbnail': {'score': f'{th_pts}/100', 'rating': f"Kỹ thuật ảnh {thumb.get('vidiq_grade', 'HD')}"}
+    }
 
     options = package.get('thumbnail_options') or []
     package['thumbnail_options'] = [opt for opt in options if 'short' not in str(opt.get('file', '')).lower() and '9:16' not in str(opt.get('label', '')).lower()][:1]

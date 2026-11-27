@@ -49,31 +49,28 @@ def create_gemini_star_mask(height: int, width: int) -> np.ndarray:
             cv2.circle(mask, (cx1, cy1), r, 255, -1)
             cv2.circle(mask, (cx2, cy2), r, 255, -1)
     else:
-        # 16:9 landscape ratio (e.g. 1280x720 or 1536x864)
-        # 1. Google Flow Image actual coordinate (1536x864): ~92.4% W, ~83.6% H
-        cx_flow = int(round(width * 0.9238))
-        cy_flow = int(round(height * 0.8356))
-        r_flow = max(48, int(round(width * 0.045)))
-
-        # 2. Google Flow Video coordinate (Omni 1.1 Flash / Veo): ~90.6% W, ~83.3% H
-        cx_vid = int(round(width * (1160.0 / 1280.0)))
-        cy_vid = int(round(height * (600.0 / 720.0)))
-        r_vid = max(36, int(round(width * 0.040)))
-
-        # 3. Imagen 3 Image coordinate: ~93.0% W, ~86.8% H
-        cx_img = int(round(width * (1428.0 / 1536.0)))
-        cy_img = int(round(height * (750.0 / 864.0)))
-        r_img = max(36, int(round(width * 0.040)))
+        # 16:9 landscape ratio (e.g. 1280x720, 1376x768, 1536x864)
+        # Surgical Imagen 3 / Flow star coordinate: ~93.0% W, ~88.2% H
+        cx_flow = int(round(width * 0.9302))
+        cy_flow = int(round(height * 0.8828))
+        r_flow = max(24, int(round(width * 0.021)))
 
         if cv2 is not None:
-            cv2.circle(mask, (cx_flow, cy_flow), r_flow, 255, -1)
-            cv2.circle(mask, (cx_vid, cy_vid), r_vid, 255, -1)
-            cv2.circle(mask, (cx_img, cy_img), r_img, 255, -1)
+            # Diamond polygon for exact star shape
+            hw = int(round(r_flow * 0.9))
+            hh = int(round(r_flow * 1.15))
+            pts = np.array([
+                [cx_flow, cy_flow - hh],
+                [cx_flow + hw, cy_flow],
+                [cx_flow, cy_flow + hh],
+                [cx_flow - hw, cy_flow]
+            ], dtype=np.int32)
+            cv2.fillPoly(mask, [pts], 255)
 
-    # 9x9 elliptical dilation with 2 iterations to seamlessly capture outer translucent anti-aliased glow
+    # 5x5 elliptical dilation with 1 iteration for surgical inpainting without smearing
     if cv2 is not None:
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
-        mask = cv2.dilate(mask, kernel, iterations=2)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask = cv2.dilate(mask, kernel, iterations=1)
     return mask
 
 

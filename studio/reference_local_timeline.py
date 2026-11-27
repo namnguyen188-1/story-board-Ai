@@ -90,7 +90,7 @@ def observed_frames(video_path:Path,cache_dir:Path, duration_seconds:float)->lis
         result.append({"timestamp_seconds": target_at, "frame_path": str(jpg)})
     return result
 
-def frame_timeline_batch(frames:list[dict],client,model="gemini-3.8-flash")->list[dict]:
+def frame_timeline_batch(frames:list[dict],client,model="gemini-flash-lite-latest")->list[dict]:
     from google.genai import types
     if not 1<=len(frames)<=4:
         raise CloneEvidenceError("REFERENCE_TIMELINE_INVALID_BATCH")
@@ -137,7 +137,7 @@ def frame_timeline_batch(frames:list[dict],client,model="gemini-3.8-flash")->lis
     return results
 
 def analyze_local_sampled_timeline(video_path:Path, duration_minutes:float,
-                                   cache_dir:Path, *,client=None,model="gemini-3.8-flash")->dict:
+                                   cache_dir:Path, *,client=None,model="gemini-flash-lite-latest")->dict:
     from resilient_gemini import ResilientClient,get_all_api_keys
     if client is None:
         keys=get_all_api_keys()

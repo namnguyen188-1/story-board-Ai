@@ -70,23 +70,21 @@ def sanitize_statue_terms(text: str, genre: str = "stoic") -> str:
 
     if str(genre or "").strip().lower() in ("stoic", "philosophy"):
 
-        t = re.sub(r'(?i)\b(half[- ]?body\s+)?(marble\s+)?busts?\b', 'heroic monumental classical Carrara marble statue with unbroken complete arms', t)
+        t = re.sub(r'(?i)\b(half[- ]?body\s+)?(marble\s+)?busts?\b', 'heroic monumental standing Carrara marble statue with unbroken complete anatomy', t)
 
-        t = re.sub(r'(?i)\btượng\s+bán\s+thân\b', 'tượng cẩm thạch cơ bắp vạm vỡ đầy đủ hai cánh tay nguyên vẹn', t)
+        t = re.sub(r'(?i)\btượng\s+bán\s+thân\b', 'tượng cẩm thạch toàn thân đứng uy nghi trên thềm đá cổ La Mã đầy đủ chân tay nguyên vẹn', t)
 
-        t = re.sub(r'(?i)\btượng\s+nửa\s+người\b', 'tượng cẩm thạch đứng uy nghi đầy đủ hai cánh tay nguyên vẹn', t)
+        t = re.sub(r'(?i)\btượng\s+nửa\s+người\b', 'tượng cẩm thạch toàn thân đứng uy nghi đầy đủ đầu mình chân tay nguyên vẹn', t)
 
-        t = re.sub(r'(?i)\b(on|upon)\s+(a\s+)?([a-z\s]+)?pedestal\b', 'among ancient Roman marble colonnades', t)
+        t = re.sub(r'(?i)\b(on|upon)\s+(a\s+)?([a-z\s]+)?pedestal\b', 'standing proudly on ancient Roman marble steps', t)
 
-        t = re.sub(r'(?i)\b([a-z\s]+)?pedestals?\b', 'ancient Roman colonnade', t)
+        t = re.sub(r'(?i)\b([a-z\s]+)?pedestals?\b', 'ancient Roman forum stone steps', t)
 
-        t = re.sub(r'(?i)\b(half[- ]?body|torso[- ]only|waist[- ]up)(\s+statue|\s+sculpture)?\b', 'heroic medium torso statue with complete intact arms', t)
+        t = re.sub(r'(?i)\b(half[- ]?body|torso[- ]only|waist[- ]up)(\s+statue|\s+sculpture)?\b', 'heroic full-body standing statue with complete intact anatomy from head to feet', t)
 
-        t = re.sub(r'(?i)\b(broken|ruined|headless|armless|damaged|fragmented|amputated)\s+(statue|sculpture|marble|torso|limbs?)\b', 'magnificent unbroken intact classical Carrara marble statue', t)
+        t = re.sub(r'(?i)\b(broken|ruined|headless|armless|damaged|fragmented|amputated)\s+(statue|sculpture|marble|torso|limbs?)\b', 'magnificent unbroken intact full-figure Carrara marble statue', t)
 
-        t = re.sub(r'(?i)\b(severed|broken|missing)\s+(arms?|hands?|limbs?)\b', 'fully sculpted unbroken muscular arms and natural hands', t)
-
-        t = re.sub(r'(?i)\b(living\s+human\s+flesh|real\s+human\s+skin|skin\s+pores|vascular\s+veins|cosplay)\b', 'classical carved Carrara marble stone', t)
+        t = re.sub(r'(?i)\b(severed|broken|missing)\s+(arms?|hands?|limbs?|legs?|feet)\b', 'fully sculpted unbroken limbs and natural posture', t)
 
 
 
@@ -102,11 +100,11 @@ STOIC_CINEMATIC_BEATS = [
 
     {
 
-        "action": "A monumental heroic classical carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, medium shot torso framing occupying frame. Imposing athletic demigod anatomy, massive broad shoulders, chiseled chest pecs, fully sculpted unbroken muscular stone arms seamlessly attached extending naturally, thick curly beard and calm contemplative stone eyes, signature royal crimson draped linen toga over one shoulder.",
+        "action": "A monumental heroic full-figure standing classical Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, standing tall and proud on Roman Forum marble steps, complete unbroken body from head to feet, majestic athletic anatomy, massive broad shoulders, fully intact sculpted muscular arms, thick curly beard and calm contemplative eyes, signature royal crimson draped linen toga over one shoulder.",
 
-        "setup": "Medium shot torso framing, imposing heroic stance, warm golden sunrise key light highlighting muscular stone chest and shoulders against grand ancient Roman palace colonnades at dawn with floating golden embers.",
+        "setup": "Full-body heroic framing, imposing standing posture on grand ancient Roman palace marble colonnades at dawn with floating golden embers, warm golden sunrise key light, never severed torso, never floating bust.",
 
-        "keywords": ["imperial terrace", "sunrise chiaroscuro", "unbroken marble statue"]
+        "keywords": ["imperial terrace", "sunrise chiaroscuro", "unbroken full-body statue"]
 
     },
 
@@ -114,11 +112,11 @@ STOIC_CINEMATIC_BEATS = [
 
     {
 
-        "action": "Inside a majestic ancient Roman imperial hall, the monumental carved Carrara marble statue of Marcus Aurelius in medium heroic framing, powerful chiseled pectoral chest and sculpted deltoids illuminated by flickering warm candlelight and bronze torchlight casting dramatic chiaroscuro shadows across the weathered stone fissures.",
+        "action": "Inside a majestic ancient Roman imperial hall, the monumental standing statue of Marcus Aurelius in imposing full-height heroic posture, standing firmly on the polished stone floor, illuminated by flickering warm candlelight and bronze torchlight casting dramatic chiaroscuro shadows across the weathered stone fissures.",
 
-        "setup": "Medium shot torso framing, three-quarter heroic profile, warm amber flame highlights, dark atmospheric imperial study backdrop with shelves of antique parchment scrolls.",
+        "setup": "Full-figure standing framing, three-quarter heroic profile, warm amber flame highlights, dark atmospheric imperial study backdrop with shelves of antique parchment scrolls, never severed torso, never floating bust.",
 
-        "keywords": ["imperial study", "candlelight chiaroscuro", "chiseled marble torso"]
+        "keywords": ["imperial study", "candlelight chiaroscuro", "standing marble statue"]
 
     },
 
@@ -126,11 +124,11 @@ STOIC_CINEMATIC_BEATS = [
 
     {
 
-        "action": "Standing before the towering monumental stone arches and colonnades of ancient Rome at golden hour, the colossal Carrara marble statue of Marcus Aurelius in imposing heroic torso framing, cinematic sunlight casting deep heroic shadows across the sculpted stone chest and draped crimson toga.",
+        "action": "Standing before the towering monumental stone arches and colonnades of ancient Rome at golden hour, the colossal standing statue of Marcus Aurelius in imposing heroic full-body posture, complete unbroken figure from head to feet, cinematic sunlight casting deep heroic shadows across the sculpted stone figure and draped crimson toga.",
 
-        "setup": "Heroic medium torso framing, dramatic golden backlight, ancient Roman monumental arches and stone pillars in background, unbroken complete stone arms, no people in frame.",
+        "setup": "Heroic full-body standing framing on Roman steps, dramatic golden backlight, ancient Roman monumental arches and stone pillars in background, unbroken complete figure, no people in frame.",
 
-        "keywords": ["Roman arches", "golden hour heroic", "monumental marble statue"]
+        "keywords": ["Roman arches", "golden hour heroic", "monumental standing statue"]
 
     },
 
@@ -138,11 +136,11 @@ STOIC_CINEMATIC_BEATS = [
 
     {
 
-        "action": "The imposing classical Carrara marble statue of Marcus Aurelius standing resolute in a sun-dappled stone courtyard among ancient Roman olive trees, natural golden sunlight filtering through leaves highlighting the chiseled stone pecs, broad shoulders, and draped crimson toga.",
+        "action": "The imposing classical Carrara marble statue of Marcus Aurelius standing tall and resolute in a sun-dappled stone courtyard among ancient Roman olive trees, natural golden sunlight filtering through leaves, complete unbroken anatomy standing firmly on stone steps, draped crimson toga.",
 
-        "setup": "Medium heroic torso framing, natural daylight with soft shadows, ancient olive grove and stone arches in background, unbroken complete stone arms.",
+        "setup": "Full-length heroic standing framing, natural daylight with soft shadows, ancient olive grove and stone arches in background, complete unbroken statue from head to toe.",
 
-        "keywords": ["olive grove courtyard", "dappled sunlight", "heroic marble statue"]
+        "keywords": ["olive grove courtyard", "dappled sunlight", "heroic standing statue"]
 
     },
 
@@ -150,11 +148,11 @@ STOIC_CINEMATIC_BEATS = [
 
     {
 
-        "action": "Inside the vast monumental interior of the Roman Pantheon, the towering classical Carrara marble statue of Marcus Aurelius in medium heroic framing, a dramatic divine shaft of golden sunlight descending through the central ceiling oculus onto the sculpted muscular shoulders and crimson toga.",
+        "action": "Inside the vast monumental interior of the Roman Pantheon, the towering classical standing statue of Marcus Aurelius in full heroic framing, standing tall on the marble floor, a dramatic divine shaft of golden sunlight descending through the central ceiling oculus onto the complete standing statue.",
 
-        "setup": "Medium shot torso framing, dramatic volumetric god-rays from ceiling oculus, monumental fluted marble columns and polished stone floor in background.",
+        "setup": "Full-body standing shot, dramatic volumetric god-rays from ceiling oculus, monumental fluted marble columns and polished stone floor in background, never severed torso.",
 
-        "keywords": ["Pantheon interior", "oculus god-rays", "divine marble statue"]
+        "keywords": ["Pantheon interior", "oculus god-rays", "divine standing statue"]
 
     },
 
@@ -370,7 +368,7 @@ def image_prompt(scene,bible):
 
                 "Masterpiece, photorealistic 8k, sharp focus. "
 
-                "Absolutely no living human flesh, no real skin pores, no severed arms, no amputated limbs, no missing hands, no missing fingers, no hands cropped out, no arm stumps, no broken statues, no tabletop pedestals, no floating busts, no cartoon"
+                "Complete unbroken sculptured statue, fully intact arms and hands with complete natural proportions, continuous single composition, no tabletop pedestals, no floating busts, no cartoon"
 
             )
 
@@ -487,9 +485,24 @@ def image_prompt(scene,bible):
             elif not is_collage_artifact and len(clean_clone) < 220 and clean_clone.lower() not in scene_desc.lower() and should_anchor_protagonist:
                 prompt_parts.append(f"Subject reference: {clean_clone[:200]}")
 
+            is_graphic_scene = any(kw in scene_desc.lower() or kw in setup.lower() for kw in (
+                "graphic illustration", "illustration of", "virus", "lungs", "diagram",
+                "infographic", "chart", "map", "timeline", "icon", "symbols", "graphic animation"
+            )) and not re.search(r'(?i)\b(woman|man|person|historian|soldier|king|queen|girl|boy)\b', scene_desc)
+
+            if is_graphic_scene:
+                prompt_parts = [
+                    f"Clean 2D flat vector graphic illustration, {aspect_desc}",
+                    f"Scene: {scene_desc}",
+                    f"Framing: {setup}" if setup and setup.lower() not in scene_desc.lower() else "",
+                    "Art style: Modern clean documentary 2D motion-graphics illustration on a full-bleed dark atmospheric background, vivid glowing accents, stylized scientific/educational graphic only, edge-to-edge full canvas with zero white margins, zero borders, zero human body, zero text overlays, zero watermarks"
+                ]
+                full_prompt = ". ".join(p.rstrip(". ") for p in prompt_parts if p)
+                return re.sub(r'\s{2,}', ' ', full_prompt).strip()[:1000]
+
             prompt_parts.append(f"Art style: {style_snippet}")
 
-        prompt_parts.append("Masterpiece, cinematic lighting, photorealistic 8k, ultra-detailed. Single continuous image filling entire canvas from top to bottom and edge to edge, single shot only, absolutely no split screen, no collage, no diptych, no dual panels, no white lines, no borders, no filmstrip, no perforated margins, no text overlays, no watermarks, no distorted faces, no pedestals.")
+        prompt_parts.append("Masterpiece, cinematic lighting, photorealistic 8k, ultra-detailed. Single continuous image filling entire canvas from top to bottom and edge to edge, single shot only, absolutely no split screen, no collage, no diptych, no dual panels, no white lines, no borders, no filmstrip, no perforated margins, no text overlays, no watermarks, no distorted faces, no pedestals. All characters fully clothed in respectable modest attire. Strictly no nudity, no bare torso, no exposed chest, no cleavage, no bath towels, no underwear.")
 
         full_prompt = ". ".join(p.rstrip(". ") for p in prompt_parts if p)
 
@@ -539,37 +552,43 @@ def image_prompt(scene,bible):
 
             return txt
 
-        txt = re.sub(r'(?i)\b(half[- ]?body\s+)?(marble\s+)?busts?\b', 'heroic monumental classical Carrara marble statue with unbroken complete arms', txt)
+        # Eradicate half-body / bust / pedestal artifacts
 
-        txt = re.sub(r'(?i)\btượng\s+bán\s+thân\b', 'tượng cẩm thạch cơ bắp vạm vỡ đầy đủ hai cánh tay nguyên vẹn', txt)
+        txt = re.sub(r'(?i)\b(half[- ]?body\s+)?(marble\s+)?busts?\b', 'heroic monumental standing Carrara marble statue with complete unbroken anatomy from head to feet', txt)
 
-        txt = re.sub(r'(?i)\bpedestals?\b', 'ancient Roman colonnade', txt)
+        txt = re.sub(r'(?i)\btượng\s+bán\s+thân\b', 'tượng cẩm thạch toàn thân đứng uy nghi trên thềm đá cổ La Mã đầy đủ chân tay nguyên vẹn', txt)
 
-        txt = re.sub(r'(?i)\b(broken|ruined|headless|armless|damaged|fragmented|amputated)\s+(statue|sculpture|marble|torso|limbs?)\b', 'magnificent unbroken intact classical Carrara marble statue', txt)
+        txt = re.sub(r'(?i)\btượng\s+nửa\s+người\b', 'tượng cẩm thạch toàn thân đứng uy nghi đầy đủ đầu mình chân tay nguyên vẹn', txt)
 
-        txt = re.sub(r'(?i)\b(severed|broken|missing)\s+(arms?|hands?|limbs?)\b', 'fully sculpted unbroken muscular arms and natural hands', txt)
+        txt = re.sub(r'(?i)\bpedestals?\b', 'ancient Roman forum stone steps', txt)
 
-        txt = re.sub(r'(?i)\b(living|human\s+flesh|real\s+skin|skin\s+pores|vascular\s+veins|cosplay)\b', 'classical carved Carrara marble stone', txt)
+        txt = re.sub(r'(?i)\b(broken|ruined|headless|armless|damaged|fragmented|amputated)\s+(statue|sculpture|marble|torso|limbs?)\b', 'magnificent unbroken intact full-body Carrara marble statue', txt)
 
-        statue_traits = (
+        txt = re.sub(r'(?i)\b(severed|broken|missing)\s+(arms?|hands?|limbs?|legs?)\b', 'fully sculpted unbroken limbs and natural standing posture', txt)
 
-            "Monumental heroic classical carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, medium shot torso framing. "
+        txt = re.sub(r'(?i)\b(torso\s+framing|torso[- ]only|chest[- ]up\s+bust)\b', 'full-body standing heroic framing', txt)
 
-            "Deeply sculpted hyper-muscular anatomy, colossal broad stone shoulders, powerfully chiseled pectoral chest muscles, thick sculpted stone neck, "
+        # Check if the scene is intended as a living actor or a statue
 
-            "fully sculpted unbroken muscular stone arms seamlessly attached extending naturally, majestic curly stone beard and contemplative stone eyes, "
+        is_living_actor = any(w in txt.lower() for w in ("living", "actor", "real skin", "skin pores", "human flesh", "live-action"))
 
-            "signature royal crimson draped linen toga cascading over one shoulder. "
+        if not is_living_actor:
 
-            "Authentic weathered Carrara marble texture with smooth chisel marks, 100% pure classical stone sculpture, "
+            statue_traits = (
 
-            "absolutely no living human flesh, no real skin pores, no severed arms, no amputated limbs, no tabletop pedestal, no floating bust, no wide shot"
+                "Monumental heroic full-body standing classical Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, standing tall on grand Roman stone steps. "
 
-        )
+                "Complete unbroken anatomy from head to feet, massive broad stone shoulders, fully sculpted unbroken muscular stone arms, "
 
-        if "carrara marble" not in txt.lower():
+                "majestic curly stone beard and contemplative stone eyes, signature royal crimson draped linen toga cascading elegantly over one shoulder. "
 
-            txt = f"{statue_traits}, {txt}"
+                "Authentic weathered Carrara marble texture with fine chisel marks, complete continuous statue, never floating bust, never pedestal"
+
+            )
+
+            if "carrara marble" not in txt.lower() and "statue" not in txt.lower():
+
+                txt = f"{statue_traits}, {txt}"
 
         return txt
 
@@ -645,19 +664,17 @@ def image_prompt(scene,bible):
 
         anti_cutoff = (
 
-            "Medium shot torso framing occupying frame, full sculpted head, thick muscular neck, colossal broad stone shoulders, "
+            "Monumental heroic full-figure standing composition, Marcus Aurelius standing tall on grand ancient Roman forum marble steps, "
 
-            "powerfully chiseled pectoral chest muscles, both stone arms fully intact, sculpted and unbroken, completely attached, "
+            "complete unbroken anatomy from head to feet, both arms fully sculpted and intact, noble bearded face, elegant draped royal crimson toga. "
 
-            "unbroken classical Carrara marble sculpture, anatomically complete. "
-
-            "Never living human flesh, no real skin pores, no severed arms, no amputated limbs, no stump arms, no tabletop pedestal, no floating bust, no wide shot, no tiny distant figures."
+            "Complete sculpted figure, fully intact arms and continuous frame, never floating bust, never pedestal, never split screen."
 
         )
 
         beat = STOIC_CINEMATIC_BEATS[(scene_num - 1) % len(STOIC_CINEMATIC_BEATS)]
 
-        is_static_generic = any(kw in scene_core.lower() for kw in ("stands in", "standing", "statue", "pedestal", "solitary figure")) or len(scene_core) < 20
+        is_static_generic = (len(scene_core) < 25)
 
         if is_static_generic:
 
@@ -667,17 +684,31 @@ def image_prompt(scene,bible):
 
 
 
+        is_actor = any(w in scene_core.lower() for w in ("living", "actor", "real skin", "skin pores", "human flesh", "live-action"))
+
+        art_style_stoic = (
+
+            "Art style: authentic live-action 8k historical cinema, rich Mediterranean bronze skin tones, dramatic golden chiaroscuro lighting, ancient Roman imperial palace. "
+
+            if is_actor else
+
+            "Art style: authentic neoclassical Carrara marble monumental sculpture photography, dramatic golden chiaroscuro lighting, grand ancient Roman colonnade with torch embers. "
+
+        )
+
+
+
         short_prompt = (
 
             f"Cinematic {ratio_tag} photograph, {aspect_desc} "
 
             f"{scene_core}.{comp_core} {anti_cutoff} "
 
-            "Art style: authentic neoclassical Carrara marble sculpture photography, dramatic golden chiaroscuro lighting, ancient Roman colonnade ruins with torch embers. "
+            f"{art_style_stoic}"
 
             "High quality, rich atmosphere, photorealistic 8k, sharp focus. "
 
-            "Single continuous image filling entire canvas from edge to edge, single shot only, absolutely no split screen, no collage, no diptych, no dual panels, no borders, no text overlays, no watermarks, no distorted faces, no living human flesh, no real skin, no broken arms, no severed arms, no amputee."
+            "Single continuous image filling entire canvas from edge to edge, single shot only, absolutely no split screen, no collage, no diptych, no dual panels, no borders, no text overlays, no watermarks, no distorted faces, complete intact statue."
 
         )
 
@@ -749,7 +780,7 @@ def image_prompt(scene,bible):
 
             "High quality, rich atmosphere, natural lighting, photorealistic 8k. "
 
-            "Single continuous image filling entire canvas from edge to edge, single shot only, absolutely no split screen, no collage, no diptych, no dual panels, no borders, no filmstrip, no perforated margins, no text overlays, no watermarks, no distorted faces, no broken arms, no severed arms, no amputee, no missing limbs, no broken ruins."
+            "Single continuous image filling entire canvas from edge to edge, single shot only, absolutely no split screen, no collage, no diptych, no dual panels, no borders, no filmstrip, no perforated margins, no text overlays, no watermarks, complete intact subjects, cinematic framing."
 
         )
 
@@ -1047,7 +1078,11 @@ def generate_episode_images(scenes,bible,*,series,episode,episode_dir,max_new_im
 
         raise StudioMcpImageError(str(exc)) from exc
 
-
+    try:
+        from engine_orchestrator import close_engine_browser
+        close_engine_browser("chatgpt")
+    except Exception:
+        pass
 
     from studio_flow_accounts import apply_worker_env
 

@@ -109,12 +109,23 @@ def validate_vad_anchor(words, speech_intervals, tolerance=0.12):
 
     A full-clip forced alignment can slide an isolated word across seconds of
     silence while still satisfying monotonic timestamp validation.
+    Allows words that overlap real speech acoustic energy (e.g. multi-voice dialogue pauses).
     """
     for word in words:
         midpoint = (float(word["start"]) + float(word["end"])) / 2
-        if not any(float(s["start"]) - tolerance <= midpoint <= float(s["end"]) + tolerance
-                   for s in speech_intervals):
-            raise RuntimeError(f"WORD_IN_SILENCE: speech anchor absent at {midpoint:.3f}s")
+        w_start = float(word["start"])
+        w_end = float(word["end"])
+        in_midpoint = any(float(s["start"]) - tolerance <= midpoint <= float(s["end"]) + tolerance
+                          for s in speech_intervals)
+        if in_midpoint:
+            continue
+        total_overlap = sum(
+            max(0.0, min(w_end, float(s["end"])) - max(w_start, float(s["start"])))
+            for s in speech_intervals
+        )
+        if total_overlap >= 0.08:
+            continue
+        raise RuntimeError(f"WORD_IN_SILENCE: speech anchor absent at {midpoint:.3f}s")
     return words
 
 def chunk_words(words):

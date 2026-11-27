@@ -96,6 +96,8 @@ import re
 
 import sys
 
+import time
+
 
 
 
@@ -301,6 +303,13 @@ import seo_quality as quality
 
 
 
+
+import importlib as _seo_imp
+import seo_genre_profiles as _seo_genre_profiles
+try:
+    _seo_imp.reload(_seo_genre_profiles)
+except Exception:
+    pass
 
 from seo_genre_profiles import (
 
@@ -1007,6 +1016,22 @@ def detect_episode_language_and_genre(episode_dir: Path, plan: dict) -> Tuple[st
 
 
         lang_clean = "Japanese"
+
+
+
+
+
+
+
+    elif ll in ("ko", "korean", "kr", "tiếng hàn", "hàn"):
+
+
+
+
+
+
+
+        lang_clean = "Korean"
 
 
 
@@ -2298,7 +2323,21 @@ def _parse_hook_lines(raw_hook: str, norm_genre: str = "documentary") -> list[st
 
 
 
+
+
+
+
     raw = str(raw_hook or "").strip()
+
+    try:
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            cjk_lines = ea.split_hook_if_cjk(raw, max_lines=3)
+            if cjk_lines:
+                return cjk_lines
+    except Exception:
+        pass
 
 
 
@@ -3926,7 +3965,7 @@ def generate_thumbnail_image(
 
 
 
-    font_scale: str = "standard",
+    font_scale: str = "viral",
 
 
 
@@ -4075,9 +4114,9 @@ def generate_thumbnail_image(
 
 
     try:
-
-
-
+        import importlib
+        import thumbnail_studio
+        importlib.reload(thumbnail_studio)
         from thumbnail_studio import render_pro_50_50_thumbnail
 
 
@@ -4103,6 +4142,10 @@ def generate_thumbnail_image(
 
 
             subject_side=preferred_side if preferred_side in ('left', 'right') else 'auto',
+
+
+
+            font_scale=font_scale or 'viral',
 
 
 
@@ -4450,86 +4493,26 @@ def generate_thumbnail_image(
 
 
 
-        # Sample ambient tones from footage for harmonious studio palette
-
-
-
+        # Preserve continuous natural scene brightness smoothly across 16:9 width (avoid flat dark box)
         im_np = np.array(im)
-
-
-
-        avg_color = np.mean(im_np[:int(h * 0.3), :], axis=(0, 1))
-
-
-
-        bg_base_r = max(10, min(36, int(avg_color[0] * 0.35)))
-
-
-
-        bg_base_g = max(12, min(38, int(avg_color[1] * 0.35)))
-
-
-
-        bg_base_b = max(18, min(48, int(avg_color[2] * 0.40)))
-
-
-
-
-
-
+        avg_color = np.mean(im_np[:int(h * 0.35), :], axis=(0, 1))
+        bg_base_r = max(24, min(88, int(avg_color[0] * 0.55)))
+        bg_base_g = max(24, min(88, int(avg_color[1] * 0.55)))
+        bg_base_b = max(28, min(96, int(avg_color[2] * 0.60)))
 
         canvas_arr = np.zeros((target_h, target_w, 3), dtype=np.uint8)
-
-
-
         for x_c in range(target_w):
-
-
-
-            factor = 1.0 - (x_c / float(target_w)) * 0.4
-
-
-
+            factor = 1.0 - (x_c / float(target_w)) * 0.22
             canvas_arr[:, x_c, 0] = int(bg_base_r * factor)
-
-
-
             canvas_arr[:, x_c, 1] = int(bg_base_g * factor)
-
-
-
             canvas_arr[:, x_c, 2] = int(bg_base_b * factor)
-
-
-
         canvas = Image.fromarray(canvas_arr)
 
-
-
-
-
-
-
         from PIL import ImageFilter
-
-
-
         bg_ambient = im.resize((target_w, target_h), Image.Resampling.BILINEAR)
-
-
-
-        bg_ambient = bg_ambient.filter(ImageFilter.GaussianBlur(35))
-
-
-
-        bg_ambient_np = np.array(bg_ambient, dtype=np.float32) * 0.28
-
-
-
-        canvas_np = np.array(canvas, dtype=np.float32) * 0.72 + bg_ambient_np
-
-
-
+        bg_ambient = bg_ambient.filter(ImageFilter.GaussianBlur(38))
+        bg_ambient_np = np.array(bg_ambient, dtype=np.float32) * 0.78
+        canvas_np = np.array(canvas, dtype=np.float32) * 0.22 + bg_ambient_np
         canvas = Image.fromarray(np.clip(canvas_np, 0, 255).astype(np.uint8))
 
 
@@ -4814,8 +4797,19 @@ def generate_thumbnail_image(
 
 
 
+    ea_cjk_font = None
+    try:
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            ea_cjk_font = ea.resolve_thumb_font_if_cjk(hook_text)
+    except Exception:
+        ea_cjk_font = None
+
     is_extended_unicode = any(ord(c) > 500 for c in str(hook_text or ""))
-    if is_extended_unicode:
+    if ea_cjk_font:
+        font_candidates = [ea_cjk_font]
+    elif is_extended_unicode:
         font_candidates = [
             "C:/Windows/Fonts/arialbd.ttf",
             "C:/Windows/Fonts/segoeuib.ttf",
@@ -7150,65 +7144,20 @@ def generate_thumbnail_image(
 
 
             if text_on_left:
-
-
-
                 text_start_x = safety_margin
-
-
-
                 max_allowed_w = text_zone_width - safety_margin
-
-
-
-                grad_span = text_zone_width + 80
-
-
-
+                grad_span = text_zone_width + 120
                 for x in range(0, grad_span, 4):
-
-
-
                     prog = x / grad_span
-
-
-
-                    alpha = int(220 * ((1.0 - prog) ** 1.3))
-
-
-
+                    alpha = int(45 * ((1.0 - prog) ** 1.6))
                     ov_draw.rectangle((x, 0, x + 4, target_h), fill=(0, 0, 0, alpha))
-
-
-
             else:
-
-
-
                 text_start_x = target_w - text_zone_width + safety_margin
-
-
-
                 max_allowed_w = text_zone_width - safety_margin
-
-
-
-                grad_span = text_zone_width + 80
-
-
-
+                grad_span = text_zone_width + 120
                 for x in range(target_w - grad_span, target_w, 4):
-
-
-
                     prog = (x - (target_w - grad_span)) / grad_span
-
-
-
-                    alpha = int(220 * (prog ** 1.3))
-
-
-
+                    alpha = int(45 * (prog ** 1.6))
                     ov_draw.rectangle((x, 0, x + 4, target_h), fill=(0, 0, 0, alpha))
 
 
@@ -8413,11 +8362,21 @@ def generate_shorts_thumbnail_cover(
 
 
 
+    ea_cjk_font_2 = None
+    try:
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            ea_cjk_font_2 = ea.resolve_thumb_font_if_cjk(hook_text)
+    except Exception:
+        ea_cjk_font_2 = None
+
     has_non_ascii = any(ord(c) > 127 for c in str(hook_text or ""))
 
+    if ea_cjk_font_2:
+        font_candidates = [ea_cjk_font_2]
 
-
-    if has_non_ascii:
+    elif has_non_ascii:
 
 
 
@@ -8807,6 +8766,156 @@ import('playwright-core').then(async ({{chromium}}) => {{
 
 
 
+def _ensure_flowkit_app_on_path() -> Optional[Path]:
+    """Ensure local workspace flowkit/app (or fallback D:/FLOWKIT/app) is importable."""
+    project_root = Path(__file__).resolve().parent.parent
+    for cand in (project_root / "flowkit" / "app", Path("D:/FLOWKIT/app")):
+        if cand.is_dir():
+            c_str = str(cand)
+            if c_str not in sys.path:
+                sys.path.insert(0, c_str)
+            return cand
+    return None
+
+
+def _finalize_ai_rendered_thumbnail(src_path: Path, dst_path: Path, is_short: bool = False) -> Path:
+    """Normalizes a finished ChatGPT/AI thumbnail to YouTube HD JPEG without stamping extra text.
+    If the image aspect ratio is slightly taller (e.g. 3:2 from ChatGPT) than 16:9, extends horizontal
+    margins smoothly from blurred edges so 100% of head/hat and typography remain uncropped.
+    """
+    from PIL import Image, ImageFilter
+    import numpy as np
+
+    target_w, target_h = (1080, 1920) if is_short else (1280, 720)
+    target_ratio = target_w / target_h
+    with Image.open(src_path) as im_raw:
+        im_raw.load()
+        im = im_raw.convert("RGB")
+        w, h = im.size
+        src_ratio = w / max(1, h)
+
+        if abs(src_ratio - target_ratio) <= 0.04:
+            final_im = im.resize((target_w, target_h), Image.Resampling.LANCZOS)
+        elif (not is_short) and src_ratio < target_ratio:
+            # Extend left/right backdrop smoothly so vertical height (hat, head, text) is 100% preserved
+            new_w = max(w + 2, int(round(h * target_ratio)))
+            if new_w % 2 != 0:
+                new_w += 1
+            pad_total = new_w - w
+            pad_l = pad_total // 2
+            pad_r = pad_total - pad_l
+
+            arr = np.array(im, dtype=np.float32)
+            strip_w = max(24, min(72, w // 12))
+            left_strip = Image.fromarray(np.fliplr(arr[:, :strip_w]).astype(np.uint8)).resize(
+                (pad_l + 24, h), Image.Resampling.BICUBIC
+            ).filter(ImageFilter.GaussianBlur(radius=14))
+            right_strip = Image.fromarray(np.fliplr(arr[:, -strip_w:]).astype(np.uint8)).resize(
+                (pad_r + 24, h), Image.Resampling.BICUBIC
+            ).filter(ImageFilter.GaussianBlur(radius=14))
+
+            canvas = Image.new("RGB", (new_w, h))
+            canvas.paste(left_strip.crop((0, 0, pad_l, h)), (0, 0))
+            canvas.paste(right_strip.crop((24, 0, 24 + pad_r, h)), (pad_l + w, 0))
+            canvas.paste(im, (pad_l, 0))
+
+            # Feather seams softly (~24px around left and right join)
+            c_arr = np.array(canvas, dtype=np.float32)
+            l_arr = np.array(left_strip, dtype=np.float32)
+            r_arr = np.array(right_strip, dtype=np.float32)
+            blend_w = min(24, w // 8)
+            if blend_w > 2:
+                t = np.linspace(1.0, 0.0, blend_w, dtype=np.float32)[None, :, None]
+                c_arr[:, pad_l : pad_l + blend_w] = (
+                    l_arr[:, pad_l : pad_l + blend_w] * t + arr[:, :blend_w] * (1.0 - t)
+                )
+                c_arr[:, pad_l + w - blend_w : pad_l + w] = (
+                    r_arr[:, 24 - blend_w : 24] * (1.0 - t) + arr[:, -blend_w:] * t
+                )
+            final_im = Image.fromarray(np.clip(c_arr, 0, 255).astype(np.uint8)).resize(
+                (target_w, target_h), Image.Resampling.LANCZOS
+            )
+        elif is_short and src_ratio > target_ratio:
+            # Extend top/bottom atmospheric backdrop smoothly so horizontal text edges & head stay uncropped
+            new_h = max(h + 2, int(round(w / target_ratio)))
+            if new_h % 2 != 0:
+                new_h += 1
+            pad_total = new_h - h
+            pad_t = pad_total // 2
+            pad_b = pad_total - pad_t
+
+            arr = np.array(im, dtype=np.float32)
+            strip_h = max(24, min(72, h // 12))
+            top_strip = Image.fromarray(np.flipud(arr[:strip_h, :]).astype(np.uint8)).resize(
+                (w, pad_t + 24), Image.Resampling.BICUBIC
+            ).filter(ImageFilter.GaussianBlur(radius=14))
+            bot_strip = Image.fromarray(np.flipud(arr[-strip_h:, :]).astype(np.uint8)).resize(
+                (w, pad_b + 24), Image.Resampling.BICUBIC
+            ).filter(ImageFilter.GaussianBlur(radius=14))
+
+            canvas = Image.new("RGB", (w, new_h))
+            canvas.paste(top_strip.crop((0, 0, w, pad_t)), (0, 0))
+            canvas.paste(bot_strip.crop((0, 24, w, 24 + pad_b)), (0, pad_t + h))
+            canvas.paste(im, (0, pad_t))
+
+            c_arr = np.array(canvas, dtype=np.float32)
+            t_arr = np.array(top_strip, dtype=np.float32)
+            b_arr = np.array(bot_strip, dtype=np.float32)
+            blend_h = min(24, h // 8)
+            if blend_h > 2:
+                ty = np.linspace(1.0, 0.0, blend_h, dtype=np.float32)[:, None, None]
+                c_arr[pad_t : pad_t + blend_h, :] = (
+                    t_arr[pad_t : pad_t + blend_h, :] * ty + arr[:blend_h, :] * (1.0 - ty)
+                )
+                c_arr[pad_t + h - blend_h : pad_t + h, :] = (
+                    b_arr[24 - blend_h : 24, :] * (1.0 - ty) + arr[-blend_h:, :] * ty
+                )
+            final_im = Image.fromarray(np.clip(c_arr, 0, 255).astype(np.uint8)).resize(
+                (target_w, target_h), Image.Resampling.LANCZOS
+            )
+        else:
+            from PIL import ImageOps
+            centering = (0.5, 0.25) if is_short else (0.5, 0.35)
+            final_im = ImageOps.fit(im, (target_w, target_h), method=Image.Resampling.LANCZOS, centering=centering)
+
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        for q in (95, 92, 88, 84):
+            tmp_out = dst_path.with_name(f"{dst_path.stem}.tmp_{os.getpid()}.jpg")
+            final_im.save(tmp_out, format="JPEG", quality=q, optimize=True, progressive=True)
+            if tmp_out.stat().st_size <= 1_900_000 or q == 84:
+                tmp_out.replace(dst_path)
+                break
+            tmp_out.unlink(missing_ok=True)
+    return dst_path
+
+
+def _is_vi_lang_sp(ep_lang: str) -> bool:
+    import re as _re
+    low = str(ep_lang or "").strip().lower()
+    return bool(_re.search(r"(?:^|[\s_\-/,(])(?:vi|vi-[a-z]{2}|vie|vn|viet|vietnamese)(?:$|[\s_\-/,)])", low)) or ("tiếng việt" in low) or ("vietnam" in low)
+
+
+def _is_es_lang_sp(ep_lang: str) -> bool:
+    import re as _re
+    low = str(ep_lang or "").strip().lower()
+    if not low or _is_vi_lang_sp(low):
+        return False
+    return bool(_re.search(r"(?:^|[\s_\-/,(])(?:es|es-[a-z]{2}|esp|spa|spanish|español|espanol|tây ban nha)(?:$|[\s_\-/,)])", low))
+
+
+def _lang_display_name(ep_lang: str) -> str:
+    low = (ep_lang or "").strip().lower()
+    if _is_vi_lang_sp(low):
+        return "Vietnamese"
+    if _is_es_lang_sp(low):
+        return "Spanish"
+    if any(k in low for k in ("ja", "jp", "japan")):
+        return "Japanese"
+    if any(k in low for k in ("ko", "kr", "korea")):
+        return "Korean"
+    return "English"
+
+
 def generate_thumbnail_with_flow(
 
 
@@ -8837,6 +8946,11 @@ def generate_thumbnail_with_flow(
 
     aspect_ratio: Optional[str] = None,
     force_regenerate: bool = False,
+    engine: Optional[str] = None,
+    font_scale: str = "viral",
+    preferred_side: str = "auto",
+    reapply_typography: bool = False,
+    explicit_regen: bool = False,
 ) -> Dict[str, Any]:
 
 
@@ -9004,8 +9118,8 @@ def generate_thumbnail_with_flow(
         or plan.get("target_language")
         or "en"
     ).strip().lower()
-    is_vi = any(v in ep_lang for v in ("vi", "viet", "tiếng việt"))
-    is_es = any(s in ep_lang for s in ("es", "spanish", "español"))
+    is_vi = _is_vi_lang_sp(ep_lang)
+    is_es = _is_es_lang_sp(ep_lang)
 
     if norm_genre == "stoic":
         default_hook = "DOMINA TU MENTE" if is_es else ("LÀM CHỦ TÂM TRÍ" if is_vi else "MASTER YOUR MIND")
@@ -9021,9 +9135,17 @@ def generate_thumbnail_with_flow(
     ).strip()
 
     out_thumb = ep_dir / ("thumbnail_shorts.jpg" if is_short else "thumbnail_seo.jpg")
-    # Validate that if is_short, out_thumb is truly vertical
-    is_valid_cache = not force_regenerate and out_thumb.is_file() and out_thumb.stat().st_size > 5000
-    if is_valid_cache:
+    out_base = ep_dir / ("thumbnail_flow_base.jpg" if is_short else "thumbnail_flow_base.png")
+    receipt_path = ep_dir / ".thumbnail_receipt.json"
+    receipt_meta = {}
+    if receipt_path.is_file():
+        try:
+            receipt_meta = json.loads(receipt_path.read_text(encoding="utf-8"))
+        except Exception:
+            receipt_meta = {}
+
+    thumb_geom_ok = False
+    if out_thumb.is_file() and out_thumb.stat().st_size > 5000:
         try:
             from PIL import Image
             with Image.open(out_thumb) as chk:
@@ -9031,12 +9153,24 @@ def generate_thumbnail_with_flow(
             with Image.open(out_thumb) as chk:
                 actual_ratio = chk.width / max(1, chk.height)
                 expected_ratio = (9 / 16) if is_short else (16 / 9)
-                is_valid_cache = (chk.format == "JPEG" and
-                                  chk.width >= 256 and chk.height >= 256 and
-                                  abs(actual_ratio - expected_ratio) < 0.035 and
-                                  out_thumb.stat().st_size <= 2_000_000)
+                thumb_geom_ok = (chk.format == "JPEG" and
+                                 chk.width >= 256 and chk.height >= 256 and
+                                 abs(actual_ratio - expected_ratio) < 0.035 and
+                                 out_thumb.stat().st_size <= 2_000_000)
         except Exception:
-            is_valid_cache = False
+            thumb_geom_ok = False
+
+    same_plan_fresh_ai_thumb = False
+    if thumb_geom_ok and not explicit_regen and not reapply_typography:
+        plan_mtime = plan_p.stat().st_mtime if plan_p.is_file() else 0.0
+        thumb_mtime = out_thumb.stat().st_mtime
+        has_ai_base = out_base.is_file() and out_base.stat().st_size > 5000
+        receipt_same_ratio = (not receipt_meta) or (receipt_meta.get("is_short") == is_short)
+        receipt_same_hook = (not custom_hook) or (not receipt_meta) or (str(receipt_meta.get("hook") or "").strip().lower() == hook.strip().lower())
+        if (has_ai_base or receipt_meta.get("backend") in ("chatgpt_web", "mcp_v2", "flow")) and (plan_mtime <= 0 or thumb_mtime >= plan_mtime - 5.0) and receipt_same_ratio and receipt_same_hook:
+            same_plan_fresh_ai_thumb = True
+
+    is_valid_cache = thumb_geom_ok and (same_plan_fresh_ai_thumb or ((not force_regenerate) and (not reapply_typography)))
     if is_valid_cache:
         return {
             "ok": True,
@@ -9045,208 +9179,225 @@ def generate_thumbnail_with_flow(
             "is_short": is_short,
             "flow_prompt": custom_prompt or "",
             "hook_text": hook,
-            "backend": "cached_existing"
+            "backend": receipt_meta.get("backend") or "cached_existing"
         }
 
-    # Split hook into punchy lines for 3D typography
+    # Split hook into punchy lines for 3D typography (supports 1, 2, or 3 colossal tiers)
+    hook_lines_raw = [h.strip() for h in hook.split("\n") if h.strip()]
+    if len(hook_lines_raw) < 2 and "/" in hook:
+        hook_lines_raw = [h.strip() for h in hook.split("/") if h.strip()]
+    if len(hook_lines_raw) < 2:
+        words = hook.split()
+        if len(words) >= 6:
+            hook_lines_raw = [" ".join(words[:2]), " ".join(words[2:4]), " ".join(words[4:])]
+        elif len(words) >= 4:
+            hook_lines_raw = [" ".join(words[:2]), " ".join(words[2:-1]), words[-1]]
+        elif len(words) == 3:
+            hook_lines_raw = [words[0], words[1], words[2]]
+        elif len(words) == 2:
+            hook_lines_raw = [words[0], words[1]]
+        else:
+            hook_lines_raw = [hook]
 
+    hook_lines = [h.upper() for h in hook_lines_raw]
+    line1 = hook_lines[0] if len(hook_lines) > 0 else ""
+    line2 = hook_lines[1] if len(hook_lines) > 1 else ""
+    line3 = hook_lines[2] if len(hook_lines) > 2 else ""
 
-
-    hook_words = hook.split()
-    if len(hook_words) >= 3:
-        line1 = hook_words[0].upper()
-        line2 = " ".join(hook_words[1:]).upper()
-    elif len(hook_words) == 2:
-        line1 = hook_words[0].upper()
-        line2 = hook_words[1].upper()
+    lang_display = _lang_display_name(ep_lang)
+    exact_words_str = " ".join([x for x in (line1, line2, line3) if x]).strip()
+    if preferred_side == "right":
+        text_half = "RIGHT side"
+        char_half = "LEFT side"
+        look_dir = "RIGHT"
     else:
-        line1 = hook.upper()
-        line2 = ""
+        text_half = "LEFT side"
+        char_half = "RIGHT side"
+        look_dir = "LEFT"
 
-    # Construct Flow Prompt with native ultra-vibrant, eye-catching 3D typography embedded
+    chatgpt_aspect_header = (
+        "Generate a finished, publish-ready 9:16 vertical YouTube Shorts thumbnail cover image (tall portrait composition). "
+        if is_short
+        else (
+            f"Generate a finished, publish-ready 16:9 widescreen horizontal YouTube thumbnail image (wide 16:9 landscape frame, NOT square). "
+            f"SEAMLESS SINGLE CONTINUOUS 16:9 SCENE (STRICTLY NO split-screen collage, NO solid black half, NO flat black cutout box, NO dark blank wall, and NO vertical dividing line behind the text): "
+            f"paint one unified natural atmospheric environment flowing smoothly edge-to-edge across 100% of the canvas. "
+            f"Position the expressive chest-up protagonist off-center on the {char_half} of the frame (with generous headroom above the top of head/hat so nothing is cut off), turning {look_dir} toward the title text, "
+            f"while the SAME scenic background environment (natural sky, depth-of-field bokeh, dramatic environmental lighting matching the story) extends organically across the {text_half}. "
+            f"Float giant 3D extruded typography cleanly on the {text_half} directly over that naturally out-of-focus background scenery (relying on thick dark 3D outlines, hard bevels, and drop shadows on the letters themselves for pop, NEVER placing a black background box behind the text) — "
+            f"STRICTLY ZERO letters, outlines, or graphics may touch or overlap the character's face, hat, chest, shoulders, or arms. "
+        )
+    )
+    spelling_footer = (
+        f'Text language: {lang_display}. Render STRICTLY and ONLY these exact words in crystal-clear bold 3D lettering: "{exact_words_str}" — '
+        f"exact spelling and accents, zero random alien glyphs, zero gibberish, zero corner logos or watermarks."
+    )
+
+    if is_short:
+        if line3:
+            _3line_text = (
+                f'featuring giant monumental 3D extruded typography placed across the lower center atmospheric band (never covering face or eyes): '
+                f'top line "{line1}" in radiant 3D imperial gold (#FFD700), middle line "{line2}" in crisp 3D titanium white (#FFFFFF), '
+                f'bottom line "{line3}" in radiant 3D imperial gold (#FFD700) underlined by a glowing crimson red accent line (#DC2626), '
+            )
+        elif line2:
+            _3line_text = (
+                f'featuring giant monumental 3D extruded typography placed across the lower chest band (never covering face or eyes): '
+                f'top line "{line1}" in radiant 3D burnished imperial gold (#FFD700) with crisp specular highlights, '
+                f'accentuated by a crimson red 3D glowing divider line (#DC2626), '
+                f'and bottom line "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion, '
+            )
+        else:
+            _3line_text = (
+                f'featuring giant monumental 3D extruded typography placed across the lower chest band (never covering face or eyes): '
+                f'reading strictly "{line1}" in radiant 3D burnished imperial gold (#FFD700) with crimson red bevel trims (#DC2626) and heavy black block extrusion, '
+            )
+    else:
+        if line3:
+            _3line_text = (
+                f'floating prominently over the softly blurred {text_half} scenic area (no solid black panel behind the letters) in a colossal 3-tier vertical 3D monumental typography stack: '
+                f'top line "{line1}" in radiant 3D burnished solar gold (#FFE500) with sharp metallic bevels and thick dark outer contour, '
+                f'middle line "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black 3D extrusion, '
+                f'bottom line "{line3}" in radiant 3D burnished solar gold (#FFE500) underscored by a glowing crimson red curved brush arc (#DC2626), '
+            )
+        elif line2:
+            _3line_text = (
+                f'floating prominently over the softly blurred {text_half} scenic area (no solid black panel behind the letters) in a colossal 2-tier 3D monumental typography stack: '
+                f'top line "{line1}" in giant radiant 3D burnished solar gold (#FFE500) with sharp metallic highlights and thick dark outer contour, '
+                f'accentuated by a glowing crimson red divider bar (#DC2626), '
+                f'and bottom line "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black 3D block extrusion, '
+            )
+        else:
+            _3line_text = (
+                f'floating prominently over the softly blurred {text_half} scenic area (no solid black panel behind the letters) with colossal bold 3D extruded typography: '
+                f'reading "{line1}" in radiant 3D imperial gold (#FFE500) with crisp white specular bevels, heavy black 3D drop shadow, and glowing crimson red underline (#DC2626), '
+            )
+
+    # Construct complete visual + typography prompt (ready for direct finished ChatGPT Web rendering)
     if custom_prompt:
-        prompt = custom_prompt
+        prompt = f"{chatgpt_aspect_header}{custom_prompt.strip()} {_3line_text} {spelling_footer}"
     elif norm_genre == "stoic":
         if is_short:
-            if line2:
-                text_frag = (
-                    f'featuring giant monumental 3D extruded typography stamped boldly across the chest and draped toga in the lower half '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with brilliant specular highlights and '
-                    f'accentuated by an electric cinematic crimson red 3D razor divider line and crimson bevel trims (#DC2626), '
-                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion and deep chiaroscuro contact shadows, '
-                )
-            else:
-                text_frag = (
-                    f'featuring giant monumental 3D extruded typography stamped boldly across the chest and draped toga in the lower half '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626), '
-                    f'crisp pure titanium white specular edge highlights (#FFFFFF), razor-sharp 3D block extrusion, and deep chiaroscuro contact shadows, '
-                )
             prompt = (
+                chatgpt_aspect_header +
                 f"Monumental heroic classical sculpted Carrara marble statue of Stoic philosopher emperor Marcus Aurelius ({char_desc}), "
-                "towering heroic portrait in vertical 9:16 framing filling the entire canvas from top to bottom, "
-                "majestic chiseled stone head with curly Roman beard and wise stoic gaze occupying the upper 55% of the frame, "
-                "colossal muscular sculpted stone shoulders and powerfully chiseled pectoral chest, royal crimson draped toga flowing continuously down, "
-                "complete intact stone arms, dramatic warm golden rim lighting against ancient Roman architecture and warm dusk sky, "
-                + text_frag +
-                "tight heroic portrait, unbroken classical stone sculpture, never living human flesh, never a severed bust on a pedestal, never amputated limbs, photorealistic 8k render, no watermark."
+                "towering heroic bust portrait with wise stoic gaze, sculpted curly Roman beard, vibrant scarlet crimson Roman draped toga, "
+                "dramatic warm golden rim lighting against ancient Roman ruins and dusk sky, "
+                + _3line_text + spelling_footer
             )
         else:
-            if line2:
-                text_frag = (
-                    f'occupying the entire LEFT 50% with giant monumental 3D extruded typography '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with brilliant specular highlights and '
-                    f'accentuated by an electric cinematic crimson red 3D razor divider line and crimson bevel trims (#DC2626), '
-                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion, deep contact shadows, cinematic volumetric lighting, '
-                )
-            else:
-                text_frag = (
-                    f'occupying the entire LEFT 50% with giant monumental 3D extruded typography '
-                    f'reading "{line1}" in radiant 3D burnished imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626), '
-                    f'crisp pure titanium white specular edge highlights (#FFFFFF), razor-sharp 3D block extrusion, deep contact shadows, cinematic volumetric lighting, '
-                )
             prompt = (
-                f"Authentic classical Carrara marble statue masterpiece photograph of Stoic philosopher emperor Marcus Aurelius ({char_desc}), "
-                "strictly one solitary heroic chest-up bust sculpture occupying the RIGHT 45% facing slightly left, "
-                "carved entirely from 100% solid cold white-grey Carrara marble stone, authentic chiselled mineral stone texture, fine chisel marks, "
-                "magnificent chiseled stone head with curly Roman beard, noble contemplative blank unpainted stone eyes, deeply sculpted bare stone chest and muscular shoulder, "
-                "wearing a luxurious royal crimson red draped stone toga over one shoulder, dramatic warm golden chiaroscuro rim lighting carving stone contours, "
-                "clean dark atmospheric midnight sky with deep indigo shadows and subtle golden embers on the LEFT 55%, "
-                "strictly single statue only, absolutely no second statue, no background figures, no other persons, no crowd, "
-                + text_frag +
-                "chest-up low-angle framing, 16:9 horizontal, photorealistic 8k render, no watermark."
+                chatgpt_aspect_header +
+                f"Masterpiece cinematic 16:9 widescreen film still of a colossal carved Carrara marble bust statue of Stoic philosopher emperor ({char_desc}, Marcus Aurelius archetype) positioned off-center on the {char_half}. "
+                f"Heroic carved white marble face and thick sculpted beard, profound contemplative carved stone eyes turned {look_dir} looking toward the typography. "
+                "Vibrant scarlet crimson silk Roman toga draped over the marble shoulder, ancient Corinthian temple columns and luminous golden sunset/twilight Acropolis horizon with subtle emerald sky glow spanning smoothly edge-to-edge across the entire frame, "
+                + _3line_text +
+                'below the 3D text a small clean subtitle reading "— VALOR ESTOICO —", '
+                + spelling_footer
             )
-    elif norm_genre in ("drama", "theatrical_drama", "cinematic_drama", "family_drama"):
+    elif norm_genre in ("drama", "theatrical_drama", "cinematic_drama", "family_drama", "western", "kr_sayeon_drama"):
         if is_short:
-            if line2:
-                text_frag = (
-                    f'featuring giant monumental 3D cinematic typography stamped boldly across the lower chest '
-                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with sharp specular highlights, '
-                    f'accentuated by an electric crimson red razor divider (#DC2626), '
-                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy extruded block shadows and dramatic chiaroscuro, '
-                )
-            else:
-                text_frag = (
-                    f'featuring giant monumental 3D cinematic typography stamped boldly across the lower chest '
-                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp titanium white edge highlights (#FFFFFF) with heavy 3D block extrusion and contact shadows, '
-                )
             prompt = (
-                f"High-stakes intense cinematic drama film still about '{ep_title}' in vertical 9:16: "
-                f"extreme emotional close-up bust portrait of {char_desc} with intense piercing eyes and fierce defiant expression, "
-                "dramatic volumetric 3-point rim lighting carving facial contours, realistic skin texture with sweat beads, "
-                "in background blurry silhouette of a shocking confrontation, rich deep sapphire and golden amber color grading, "
-                + text_frag +
-                "photorealistic 8k, no watermark."
+                chatgpt_aspect_header +
+                f"High-stakes intense cinematic drama film still about '{ep_title}': "
+                f"emotional close-up bust portrait of {char_desc} with fierce piercing eyes, dramatic 3-point rim lighting, rich sapphire and golden amber color grading, "
+                + _3line_text + spelling_footer
             )
         else:
-            if line2:
-                text_frag = (
-                    f'occupying the entire LEFT 50% with giant monumental 3D typography '
-                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with sharp specular highlights, '
-                    f'accentuated by an electric crimson red razor divider line and crimson bevel trims (#DC2626), '
-                    f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy extruded block shadows and dramatic cinematic contrast, '
-                )
-            else:
-                text_frag = (
-                    f'occupying the entire LEFT 50% with giant monumental 3D typography '
-                    f'reading "{line1}" in radiant 3D imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp pure titanium white edge highlights (#FFFFFF) with heavy block extrusion and dramatic shadows, '
-                )
             prompt = (
-                f"High-stakes viral YouTube drama masterpiece thumbnail in 16:9 about '{ep_title}': "
-                f"emotional extreme close-up of {char_desc} with intense piercing eyes or fierce defiant expression on the right 50% facing left, "
-                "warm volumetric 3-point rim lighting carving facial contours and organic skin texture, "
-                "in background a dramatic shocking confrontation between two figures with cinematic depth of field, "
-                "vibrant deep sapphire and golden amber color grading, "
-                + text_frag +
-                "8k resolution film still, photorealistic, no watermark."
+                chatgpt_aspect_header +
+                f"High-stakes viral YouTube drama masterpiece thumbnail about '{ep_title}': "
+                f"dramatic chest-up portrait of {char_desc} positioned off-center on the {char_half} with intense expressive eyes and emotion, turning {look_dir} toward the title text. "
+                "Warm golden sunset rim light and softly blurred natural story environment scenery stretching seamlessly across the entire widescreen canvas (rich atmospheric sky and depth-of-field bokeh behind the text, never a dark or black half), "
+                + _3line_text + spelling_footer
             )
-    elif norm_genre == "whiteboard":
-        if line2:
-            text_frag = (
-                f'featuring giant hand-drawn 3D block lettering '
-                f'reading "{line1}" in radiant sunburst yellow with electric marker red bevel outlines, '
-                f'and "{line2}" in crisp clean white block lettering with bold black 3D shadow outlines and red accent underlines, '
-            )
-        else:
-            text_frag = (
-                f'featuring giant hand-drawn 3D block lettering '
-                f'reading "{line1}" in radiant sunburst yellow with electric marker red rim outlines, crisp white highlights, and bold black 3D shadow outlines, '
-            )
+    elif norm_genre in ("whiteboard", "jp_zen_story"):
         prompt = (
-            f"After Skool viral YouTube masterpiece illustration about '{ep_title}' in {target_ratio}: "
-            "vibrant colorful POSCA and Copic markers on clean off-white art sketchbook paper, "
-            "intricate sacred geometry, detailed Tree of Life with deep roots in rich soil, blooming colorful flowers, "
-            "rich vivid rainbow marker colors with crisp bold black ink outlines, "
-            + text_frag +
-            "surreal and highly detailed, no watermark."
+            chatgpt_aspect_header +
+            f"After Skool / Zen hand-drawn YouTube masterpiece illustration about '{ep_title}': "
+            f"clean vibrant POSCA & Copic marker art on one continuous textured off-white art sketchbook sheet spanning the full canvas; expressive marker illustration of {char_desc} / symbolic focal art placed off-center on the {char_half} facing {look_dir}, "
+            "crisp bold black ink outlines and vivid warm crimson/gold/cyan marker accents with clean sketchbook paper continuing seamlessly behind the text, "
+            + _3line_text + spelling_footer
         )
-    else:  # documentary or generic
-        if line2:
-            text_frag = (
-                f'featuring giant bold 3D typography '
-                f'reading "{line1}" in radiant metallic imperial gold (#FFD700) with razor-sharp specular highlights, '
-                f'accentuated by an electric cinematic crimson red razor divider (#DC2626), '
-                f'and "{line2}" in crisp pure 3D titanium white (#FFFFFF) with heavy black block extrusion and deep drop shadow, '
-            )
-        else:
-            text_frag = (
-                f'featuring giant bold 3D typography '
-                f'reading "{line1}" in radiant metallic imperial gold (#FFD700) with electric crimson red bevel trims (#DC2626) and crisp titanium white highlights (#FFFFFF) with heavy black block extrusion and drop shadow, '
-            )
+    else:  # documentary, history, action, horror, kr_yadam_joseon, generic
         prompt = (
-            f"Cinematic investigative documentary viral YouTube thumbnail in {target_ratio} about '{ep_title}': "
-            f"dramatic high-contrast portrait of {char_desc} looking deeply into mysterious glowing evidence or horizon, "
-            "moody cinematic lighting, deep rich lifted shadows, photorealistic 8k resolution film still, "
-            + text_frag +
-            "8k render, no watermark."
+            chatgpt_aspect_header +
+            f"Cinematic viral YouTube thumbnail about '{ep_title}': "
+            f"dramatic high-contrast chest-up portrait of {char_desc} positioned off-center on the {char_half} turning {look_dir} toward the title text, "
+            "unified atmospheric golden rim lighting and softly blurred full-frame story scenery stretching smoothly edge-to-edge behind the text (never a black box background), photorealistic 8k film still, "
+            + _3line_text + spelling_footer
         )
 
     out_base = ep_dir / ("thumbnail_flow_base.jpg" if is_short else "thumbnail_flow_base.png")
     backend_used = None
+    receipt_ok = False
+    chatgpt_error = None
 
-    # Step 1: ComfyUI GPU Primary Engine (100% Offline, Rock-Solid, No Flow Error)
+    # Fixed source-code thumbnail workflow: ChatGPT Web renders & delivers the finished thumbnail directly
+    # unless explicitly overridden by a caller passing a specific non-auto `engine` parameter, or running in offline mode.
+    is_offline_plan = (str((plan.get("config") or {}).get("mode", "")).strip().lower() == "offline")
+    explicit_engine = (engine or "").lower().strip()
+    if is_offline_plan and explicit_engine in ("auto", "default", "") and not explicit_regen:
+        req_engine = "local_offline"
+    elif explicit_engine in ("auto", "default", ""):
+        req_engine = "chatgpt"
+    elif explicit_engine in ("flowkit", "mcp_v2"):
+        req_engine = "flow"
+    elif explicit_engine in ("v2_tuanstor", "gemini"):
+        req_engine = "tuanstor"
+    elif explicit_engine in ("muse_video", "local"):
+        req_engine = "comfyui"
+    elif explicit_engine in ("chatgpt", "chatgpt_web", "openai"):
+        req_engine = "chatgpt"
+    else:
+        req_engine = explicit_engine
+
+    # Exclusive browser orchestrator: ONLY launch a browser engine when that browser engine is selected
+    # Never kill an active Google Flow browser session mid-production when generating a thumbnail.
     try:
-        try:
-            import comfyui_image_provider
-        except ImportError:
-            from studio import comfyui_image_provider
-        comfyui_image_provider.ensure_server()
-        target_w, target_h = (1080, 1920) if is_short else (1280, 720)
-        print(f"[THUMBNAIL] Generating clean plate via ComfyUI GPU ({target_w}x{target_h})...", flush=True)
-        if is_short and norm_genre == "stoic":
-            clean_plate_prompt = (
-                "Authentic neoclassical sculpture master photograph, vertical 9:16 mobile portrait framing. "
-                "Solitary heroic close-up bust portrait of Stoic emperor Marcus Aurelius, centered in the frame. "
-                "Majestic carved white Carrara marble head with curly stone beard, noble contemplative eyes, and classical Roman emperor facial features occupying the upper 55% of the canvas, head completely in frame, face in sharp focus, head never cropped. "
-                "Carved entirely from solid cold white-grey Carrara marble stone, completely inanimate mineral sculpture, authentic chiselled mineral stone texture, fine chisel marks, matte marble finish. "
-                "Solid sculpted stone shoulders and upper chest draped in an authentic royal crimson red stone toga cascading down to bottom frame borders. "
-                "Dramatic golden chiaroscuro rim lighting illuminating the cold stone contours, ancient Rome colonnade background at twilight with starry night and floating golden embers. "
-                "Exactly one solitary statue, exactly two stone arms, exactly one torso, 100% solid white Carrara marble stone material, absolutely zero human skin, zero living flesh, zero skin pores, no real person, never a full body statue, never standing on legs, never a pedestal."
-            )
-        else:
-            from thumbnail_studio import build_locked_thumbnail_prompt
-            clean_plate_prompt = build_locked_thumbnail_prompt(
-                genre=norm_genre,
-                title=ep_title,
-                char_desc=char_desc
-            )
-        comfyui_image_provider.make_image(
-            prompt=clean_plate_prompt,
-            output=out_base,
-            visual_style="color_cinematic",
-            genre=norm_genre,
-            width=target_w,
-            height=target_h
-        )
-        if out_base.is_file() and out_base.stat().st_size > 5000:
-            backend_used = "comfyui_gpu"
-            print(f"[THUMBNAIL] ComfyUI GPU clean plate generated successfully: {out_base}", flush=True)
-    except Exception as e_comfy:
-        print(f"[THUMBNAIL] ComfyUI GPU notice: {e_comfy}", flush=True)
+        from studio_mcp.accounts import any_running_production as _any_prod_running
+    except Exception:
+        _any_prod_running = lambda: False
 
-    # Step 2: Fallback to Flow MCP v2 if ComfyUI didn't generate
-    if not (out_base.is_file() and out_base.stat().st_size > 5000):
+    try:
+        from engine_orchestrator import ensure_exclusive_engine
+        if req_engine in ("chatgpt", "openai"):
+            if _any_prod_running():
+                print("[THUMBNAIL] Phát hiện Google Flow đang chạy — giữ nguyên trình duyệt Google Flow.", flush=True)
+            else:
+                print("[THUMBNAIL] Kich hoat che do co dinh: CHATGPT WEB (Dong Google Flow de tiet kiem RAM)...", flush=True)
+                ensure_exclusive_engine("chatgpt")
+        elif req_engine == "flow":
+            print("[THUMBNAIL] Kich hoat che do doc quyen: GOOGLE FLOW (Dong ChatGPT Web neu dang chay)...", flush=True)
+            ensure_exclusive_engine("flow")
+        else:
+            print(f"[THUMBNAIL] Che do doc lap ({req_engine.upper()}): Giu nguyen luong xu ly, khong mo Google Flow.", flush=True)
+    except Exception as e_orch:
+        print(f"[THUMBNAIL] Engine Orchestrator notice: {e_orch}", flush=True)
+
+    def _run_chatgpt_thumb():
+        nonlocal receipt_ok, backend_used, chatgpt_error
+        try:
+            _ensure_flowkit_app_on_path()
+            import chatgpt_webtool
+            print("[THUMBNAIL] Dang gui prompt day du len ChatGPT Web de render & tai anh hoan thien...", flush=True)
+            res_gpt = chatgpt_webtool.generate_thumbnail_via_chatgpt_web(prompt, out_base, timeout_seconds=180)
+            if res_gpt.get("ok") and out_base.is_file() and out_base.stat().st_size > 5000:
+                receipt_ok = True
+                backend_used = "chatgpt_web"
+                print(f"[THUMBNAIL] Sinh & tai thanh cong thumbnail hoan thien tu ChatGPT Web: {out_base}", flush=True)
+            else:
+                chatgpt_error = res_gpt.get("message") or res_gpt.get("detail") or res_gpt.get("error") or "CHATGPT_UNKNOWN_ERROR"
+                print(f"[THUMBNAIL] ChatGPT Web failed: {chatgpt_error}", flush=True)
+        except Exception as e_gpt:
+            chatgpt_error = str(e_gpt)
+            print(f"[THUMBNAIL] ChatGPT Web error: {e_gpt}", flush=True)
+
+    def _run_flow_mcp_thumb():
+        nonlocal receipt_ok, backend_used
         pinned_target = None
-        receipt_ok = False
+        url = None
+        account = None
         try:
             from mcp_v2_images import make_image
             from studio_mcp.accounts import active_account, account_tool_url
@@ -9256,12 +9407,20 @@ def generate_thumbnail_with_flow(
             account = active_account()
             url = account_tool_url(account)
             if url:
+                from studio_mcp.projects import exact_tool_tab_count, cleanup_duplicate_tool_tabs
+                try:
+                    cnt = exact_tool_tab_count(account, url)
+                    if cnt > 1:
+                        cleanup_duplicate_tool_tabs(account, url)
+                except Exception:
+                    pass
                 pinned_target = prepare(account, url)
                 transport = StoryboardImageTransport(
                     mcp=LocalFlowMcpTransport(target_id=pinned_target), tool_url=url)
                 validate_image_tool_readiness(
                     transport("health"), require_queue=True,
                     scoped_production_target=pinned_target)
+                print(f"[FLOW_THUMBNAIL] Generating world-class thumbnail via Google Flow MCP...", flush=True)
                 make_image(prompt, out_base, series=series_name or ep_title, episode=1,
                            scene=9999 if is_short else 9998, max_new_images=1,
                            model_index=0, fallback=False, aspect_ratio=target_ratio,
@@ -9271,56 +9430,154 @@ def generate_thumbnail_with_flow(
                 try:
                     close_completed(account, url, pinned_target)
                 except Exception:
-                    pass
+                    try:
+                        abandon_fresh(account, url, pinned_target)
+                    except Exception:
+                        pass
         except Exception as exc:
-            print(f"[FLOW_THUMBNAIL] Flow MCP notice: {exc}", flush=True)
+            print(f"[FLOW_THUMBNAIL] Google Flow MCP notice: {exc}", flush=True)
         finally:
-            if pinned_target and not receipt_ok:
+            if pinned_target and not receipt_ok and account and url:
                 try:
                     abandon_fresh(account, url, pinned_target)
                 except Exception:
                     pass
 
-    # Step B.2: High-Quality Episode Scene + 3D Viral Typography Fallback
-    if not (out_base.is_file() and out_base.stat().st_size > 1000):
-        scene_candidates = [
-            ep_dir / "scenes" / "scene_0001" / "image.png",
-            ep_dir / "scenes" / "scene_0002" / "image.png",
-            ep_dir / "scenes" / "scene_0003" / "image.png",
-            ep_dir / "scenes" / "scene_0004" / "image.png",
-            ep_dir / "thumbnail_source_frame.jpg",
-        ]
-        best_cand = next((c for c in scene_candidates if c.is_file() and c.stat().st_size > 5000), None)
-        if best_cand:
+    def _run_tuanstor_thumb():
+        nonlocal receipt_ok, backend_used
+        try:
             try:
-                if is_short:
-                    generate_shorts_thumbnail_cover(
-                        base_image_path=best_cand,
-                        output_path=out_base,
-                        hook_text=hook,
-                        genre=norm_genre,
-                    )
-                else:
-                    generate_thumbnail_image(
-                        base_image_path=best_cand,
-                        output_path=out_base,
-                        hook_text=hook,
-                        genre=norm_genre,
-                    )
-                if out_base.is_file() and out_base.stat().st_size > 1000:
-                    backend_used = "local_scene_3d_typography"
-                    print(f"[FLOW_THUMBNAIL] Successfully generated 3D typography thumbnail from episode scene: {best_cand}", flush=True)
-            except Exception as e_local:
-                print(f"[FLOW_THUMBNAIL] Local scene thumbnail notice: {e_local}", flush=True)
+                import tuansuapi_provider
+            except ImportError:
+                from studio import tuansuapi_provider
+            gw_cfg = tuansuapi_provider.get_gateway_config()
+            if gw_cfg.get("enabled") == "1" and gw_cfg.get("api_key"):
+                cloud_model = gw_cfg.get("image_model") or "gemini-3.1-flash-image"
+                print(f"[FLOW_THUMBNAIL] Generating high-intelligence thumbnail plate via Tuấn Stor ({cloud_model})...", flush=True)
+                import importlib
+                import thumbnail_studio
+                importlib.reload(thumbnail_studio)
+                from thumbnail_studio import build_locked_thumbnail_prompt
+                clean_plate_prompt = build_locked_thumbnail_prompt(
+                    genre=norm_genre,
+                    title=ep_title,
+                    char_desc=char_desc
+                )
+                tuansuapi_provider.generate_gateway_image(
+                    prompt=clean_plate_prompt,
+                    output_path=out_base,
+                    model=cloud_model,
+                    timeout=90.0
+                )
+                if out_base.is_file() and out_base.stat().st_size > 5000:
+                    receipt_ok = True
+                    backend_used = "tuansu_cloud"
+                    print(f"[FLOW_THUMBNAIL] Tuấn Stor Cloud masterpiece plate generated: {out_base}", flush=True)
+        except Exception as e_tuan_thumb:
+            print(f"[FLOW_THUMBNAIL] Tuấn Stor Cloud image notice: {e_tuan_thumb}", flush=True)
 
-    # Step B.3: Competitor trend fallback if available
-    if not (out_base.is_file() and out_base.stat().st_size > 1000):
-        comp = ep_dir / "thumbnail_competitor_trend.jpg"
-        if comp.is_file() and comp.stat().st_size > 1000:
-            import shutil
-            shutil.copyfile(comp, out_base)
-            backend_used = "competitor_trend"
-            print(f"[FLOW_THUMBNAIL] Using competitor trend thumbnail: {comp}", flush=True)
+    def _run_comfyui_thumb():
+        nonlocal receipt_ok, backend_used
+        try:
+            try:
+                import comfyui_image_provider
+            except ImportError:
+                from studio import comfyui_image_provider
+            comfyui_image_provider.ensure_server()
+            target_w, target_h = (1080, 1920) if is_short else (1280, 720)
+            print(f"[THUMBNAIL] ComfyUI GPU ({target_w}x{target_h})...", flush=True)
+            import importlib
+            import thumbnail_studio
+            importlib.reload(thumbnail_studio)
+            from thumbnail_studio import build_locked_thumbnail_prompt
+            clean_plate_prompt = build_locked_thumbnail_prompt(
+                genre=norm_genre,
+                title=ep_title,
+                char_desc=char_desc
+            )
+            comfyui_image_provider.make_image(
+                prompt=clean_plate_prompt,
+                output=out_base,
+                visual_style="color_cinematic",
+                genre=norm_genre,
+                width=target_w,
+                height=target_h
+            )
+            if out_base.is_file() and out_base.stat().st_size > 5000:
+                receipt_ok = True
+                backend_used = "comfyui_gpu"
+                print(f"[THUMBNAIL] ComfyUI GPU clean plate generated: {out_base}", flush=True)
+        except Exception as e_comfy:
+            print(f"[THUMBNAIL] ComfyUI GPU notice: {e_comfy}", flush=True)
+
+    def _has_base():
+        return out_base.is_file() and out_base.stat().st_size > 5000
+
+    # ChatGPT Web renders & delivers finished thumbnail directly FIRST (multi-account auto-rotate).
+    # If all ChatGPT Web accounts fail or time out, automatically fall back to ComfyUI GPU / local 3D scene typography
+    # so the episode never ships with a broken 404 thumbnail.
+    if req_engine in ("chatgpt", "openai"):
+        steps = (_run_chatgpt_thumb, _run_comfyui_thumb)
+    elif req_engine == "comfyui":
+        steps = (_run_comfyui_thumb, _run_tuanstor_thumb)
+    elif req_engine == "tuanstor":
+        steps = (_run_tuanstor_thumb, _run_comfyui_thumb)
+    else:
+        steps = (_run_flow_mcp_thumb, _run_tuanstor_thumb, _run_comfyui_thumb)
+
+    # Clear previous base image before running fresh generation so stale base never leaks in
+    if out_base.exists():
+        try:
+            out_base.unlink()
+        except Exception:
+            pass
+
+    for step_fn in steps:
+        if _has_base():
+            break
+        step_fn()
+
+    if not _has_base():
+        # Step B.2: High-Quality Episode Scene + 3D Viral Typography Fallback
+        if not (out_base.is_file() and out_base.stat().st_size > 1000):
+            scene_candidates = [
+                ep_dir / "scenes" / "scene_0001" / "image.png",
+                ep_dir / "scenes" / "scene_0002" / "image.png",
+                ep_dir / "scenes" / "scene_0003" / "image.png",
+                ep_dir / "scenes" / "scene_0004" / "image.png",
+                ep_dir / "thumbnail_source_frame.jpg",
+            ]
+            best_cand = next((c for c in scene_candidates if c.is_file() and c.stat().st_size > 1500), None)
+            if best_cand:
+                try:
+                    if is_short:
+                        generate_shorts_thumbnail_cover(
+                            base_image_path=best_cand,
+                            output_path=out_base,
+                            hook_text=hook,
+                            genre=norm_genre,
+                        )
+                    else:
+                        generate_thumbnail_image(
+                            base_image_path=best_cand,
+                            output_path=out_base,
+                            hook_text=hook,
+                            genre=norm_genre,
+                        )
+                    if out_base.is_file() and out_base.stat().st_size > 1000:
+                        backend_used = "local_scene_3d_typography"
+                        print(f"[FLOW_THUMBNAIL] Successfully generated 3D typography thumbnail from episode scene: {best_cand}", flush=True)
+                except Exception as e_local:
+                    print(f"[FLOW_THUMBNAIL] Local scene thumbnail notice: {e_local}", flush=True)
+
+        # Step B.3: Competitor trend fallback if available
+        if not (out_base.is_file() and out_base.stat().st_size > 1000):
+            comp = ep_dir / "thumbnail_competitor_trend.jpg"
+            if comp.is_file() and comp.stat().st_size > 1000:
+                import shutil
+                shutil.copyfile(comp, out_base)
+                backend_used = "competitor_trend"
+                print(f"[FLOW_THUMBNAIL] Using competitor trend thumbnail: {comp}", flush=True)
 
     out_thumb = ep_dir / ("thumbnail_shorts.jpg" if is_short else "thumbnail_seo.jpg")
     if not out_base.is_file():
@@ -9335,10 +9592,10 @@ def generate_thumbnail_with_flow(
                 "hook_text": hook,
                 "backend": "existing_clean"
             }
-        return {"ok": False, "error": "Thumbnail generation failed across all providers."}
+        return {"ok": False, "error": chatgpt_error or "Thumbnail generation failed across all providers."}
 
-    # Step C: Clean Watermark (Only needed for cloud providers like Google Flow / Gemini that burn watermarks; ComfyUI GPU is 100% clean)
-    if backend_used not in ("comfyui_gpu", "comfyui", "existing_clean"):
+    # Step C: Clean Watermark (Only needed for Google Flow / Gemini cloud plates; ChatGPT Web & ComfyUI are clean)
+    if backend_used not in ("comfyui_gpu", "comfyui", "existing_clean", "chatgpt_web", "chatgpt"):
         try:
             try:
                 from studio.clean_watermark import remove_gemini_watermark
@@ -9348,30 +9605,50 @@ def generate_thumbnail_with_flow(
         except Exception:
             pass
 
-    # Step D: Apply Hollywood 3D Viral Typography Cover!
+    # Step D: Finished AI renders (ChatGPT Web / Google Flow) are normalized to HD JPEG directly WITHOUT second text overlay!
     out_thumb = ep_dir / ("thumbnail_shorts.jpg" if is_short else "thumbnail_seo.jpg")
     try:
-        if is_short:
+        if backend_used in ("mcp_v2", "flow", "google_flow", "chatgpt_web", "chatgpt"):
+            _finalize_ai_rendered_thumbnail(out_base, out_thumb, is_short=is_short)
+            print(f"[FLOW_THUMBNAIL] Preserved finished AI thumbnail directly ({backend_used}): {out_thumb} ({out_thumb.stat().st_size} bytes)", flush=True)
+        elif is_short:
             generate_shorts_thumbnail_cover(
                 base_image_path=out_base,
                 output_path=out_thumb,
                 hook_text=hook,
                 genre=norm_genre,
             )
+            print(f"[FLOW_THUMBNAIL] Applied 3D Viral Typography Cover: {out_thumb} ({out_thumb.stat().st_size} bytes)", flush=True)
         else:
             generate_thumbnail_image(
                 base_image_path=out_base,
                 output_path=out_thumb,
                 hook_text=hook,
+                preferred_side=preferred_side,
+                font_scale=font_scale or "viral",
                 genre=norm_genre,
             )
-        print(f"[FLOW_THUMBNAIL] Applied 3D Viral Typography Cover: {out_thumb} ({out_thumb.stat().st_size} bytes)", flush=True)
+            print(f"[FLOW_THUMBNAIL] Applied 3D Viral Typography Cover: {out_thumb} ({out_thumb.stat().st_size} bytes)", flush=True)
     except Exception as e_cover:
         print(f"[FLOW_THUMBNAIL] Cover error, fallback to copy: {e_cover}", flush=True)
         import shutil
         shutil.copyfile(out_base, out_thumb)
 
-    # Step E: Re-organize Episode for YouTube Publish Folder
+    # Step E: Record thumbnail receipt so subsequent automated calls reuse this exact 1-per-episode thumbnail
+    try:
+        receipt_payload = {
+            "hook": hook,
+            "is_short": is_short,
+            "target_ratio": target_ratio,
+            "backend": backend_used or "unknown",
+            "thumbnail_file": str(out_thumb),
+            "created_at": time.time(),
+        }
+        receipt_path.write_text(json.dumps(receipt_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+    # Re-organize Episode for YouTube Publish Folder
     try:
         try:
             from studio.project_organizer import organize_episode
@@ -9424,9 +9701,22 @@ def generate_thumbnail_with_flow(
 
 
 
-def generate_fierce_thumbnail_subject(episode_dir, series_name='', custom_prompt=None, genre=None, aspect_ratio=None):
-    res = generate_thumbnail_with_flow(episode_dir, series_name, custom_prompt, genre, aspect_ratio=aspect_ratio, force_regenerate=True)
-    return Path(res['thumbnail_file']) if res.get('ok') else None
+def generate_fierce_thumbnail_subject(episode_dir, series_name='', custom_prompt=None, genre=None, aspect_ratio=None, hook_text=None, preferred_side='auto', font_scale='viral'):
+    res = generate_thumbnail_with_flow(
+        episode_dir,
+        series_name,
+        custom_prompt,
+        genre,
+        hook_text=hook_text,
+        aspect_ratio=aspect_ratio,
+        preferred_side=preferred_side or 'auto',
+        font_scale=font_scale or 'viral',
+        force_regenerate=True,
+        explicit_regen=True,
+    )
+    if res.get('ok'):
+        return Path(res['thumbnail_file'])
+    raise RuntimeError(res.get('error') or 'ChatGPT Web thumbnail generation failed')
 
 def ensure_episode_in_title(title: str, ep_num: int, language: str) -> str:
 
@@ -9469,78 +9759,72 @@ def ensure_episode_in_title(title: str, ep_num: int, language: str) -> str:
 
 
 import threading
-
-
-
-
-
-
-
+import contextlib
 import tempfile
 
+_SEO_LOCK_GUARD = getattr(threading, "_STORYBOARD_SEO_LOCK_GUARD", None)
+if _SEO_LOCK_GUARD is None:
+    _SEO_LOCK_GUARD = threading.Lock()
+    setattr(threading, "_STORYBOARD_SEO_LOCK_GUARD", _SEO_LOCK_GUARD)
+
+_SEO_LOCKS = getattr(threading, "_STORYBOARD_SEO_LOCKS", None)
+if _SEO_LOCKS is None:
+    _SEO_LOCKS = {}
+    setattr(threading, "_STORYBOARD_SEO_LOCKS", _SEO_LOCKS)
+
+_SEO_LOCK_TLS = getattr(threading, "_STORYBOARD_SEO_LOCK_TLS", None)
+if _SEO_LOCK_TLS is None:
+    _SEO_LOCK_TLS = threading.local()
+    setattr(threading, "_STORYBOARD_SEO_LOCK_TLS", _SEO_LOCK_TLS)
 
 
-
-
-
-
-_SEO_LOCK_GUARD = threading.Lock()
-
-
-
-
-
-
-
-_SEO_LOCKS = {}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+@contextlib.contextmanager
 def _episode_lock(root):
-
-
-
-
-
-
-
-    key=str(Path(root).resolve())
-
-
-
-
-
-
-
+    root_path = Path(root).resolve()
+    key = str(root_path)
     with _SEO_LOCK_GUARD:
-
-
-
-
-
-
-
-        return _SEO_LOCKS.setdefault(key,threading.RLock())
+        tlock = _SEO_LOCKS.setdefault(key, threading.RLock())
+    depth_map = getattr(_SEO_LOCK_TLS, "depths", None)
+    if depth_map is None:
+        depth_map = {}
+        _SEO_LOCK_TLS.depths = depth_map
+    with tlock:
+        depth = depth_map.get(key, 0)
+        depth_map[key] = depth + 1
+        lock_file = root_path / ".seo_generation.lock"
+        acquired_file = False
+        if depth == 0 and root_path.exists():
+            deadline = time.time() + 240.0
+            while True:
+                try:
+                    fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                    try:
+                        os.write(fd, f"{os.getpid()} {time.time()}\n".encode("ascii", "ignore"))
+                    finally:
+                        os.close(fd)
+                    acquired_file = True
+                    break
+                except FileExistsError:
+                    try:
+                        if time.time() - lock_file.stat().st_mtime > 300.0:
+                            lock_file.unlink(missing_ok=True)
+                            continue
+                    except Exception:
+                        pass
+                    if time.time() >= deadline:
+                        break
+                    time.sleep(0.4)
+                except Exception:
+                    break
+        try:
+            yield
+        finally:
+            depth_map[key] = max(0, depth_map.get(key, 1) - 1)
+            if depth == 0 and acquired_file:
+                try:
+                    lock_file.unlink(missing_ok=True)
+                except Exception:
+                    pass
 
 
 
@@ -10023,6 +10307,54 @@ def _seo_prompt(ctx,series,episode):
 
     lang = ctx.get('language', 'Spanish')
 
+    # ANTI-DUPLICATE TITLE GUARD: Collect all previous titles across this entire series
+    previous_titles = []
+    try:
+        series_dir = root_p.parent
+        # Scan sibling episode folders
+        for ep_dir in sorted(series_dir.glob("episode_*")):
+            if ep_dir.resolve() == root_p.resolve():
+                continue
+            pack_f = ep_dir / "youtube_publish_pack.json"
+            if pack_f.is_file():
+                try:
+                    p_data = json.loads(pack_f.read_text(encoding="utf-8"))
+                    for t_item in p_data.get("titles", []):
+                        if isinstance(t_item, dict) and t_item.get("title"):
+                            previous_titles.append(t_item["title"].strip())
+                except Exception:
+                    pass
+        # Scan 00_XUAT_BAN_TOAN_BO_SERIES for published packages
+        pub_all_dir = series_dir / "00_XUAT_BAN_TOAN_BO_SERIES"
+        if pub_all_dir.is_dir():
+            for txt_f in pub_all_dir.glob("**/THONG_TIN_DANG_BAI_*.txt"):
+                try:
+                    txt_content = txt_f.read_text(encoding="utf-8")
+                    for line in txt_content.splitlines():
+                        line_s = line.strip()
+                        if line_s.startswith(("[1]", "[2]", "[3]")):
+                            clean_t = line_s.split("]", 1)[-1].strip()
+                            if clean_t and clean_t not in previous_titles:
+                                previous_titles.append(clean_t)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    anti_duplicate_instruction = ""
+    if previous_titles:
+        unique_prev = list(dict.fromkeys(previous_titles))[:20]
+        anti_duplicate_instruction = f"""
+CRITICAL ANTI-DUPLICATION BLACKLIST (MANDATORY TO AVOID YOUTUBE SPAM PENALTY):
+The following {len(unique_prev)} titles were ALREADY PUBLISHED in previous episodes of this series:
+{json.dumps(unique_prev, ensure_ascii=False, indent=2)}
+
+ABSOLUTE ENFORCEMENT RULES:
+- You are STRICTLY FORBIDDEN from reusing, repeating, or slightly rewording ANY title above!
+- Never use the same central hook or identical opening phrase (e.g. if 'La Regla de los 3 Segundos' was used, NEVER use 'La Regla' or '3 Segundos' again).
+- Every proposed title MUST explore a COMPLETELY NEW psychological trigger, a fresh philosophical lesson, or a different high-stakes conflict!
+"""
+
 
 
 
@@ -10111,13 +10443,12 @@ CRITICAL TITLE RULES:
 
 
 
-        format_instructions = f"""FORMAT: NARRATIVE / DOCUMENTARY (DEEP STORYTELLING 16:9)
-
-
+        format_instructions = f"""FORMAT: NARRATIVE / DOCUMENTARY (DEEP STORYTELLING 16:9 - RETENTION & HIGH-CTR MASTERCLASS)
 
 1. TITLES: 3 elite, viral, high-CTR titles in {lang} balancing curiosity, emotion, and deep value.
-CRITICAL TITLE RULES:
-- Length: STRICTLY between 50 and 85 characters. NEVER under 50 characters!
+CRITICAL TITLE RULES (TOP CREATOR MASTERMIND STANDARDS):
+- Length: STRICTLY between 55 and 85 characters. NEVER under 50 characters, NEVER exceed 90 characters (avoids mobile truncation '...').
+- THE 1+1 SYNERGY MANDATE: Title MUST NOT duplicate the thumbnail hook words! Thumbnail hook triggers curiosity/emotion; Title explains context & promises payoff.
 - NEVER return lazy 2-4 word flat book titles like 'El arte de conectar' or 'La erosión del diálogo' (boring, zero clicks)!
 - Every title must be magnetic, provocative, and promise transformative insight.
 - Title #1 (High-CTR Hook): [PROVOCATIVE HOOK IN ALL CAPS]: [POWER PROMISE / HARSH TRUTH] | [AUTHORITY / NICHE]
@@ -10126,28 +10457,25 @@ CRITICAL TITLE RULES:
 - CLEAN PUNCTUATION: Never leave trailing pipe '|', never leave dangling colons, never glue numbers to words (e.g. write 'ESTOICISMO', never 'ESTOICISMO1').
 - Title #2 (Curiosity Hook): Fear of missing out, dangerous mistake, or harsh reality.
   Examples: 'CÓMO HABLAR PARA QUE TODOS TE ESCUCHEN: 5 Secretos Estoicos', 'EL ERROR OCULTO QUE DESTRUYE TU PAZ MENTAL | Filosofía Estoica'
-- Title #3 (Authority Rule): Golden rules, ancient stoic wisdom, or power rule.
-  Examples: 'DEJA DE HABLAR TANTO: El Secreto Estoico Para Ganar Respeto', '3 LEYES DE MARCO AURELIO PARA DOMINAR TUS EMOCIONES' 
+- Title #3 (Authority Rule): Golden rules, ancient wisdom, or ruthless self-mastery rule.
+  Examples: 'DEJA DE HABLAR TANTO: El Secreto Estoico Para Ganar Respeto', '3 LEYES DE MARCO AURELIO PARA DOMINAR TUS EMOCIONES'
 
+2. DESCRIPTION: Structured 3-tier description in {lang}:
+  - TIER 1 (Above-The-Fold Hook, 120-160 chars): Seen before 'Show More'. Must state the primary keyword in the first sentence, hook the core conflict/paradox, and present the transformation.
+  - TIER 2 (Key Lessons / Takeaways): 3-5 concise bullet points highlighting the profound insights viewers will gain.
+  - TIER 3 (Real Chapters / Timestamps): Extracted from the actual scene timeline.
 
+3. HASHTAGS: Exactly 5 high-volume niche hashtags in {lang} (1 main genre, 2 niche topics, 2 high-search terms).
 
-2. DESCRIPTION: Structured 3-tier description in {lang} (Hook > 120 chars, 3 key takeaways, timestamps).
+4. TAGS: 25-30 layered keywords in {lang} (core seed keywords, search queries, historical/philosophical entities, high-intent phrases).
 
+5. THUMBNAIL HOOK: Exactly 2 to 4 high-urgency, punchy words in ALL CAPS (e.g. 'ALÉJATE EN SILENCIO', 'IM LẶNG LÀ VŨ KHÍ').
+  - Must easily split into 2 visual layers: Line 1 (Power Word: 3D Imperial Gold #FFD700) + Line 2 (Subject: 3D Pure Titanium White #FFFFFF with Crimson Red #DC2626 accents).
+  - MUST NOT duplicate the title text!
 
-
-3. HASHTAGS: Exactly 5 high-volume niche hashtags in {lang}.
-
-
-
-4. TAGS: 25-30 layered keywords in {lang} (core topic, search queries, historical/philosophical entities).
-
-
-
-5. THUMBNAIL HOOK: 3 to 5 words in ALL CAPS (e.g. 'ALÉJATE EN SILENCIO', 'IM LẶNG LÀ SỨC MẠNH').
-
-
-
-6. PINNED COMMENT: A deep reflective question in {lang} encouraging thoughtful audience essays."""
+6. PINNED COMMENT (COMMENT ENGINE & ALGORITHM CATALYST):
+  - Must pose a thought-provoking, deep moral dilemma or reflective question with TWO contrasting choices in {lang}.
+  - Explicitly invite viewers to share their real personal experiences in the comments to ignite early comment velocity in the first 2-4 hours."""
 
 
 
@@ -10177,11 +10505,7 @@ CRITICAL SYNCHRONIZATION MANDATE:
 
 3. ADAPTIVE GENRE: Tailor vocabulary, tone, and metaphors strictly to the genre: '{genre}' (do not force Stoic phrasing if genre is different).
 
-
-
-
-
-
+{anti_duplicate_instruction}
 
 {format_instructions}
 
@@ -11278,7 +11602,7 @@ def is_vertical_short_episode(root: Path, ctx: Optional[Dict[str, Any]] = None) 
                 pass
     return False
 
-def _generate_grounded_package(root,series,episode,language,genre,custom_hook,preferred_scene,side,font_scale,force,include_shorts):
+def _generate_grounded_package(root,series,episode,language,genre,custom_hook,preferred_scene,side,font_scale,force,include_shorts,explicit_regen=False):
 
 
 
@@ -11367,6 +11691,8 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
     primary=quality.clean_text(data.get('primary_keyword'),60) or fallback['primary_keyword']
+    if titles and hasattr(quality, 'align_primary_keyword_with_title'):
+        primary = quality.align_primary_keyword_with_title(titles[0]['title'], primary, language=ctx['language'], genre=ctx['genre']) or primary
 
 
 
@@ -11410,9 +11736,9 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
-        subj=clean_ref_tag or ctx.get('title', '')
+        subj=clean_ref_tag or ctx.get('title', ''),
 
-
+        title_text=titles[0]['title'] if titles else ''
 
     )
 
@@ -11455,7 +11781,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
     # Guaranteed Language-Native Hook with Primary Target Keyword in Sentence 1 (VidIQ Triple Match 100/100)
     if not opening or (primary and not quality.is_keyword_matched(primary, opening[:250])):
-        if 'spa' in lang_lower or 'es' in lang_lower:
+        if _is_es_lang_sp(lang_lower):
             if is_stoic:
                 opening = f"Descubre el poder del {primary or 'estoicismo'} (Episodio {episode}): dominar tus reacciones ante la provocación es el arma definitiva de un hombre libre. Aplica la regla de los tres segundos y recupera tu calma hoy mismo."
             elif is_western:
@@ -11479,7 +11805,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
     synopsis = quality.clean_text(data.get('story_synopsis') or '', 1500)
     if not synopsis or len(synopsis) < 150:
-        if 'spa' in lang_lower or 'es' in lang_lower:
+        if _is_es_lang_sp(lang_lower):
             if is_stoic:
                 synopsis = "Basado en las enseñanzas inmortales de Marco Aurelio y Séneca, este episodio profundiza en por qué el sabio jamás contraataca y cómo la calma deliberada desarma cualquier ataque exterior, forjando un carácter inquebrantable."
             elif is_western:
@@ -11505,7 +11831,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
     # Ensure at least 3 chapters starting at 00:00 (VidIQ Key Moments 15/15 pts)
     if not chapters or len(chapters) < 3:
-        if 'spa' in lang_lower or 'es' in lang_lower:
+        if _is_es_lang_sp(lang_lower):
             chapters = [
                 {'time': '00:00', 'title': 'Introducción y El Desafío'},
                 {'time': '00:15', 'title': 'El Secreto de la Calma Consciente'},
@@ -11524,12 +11850,12 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
                 {'time': '00:27', 'title': 'Inner Victory & Final Truth'}
             ]
 
-    chapter_header = "TIMELINE CHAPTERS" if "eng" in lang_lower else ("MỐC THỜI GIAN & CHƯƠNG" if "vie" in lang_lower else "CAPÍTULOS & MOMENTOS CLAVE")
+    chapter_header = "MỐC THỜI GIAN & CHƯƠNG" if _is_vi_lang_sp(lang_lower) else ("CAPÍTULOS & MOMENTOS CLAVE" if _is_es_lang_sp(lang_lower) else "TIMELINE CHAPTERS")
     desc_parts.append(chapter_header + ':\n' + '\n'.join(f"{c['time']} - {c['title']}" for c in chapters))
 
     # Adaptive Language & Genre Bullet Points
     if is_stoic:
-        if 'spa' in lang_lower or 'es' in lang_lower:
+        if _is_es_lang_sp(lang_lower):
             themes_header = "PUNTOS CLAVE & FILOSOFÍA ESTOICA"
             themes = [
                 "- La Regla de Oro: No es lo que te sucede, sino cómo reaccionas ante lo que te sucede.",
@@ -11552,7 +11878,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
             ]
         desc_parts.append(themes_header + ':\n' + '\n'.join(themes))
     elif is_western:
-        if 'spa' in lang_lower or 'es' in lang_lower:
+        if _is_es_lang_sp(lang_lower):
             themes_header = "TEMAS CLAVE DEL WESTERN"
             themes = [
                 "- El Código de Honor: En una tierra sin ley, la palabra dada es la única ley que sobrevive.",
@@ -11629,31 +11955,12 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
-    if not custom_hook and not quality.is_grounded(hook, ctx):
-
-
-
-
-
-
-
-        hook = primary.upper()
-
-
-
-
-
-
-
     if not custom_hook:
-
-
-
-
-
-
-
-        hook = ' '.join(hook.split()[:8])
+        if not quality.is_target_language(hook, ctx['language']):
+            hook = primary.upper()
+        hook = ' '.join(hook.split()[:5])
+    if not hook:
+        hook = primary.upper()
 
 
 
@@ -11781,6 +12088,13 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
+    thumb_params_changed = bool(
+        (custom_hook and previous and str(previous.get('thumbnail_hook_text') or '').strip().lower() != str(hook).strip().lower())
+        or (previous and previous.get('thumbnail_font_scale') and previous.get('thumbnail_font_scale') != font_scale)
+        or (previous and previous.get('thumbnail_side') and previous.get('thumbnail_side') != side)
+        or (preferred_scene is not None and previous and previous.get('thumbnail_scene_num') != selection['scene_number'])
+    )
+
     flow_thumb_res = generate_thumbnail_with_flow(
 
 
@@ -11806,7 +12120,11 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
         aspect_ratio=target_ratio_str,
-        force_regenerate=force
+        force_regenerate=force,
+        font_scale=font_scale or 'viral',
+        preferred_side=side or 'auto',
+        reapply_typography=thumb_params_changed,
+        explicit_regen=explicit_regen,
     )
 
 
@@ -11815,29 +12133,17 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
-    if is_vertical and shorts_cover.is_file():
-
-
-
+    if flow_thumb_res.get('ok') and flow_thumb_res.get('thumbnail_file') and Path(flow_thumb_res['thumbnail_file']).is_file():
+        thumbnail = Path(flow_thumb_res['thumbnail_file'])
+    elif is_vertical and shorts_cover.is_file():
         thumbnail = shorts_cover
-
-
-
     elif landscape_cover.is_file():
-
-
-
         thumbnail = landscape_cover
-
-
-
     else:
-
-
-
         thumbnail = Path(flow_thumb_res.get('thumbnail_file') or root / ('thumbnail_shorts.jpg' if is_vertical else 'thumbnail_seo.jpg'))
 
-
+    thumb_backend = flow_thumb_res.get('backend') or 'chatgpt_web'
+    thumb_error = None if flow_thumb_res.get('ok') else (flow_thumb_res.get('error') or 'ChatGPT Web thumbnail generation failed')
 
     package={'engine_version':quality.ENGINE_VERSION,'source_fingerprint':ctx['fingerprint'],
 
@@ -11879,7 +12185,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
 
-        'chapters':chapters,'thumbnail_hook_text':hook,'default_language':'es' if any(k in str(language).lower() for k in ('spa','es')) else str(language or 'es'),'default_audio_language':'es' if any(k in str(language).lower() for k in ('spa','es')) else str(language or 'es'),'caption_certification':'never_aired_us','thumbnail_scene_num':selection['scene_number'],
+        'chapters':chapters,'thumbnail_hook_text':hook,'default_language':'es' if _is_es_lang_sp(language) else ('vi' if _is_vi_lang_sp(language) else str(language or 'en')),'default_audio_language':'es' if _is_es_lang_sp(language) else ('vi' if _is_vi_lang_sp(language) else str(language or 'en')),'caption_certification':'never_aired_us','thumbnail_scene_num':selection['scene_number'],
 
 
 
@@ -11888,6 +12194,7 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
 
 
         'thumbnail_side':side,'thumbnail_font_scale':font_scale,'thumbnail_file':str(thumbnail) if thumbnail else None,
+        'thumbnail_backend':thumb_backend,'thumbnail_error':thumb_error,'thumbnail_prompt_used':flow_thumb_res.get('flow_prompt') or '',
 
 
 
@@ -12031,16 +12338,17 @@ def _generate_grounded_package(root,series,episode,language,genre,custom_hook,pr
         shorts_file = root / 'thumbnail_shorts.jpg'
         seo_file = root / 'thumbnail_seo.jpg'
 
+        _src_tag = 'ChatGPT Web Hoàn Thiện' if 'chatgpt' in str(thumb_backend or '').lower() else 'Hoàn thiện AI'
         if is_vert_opt:
             # 9:16 Shorts Tab ONLY - Strictly isolated
             opts = []
             if shorts_file.is_file():
-                opts.append({'file': shorts_file.name, 'scene': None, 'url': _media_url(shorts_file), 'label': 'Bìa dọc Shorts 9:16 (Chữ 3D Google Flow)'})
+                opts.append({'file': shorts_file.name, 'scene': None, 'url': _media_url(shorts_file), 'label': f'Bìa dọc Shorts 9:16 ({_src_tag})'})
         else:
             # 16:9 Long Video Tab ONLY - Strictly isolated, never show Shorts here!
             opts = []
             if thumbnail and thumbnail.is_file():
-                opts.append({'file': thumbnail.name, 'scene': None, 'url': package['thumbnail_url'], 'label': 'Bản chính 16:9 (Chữ 3D Google Flow)'})
+                opts.append({'file': thumbnail.name, 'scene': None, 'url': package['thumbnail_url'], 'label': f'Bản chính 16:9 ({_src_tag})'})
             comp = root / 'thumbnail_competitor_trend.jpg'
             if comp.is_file():
                 opts.append({'file': comp.name, 'scene': None, 'url': _media_url(comp), 'label': 'Trend Đối Thủ'})
@@ -12133,7 +12441,7 @@ def generate_seo_package(episode_dir, series_name, episode_num=1, language="auto
 
 
 
-        preferred_scene_num=None, preferred_side="auto", font_scale="standard", force_regenerate=False, include_shorts=False):
+        preferred_scene_num=None, preferred_side="auto", font_scale="viral", force_regenerate=False, include_shorts=False, explicit_regen=False):
 
 
 
@@ -12173,7 +12481,7 @@ def generate_seo_package(episode_dir, series_name, episode_num=1, language="auto
 
 
 
-            preferred_scene_num,preferred_side,font_scale,force_regenerate,include_shorts)
+            preferred_scene_num,preferred_side,font_scale,force_regenerate,include_shorts,explicit_regen=explicit_regen)
 
 
 
@@ -12621,13 +12929,13 @@ def format_upload_settings_checklist_txt(seo_package=None):
     
     # Standardize BCP-47 tag and localized display name
     lang_lower = lang_raw.lower()
-    if any(k in lang_lower for k in ("spa", "tây ban nha", "es", "español", "espanol")):
-        lang_display = "Tiếng Tây Ban Nha (Spanish)"
-        bcp47_code = "es"
-    elif any(k in lang_lower for k in ("vie", "việt", "vi", "tiếng việt")):
+    if _is_vi_lang_sp(lang_lower):
         lang_display = "Tiếng Việt (Vietnamese)"
         bcp47_code = "vi"
-    elif any(k in lang_lower for k in ("eng", "anh", "en", "english")):
+    elif _is_es_lang_sp(lang_lower):
+        lang_display = "Tiếng Tây Ban Nha (Spanish)"
+        bcp47_code = "es"
+    elif any(k in lang_lower for k in ("eng", "tiếng anh", "english")) or lang_lower in ("en", "en-us", "en-gb"):
         lang_display = "Tiếng Anh (English - US)"
         bcp47_code = "en-US"
     elif any(k in lang_lower for k in ("rus", "nga", "ru", "russian")):

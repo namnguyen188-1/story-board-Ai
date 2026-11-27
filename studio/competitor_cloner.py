@@ -322,10 +322,11 @@ GENRE & SUBJECT ANALYSIS GUIDELINES:
    - Observe and describe ONLY actual visual evidence from the footage.
    - CRITICAL SUBJECT CLASSIFICATION:
      * If the footage features a living human, actor, or scholar (e.g. Marcus Aurelius, Seneca, or modern actor in clothing/toga): classify as a LIVING HUMAN with natural human skin tones and organic textile wardrobe. NEVER classify a living person as a stone statue!
-     * If the footage features a classical fine-art painting: preserve the painted fine-art medium.      * For 'stoic' / Classical Greco-Roman philosophy: Characterize the protagonist as a DIGNIFIED LIVING HISTORICAL ROMAN PHILOSOPHER EMPEROR (Marcus Aurelius archetype) with authentic living human flesh and skin tone. Dignified mature man (around 50 years old), weathered sun-kissed Mediterranean bronze skin, expressive dark eyes full of calm wisdom, curly salt-and-pepper hair, and well-groomed beard. Authentic living human anatomy with 100% complete intact arms and natural hands with five fingers. NEVER render as a stone statue, NEVER a marble bust, NEVER a pedestal, NEVER severed limbs, NEVER headless, NEVER amputated hands.
-      * Wardrobe for Stoic genre: Signature royal crimson red and cream-white draped linen toga (chlamys) cascading gracefully over one shoulder, fastened with an antique golden brooch.
-      * Dynamic Framing: Prioritize cinematic medium shots, contemplative 3/4 portraits, and grand atmospheric ancient Roman imperial colonnades, candlelit libraries with parchment scrolls, and courtyards at golden hour. Complete human anatomy with intact arms.
-      * ABSOLUTE BUST & STATUE BAN FOR STOIC: Even if competitor video features an ancient stone statue or museum bust, ALWAYS ADAPT AND TRANSLATE the protagonist into a LIVING, BREATHING HUMAN PHILOSOPHER EMPEROR with natural skin, expressive eyes, and complete intact limbs! NEVER describe or prompt a severed half-body bust, stone pedestal, or armless figure!
+     * If the footage features a classical fine-art painting: preserve the painted fine-art medium.
+     * For 'stoic' / Classical Greco-Roman philosophy: Protagonist is a MONUMENTAL HEROIC CARVED CARRARA MARBLE STATUE of Marcus Aurelius. Noble chiseled stone features, intricately sculpted curly marble hair and textured beard, wise contemplative stone gaze (carved stone eyes without biological pupils), broad sculpted stone shoulders draped in an authentic Roman stone toga cascading across one shoulder with a circular imperial brooch medallion. Completely unbroken anatomy with intact carved stone arms. NEVER render as living human flesh, NEVER modern actor with real skin pores, NEVER flesh tones, NEVER bodybuilder cosplay.
+      * Wardrobe for Stoic genre: Signature draped Carrara marble classical toga with circular imperial brooch medallion, cascading elegantly over sculpted stone shoulders.
+      * Dynamic Framing: Prioritize heroic medium shots, contemplative 3/4 stone portraits, and grand atmospheric ancient Roman imperial colonnades, Corinthian marble columns, and Acropolis ruins under dramatic golden chiaroscuro rim lighting.
+      * ABSOLUTE CARRARA MARBLE STATUE RULE FOR STOIC: The protagonist MUST ALWAYS be an authentic monumental classical Carrara marble statue of Marcus Aurelius. Completely unbroken stone anatomy with intact carved arms; strictly never living human flesh, never real skin pores, never biological human actors, never tabletop pedestals!
    - If some sampled images show a statue and others show people or landscapes, report distinct observed subject types without forcing every frame to be a statue.
 
 Return JSON only with these exact keys:
@@ -366,7 +367,7 @@ Return JSON only with these exact keys:
         client = ResilientClient(api_keys=keys[:2])
         img_bytes = Path(image_path).read_bytes()
 
-        for model_name in ("gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.8-flash"):
+        for model_name in ("gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-3.8-flash"):
             try:
                 resp = client.models.generate_content(
                     model=model_name,
@@ -488,7 +489,7 @@ def analyze_competitor_character(url: str) -> dict:
                 timeline_data = analyze_local_sampled_timeline(
                     local_video, float(base_info.get("duration_minutes") or 0),
                     CLONES_CACHE_DIR / f"{video_id}_local_timeline",
-                    model="gemini-2.5-flash"
+                    model="gemini-flash-lite-latest"
                 )
                 if valid_reference(timeline_data, duration_minutes=base_info.get("duration_minutes", 0)):
                     tmp = timeline_file.with_suffix(".tmp")
@@ -500,7 +501,7 @@ def analyze_competitor_character(url: str) -> dict:
 
         if not timeline_data:
             try:
-                analyzed = analyze_youtube_timeline(canonical, base_info.get("duration_minutes", 0), models=("gemini-2.5-flash", "gemini-3.5-flash"))
+                analyzed = analyze_youtube_timeline(canonical, base_info.get("duration_minutes", 0), models=("gemini-flash-lite-latest", "gemini-3.5-flash"))
                 if not valid_reference(analyzed, duration_minutes=base_info.get("duration_minutes", 0)):
                     raise RuntimeError("SOURCE_TIMELINE_DID_NOT_PASS_VERIFICATION")
                 timeline_data = analyzed
@@ -515,7 +516,7 @@ def analyze_competitor_character(url: str) -> dict:
                         timeline_data = analyze_local_sampled_timeline(
                             local_video, float(base_info.get("duration_minutes") or 0),
                             CLONES_CACHE_DIR / f"{video_id}_local_timeline",
-                            model="gemini-2.5-flash"
+                            model="gemini-flash-lite-latest"
                         )
                         if valid_reference(timeline_data, duration_minutes=base_info.get("duration_minutes", 0)):
                             tmp = timeline_file.with_suffix(".tmp")
@@ -578,21 +579,19 @@ def analyze_competitor_character(url: str) -> dict:
         detected_genre = "stoic"
         dna["suggested_genre"] = "stoic"
         dna["character_name"] = "Marcus Aurelius (Heroic Monumental Carrara Marble Statue)"
-        dna["appearance_lock"] = "Hyper-muscular chiseled Roman philosopher emperor sculpture in pure Carrara marble, colossal broad shoulders, powerfully sculpted chest pecs, thick curly stone beard and hair, complete unbroken stone arms, weathered stone texture with smooth chisel marks."
-        dna["wardrobe_lock"] = "Signature royal crimson red draped linen toga (chlamys) cascading across one stone shoulder, leaving the sculpted muscular chest exposed."
+        dna["appearance_lock"] = "Heroic monumental classical carved Carrara marble statue of Roman emperor Marcus Aurelius. Cold white-grey Carrara marble stone texture with authentic delicate chisel marks, noble contemplative stone gaze (carved stone eyes without biological pupils), intricately sculpted curly marble hair and textured Roman beard, broad muscular sculpted stone shoulders, and complete unbroken carved stone anatomy."
+        dna["wardrobe_lock"] = "Classical Roman imperial draped stone toga cascading gracefully across one sculpted shoulder, fastened with a circular carved stone imperial brooch medallion."
         dna["clone_prompt"] = (
-            "Cinematic 16:9 composition, medium shot torso framing occupying frame. "
-            "Monumental heroic classical carved Carrara marble statue of Stoic philosopher emperor Marcus Aurelius, unbroken complete sculpture. "
-            "Deeply sculpted hyper-muscular anatomy, colossal broad stone shoulders, powerfully chiseled pectoral chest muscles, thick sculpted stone neck, "
-            "fully sculpted unbroken muscular stone arms seamlessly attached extending naturally, majestic curly stone beard and contemplative stone eyes, "
-            "signature royal crimson draped linen toga cascading over one shoulder leaving muscular stone chest exposed. "
-            "Authentic weathered Carrara marble texture with smooth chisel marks and subtle fissure lines, 100% pure classical stone sculpture. "
-            "Dramatic golden chiaroscuro key lighting, atmospheric ancient Roman colonnade ruins at twilight with floating golden torch embers. "
-            "Masterpiece, photorealistic 8k, sharp focus. "
-            "Absolutely no living human flesh, no real skin pores, no severed arms, no amputated limbs, no broken statues, no tabletop pedestals, no floating busts, no wide shot, no tiny distant figures, no cartoon"
+            "Cinematic 16:9 composition, heroic medium shot torso framing. "
+            "Monumental heroic classical carved Carrara marble statue of Roman emperor and Stoic philosopher Marcus Aurelius. "
+            "Pure cold white-grey Carrara marble stone texture, noble chiseled features, contemplative stone eyes, intricately sculpted curly hair and full stone beard. "
+            "Powerful broad sculpted stone shoulders and torso draped in an authentic classical Roman stone toga with a circular brooch medallion. "
+            "Dramatic golden chiaroscuro rim lighting outlining the marble contours, volumetric golden light, atmospheric ancient Roman colonnade and distant Acropolis ruins at golden hour dusk with floating embers. "
+            "Masterpiece, 8k resolution, authentic classical antiquity marble sculpture, completely inanimate solid stone. "
+            "Strictly single statue, completely unbroken anatomy, no living human flesh, no real skin pores, no biological human actor, no tabletop pedestal."
         )
-        dna["art_style"] = "Moody 16:9 cinematic neoclassical sculpture photography with dramatic chiaroscuro lighting, deep shadows, and high contrast highlighting sculptural textures."
-        dna["immutable_rules"] = "Maintain the subject strictly as an unbroken monumental carved Carrara marble statue of Marcus Aurelius with hyper-muscular anatomy and crimson toga; medium shot torso framing; never living human flesh, never severed arms, never pedestals."
+        dna["art_style"] = "Cinematic 16:9 classical antiquity fine art with dramatic golden chiaroscuro rim lighting, cold white Carrara marble statues, ancient Roman ruins, and rich atmospheric dusk grading."
+        dna["immutable_rules"] = "Maintain the subject strictly as an unbroken monumental carved Carrara marble statue of Marcus Aurelius; cold white stone texture; noble carved features; draped stone toga with circular brooch; medium shot torso framing; strictly never living human flesh, never real skin pores, never flesh tones, never biological human actors."
         # Update cache file with hardened stoic marble statue DNA
         try:
             cache_file.write_text(json.dumps(dna, ensure_ascii=False, indent=2), encoding="utf-8")

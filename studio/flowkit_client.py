@@ -54,6 +54,10 @@ import subprocess
 
 
 
+import sys
+
+
+
 import time
 
 
@@ -99,53 +103,20 @@ logger = logging.getLogger("flowkit_client")
 
 
 def _resolve_flowkit_root() -> Path:
-
-
-
     env_p = os.environ.get("FLOWKIT_ROOT", "").strip()
-
-
-
     candidates = [
-
-
-
         Path(env_p) if env_p else None,
-
-
-
-        Path(__file__).resolve().parent.parent / "FLOWKIT",
-
-
-
-        Path(__file__).resolve().parent / "flowkit",
-
-
-
         Path("D:/FLOWKIT"),
-
-
-
+        Path(__file__).resolve().parent.parent / "flowkit",
+        Path(__file__).resolve().parent.parent / "FLOWKIT",
         Path("C:/FLOWKIT"),
-
-
-
     ]
-
-
-
     for c in candidates:
-
-
-
-        if c and c.is_dir() and (c / "app").is_dir():
-
-
-
+        if c and c.is_dir() and (c / "engines").is_dir():
             return c
-
-
-
+    for c in candidates:
+        if c and c.is_dir() and (c / "app").is_dir():
+            return c
     return Path("D:/FLOWKIT")
 
 
@@ -355,8 +326,39 @@ def cleanup_stale_flowkit_jobs():
 
 
 def ensure_flowkit_running(max_wait_seconds: int = 15) -> bool:
-    """Disabled: Storyboard uses MCP V2; never launch or rewrite FlowKit jobs."""
-    return False
+    """Ensure FlowKit gateway service (http://127.0.0.1:18110) is active."""
+    if is_flowkit_alive(timeout=1.5):
+        return True
+
+    root = _resolve_flowkit_root()
+    py_candidates = [
+        root / "engines" / "muse" / "runtime" / "muse" / "python" / "pythonw.exe",
+        root / "engines" / "muse" / "runtime" / "muse" / "python" / "python.exe",
+        Path(sys.executable),
+    ]
+    python_exe = next((p for p in py_candidates if p.is_file()), None)
+    launcher = root / "app" / "launcher.py"
+
+    if python_exe and launcher.is_file():
+        try:
+            flags = (0x08000000 | 0x00000008 | 0x00000200) if os.name == "nt" else 0
+            subprocess.Popen(
+                [str(python_exe), "-B", "-u", str(launcher)],
+                cwd=str(root),
+                creationflags=flags,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc:
+            logger.warning("Failed to spawn FlowKit launcher: %s", exc)
+
+    deadline = time.time() + max_wait_seconds
+    while time.time() < deadline:
+        if is_flowkit_alive(timeout=1.0):
+            return True
+        time.sleep(0.5)
+
+    return is_flowkit_alive(timeout=1.0)
 
 
 
@@ -376,11 +378,11 @@ def get_webtool_status(mode: str = "hidden") -> Dict[str, Any]:
 
 
 
+    safe_mode = "active" if str(mode or "").strip().lower() in ("visible", "shown", "show", "active") else "hidden"
+
     key = get_api_key()
 
-
-
-    url = f"{FLOWKIT_BASE_URL}/v1/webtool/status?mode={mode}"
+    url = f"{FLOWKIT_BASE_URL}/v1/webtool/status?mode={safe_mode}"
 
 
 
@@ -1556,7 +1558,7 @@ def generate_episode_images_flowkit(
 
 
 
-    print(f"MCP_BATCH_PREPARED {total}", flush=True)
+    print(f"FLOWKIT_BATCH_PREPARED {total}", flush=True)
 
 
 
@@ -1596,7 +1598,7 @@ def generate_episode_images_flowkit(
 
 
 
-            print(f"MCP_IMAGE_IMPORTED scene {idx}/{total}", flush=True)
+            print(f"FLOWKIT_IMAGE_IMPORTED scene {idx}/{total}", flush=True)
 
 
 
@@ -1670,7 +1672,7 @@ def generate_episode_images_flowkit(
 
 
 
-        print(f"MCP_RENDERING_BATCH {idx}/{total}", flush=True)
+        print(f"FLOWKIT_RENDERING_BATCH {idx}/{total}", flush=True)
 
 
 
@@ -1742,7 +1744,7 @@ def generate_episode_images_flowkit(
 
 
 
-                print(f"MCP_IMAGE_IMPORTED scene {idx}/{total} (model: {curr_model})", flush=True)
+                print(f"FLOWKIT_IMAGE_IMPORTED scene {idx}/{total} (model: {curr_model})", flush=True)
 
 
 
@@ -1864,7 +1866,7 @@ def generate_episode_images_flowkit(
 
                 if Path(target).is_file() and Path(target).stat().st_size > 1024:
 
-                    print(f"MCP_IMAGE_IMPORTED scene {idx}/{total} (via Tuan Stor Gateway)", flush=True)
+                    print(f"FLOWKIT_IMAGE_IMPORTED scene {idx}/{total} (via Cloud AI)", flush=True)
 
                     return idx, str(target)
 
@@ -1872,7 +1874,29 @@ def generate_episode_images_flowkit(
 
             logger.error(f"[FAILOVER_TUANSTOR] Tuan Stor fallback failed for scene {idx}: {failover_err}")
 
+        # COMFYUI LOCAL GPU SEAMLESS FALLBACK
 
+        try:
+
+            from comfyui_image_provider import make_image as _comfy_make_image, is_installed as _comfy_installed
+
+            if _comfy_installed():
+
+                print(f"[FAILOVER_COMFYUI] Cloud AI ban, tu dong chuyen sang ComfyUI GPU cho canh {idx}/{total}...", flush=True)
+
+                _w, _h = (720, 1280) if str(aspect_ratio).strip() == "9:16" else (1280, 720)
+
+                _comfy_make_image(prompt, target, width=_w, height=_h)
+
+                if Path(target).is_file() and Path(target).stat().st_size > 1024:
+
+                    print(f"FLOWKIT_IMAGE_IMPORTED scene {idx}/{total} (via ComfyUI GPU)", flush=True)
+
+                    return idx, str(target)
+
+        except Exception as comfy_err:
+
+            logger.error(f"[FAILOVER_COMFYUI] ComfyUI fallback failed for scene {idx}: {comfy_err}")
 
         raise last_exc
 
@@ -2062,7 +2086,7 @@ def generate_episode_images_flowkit(
 
 
 
-    print("MCP_BATCH_ALL_IMAGES_PASS", flush=True)
+    print("FLOWKIT_BATCH_ALL_IMAGES_PASS", flush=True)
 
 
 
@@ -2083,8 +2107,12 @@ def generate_episode_images_flowkit(
 
 
 def open_flowkit_browser(show: bool = True) -> Dict[str, Any]:
-    """Legacy entry point is disabled; open the active MCP account in Studio."""
-    raise FlowKitError("FLOWKIT_DISABLED_USE_MCP_V2")
+    """Open active Google Flow account browser via FlowKit / flow_account_manager."""
+    try:
+        from flow_account_manager import open_google_flow_login
+        return open_google_flow_login()
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
 
 
 

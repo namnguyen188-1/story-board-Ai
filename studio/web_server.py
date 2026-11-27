@@ -673,6 +673,10 @@ def format_user_log(line: str) -> str | None:
 
     # Thông tin chung an toàn
 
+    if any(k in line for k in ("[SEO]", "[YOUTUBE]", "[PUBLISH]", "[FAILOVER", "[FLOWKIT")):
+        clean_tag = re.sub(r"[A-Za-z]:\\(?:[^\s\\]+\\)*", "", line).strip()
+        return f"ℹ️ [Hệ thống] {clean_tag[:140]}"
+
     if any(k in line for k in ("Đã lưu", "Khởi tạo", "Sẵn sàng", "Cấu hình", "Đã cập nhật")):
 
         clean_info = re.sub(r"[A-Za-z]:\\(?:[^\s\\]+\\)*", "", line)
@@ -842,95 +846,79 @@ def parse_progress(line: str):
 
         job_status["message"] = f"Kịch bản hoàn tất ({job_status['total_scenes']} cảnh). Chuẩn bị tạo hình ảnh..."
 
-    # 2. MCP / Image Generation stage
-
-    m_mcp_prep = re.search(r"MCP_BATCH_PREPARED\s+(\d+)", line)
-
+    # 2. FlowKit / Google Flow Image Generation stage
+    m_mcp_prep = re.search(r"(?:FLOWKIT|MCP)_BATCH_PREPARED\s+(\d+)", line)
     if m_mcp_prep:
-
         n_img = int(m_mcp_prep.group(1))
-
         job_status["stage"] = "GENERATING_IMAGES"
-
         job_status["percent"] = max(job_status["percent"], 25)
+        job_status["message"] = f"Đang chuẩn bị vẽ {n_img} hình ảnh qua Google Flow (FlowKit)..."
 
-        job_status["message"] = f"Đang chuẩn bị vẽ {n_img} hình ảnh qua Flow MCP..."
-
-    m_mcp_render = re.search(r"MCP_RENDERING_BATCH\s+(\d+)", line)
-
+    m_mcp_render = re.search(r"(?:FLOWKIT|MCP)_RENDERING_BATCH\s+(\d+)", line)
     if m_mcp_render:
-
         n_img = int(m_mcp_render.group(1))
-
         job_status["stage"] = "GENERATING_IMAGES"
-
         job_status["percent"] = max(job_status["percent"], 28)
+        job_status["message"] = f"Đang thực hiện vẽ {n_img} hình ảnh bằng Google Flow..."
 
-        job_status["message"] = f"Đang thực hiện vẽ {n_img} hình ảnh bằng AI..."
-
-    m_mcp_imported = re.search(r"MCP_IMAGE_IMPORTED\s+scene\s+(\d+)/(\d+)", line)
-
+    m_mcp_imported = re.search(r"(?:FLOWKIT|MCP)_IMAGE_IMPORTED\s+scene\s+(\d+)/(\d+)", line)
     if m_mcp_imported:
-
         cur_i, tot_i = int(m_mcp_imported.group(1)), int(m_mcp_imported.group(2))
-
         pct = 28 + int((cur_i / max(1, tot_i)) * 16)
-
         job_status["percent"] = max(job_status["percent"], pct)
-
         job_status["message"] = f"Đã nhận và lưu ảnh Cảnh {cur_i}/{tot_i}"
-
-    elif "MCP_IMAGE_IMPORTED" in line:
-
+    elif "FLOWKIT_IMAGE_IMPORTED" in line or "MCP_IMAGE_IMPORTED" in line:
         job_status["percent"] = min(44, job_status["percent"] + 5)
+        job_status["message"] = "Đang lưu hình ảnh hoàn tất từ Google Flow..."
 
-        job_status["message"] = "Đang lưu hình ảnh hoàn tất từ MCP..."
-
-    if "MCP_BATCH_ALL_IMAGES_PASS" in line:
-
+    if "FLOWKIT_BATCH_ALL_IMAGES_PASS" in line or "MCP_BATCH_ALL_IMAGES_PASS" in line:
         job_status["percent"] = max(job_status["percent"], 45)
-
         job_status["stage"] = "IMAGES_READY"
-
         job_status["message"] = "Đã hoàn thành toàn bộ hình ảnh! Bắt đầu tạo video từng cảnh..."
 
     # 3. Scene processing stage
 
-    m_attempt = re.search(r"(?:--- Processing Scene|SCENE_START)\s+(\d+)/(\d+)", line)
+    m_attempt = re.search(r"(?:--- Processing Scene|SCENE_START)\s+(\d{1,3})/(\d{1,3})(?!\d)", line)
 
     if m_attempt:
 
         cur, tot = int(m_attempt.group(1)), int(m_attempt.group(2))
 
-        job_status["current_scene"] = cur
+        if 1 <= tot <= 500 and 1 <= cur <= tot:
 
-        job_status["total_scenes"] = tot
+            job_status["current_scene"] = cur
 
-        job_status["stage"] = f"GENERATING_SCENE_{cur}"
+            job_status["total_scenes"] = tot
 
-        pct = 45 + int(((cur - 1) / max(1, tot)) * 45)
+            job_status["stage"] = f"GENERATING_SCENE_{cur}"
 
-        job_status["percent"] = max(job_status["percent"], pct)
+            pct = 45 + int(((cur - 1) / max(1, tot)) * 45)
 
-        job_status["message"] = f"Đang kết xuất âm thanh & video Cảnh {cur}/{tot}..."
+            job_status["percent"] = max(job_status["percent"], pct)
 
-    m_scene_pass = re.search(r"(?:SCENE_PASS|PASS|RESUMED)\s+(\d+)", line)
+            job_status["message"] = f"Đang kết xuất âm thanh & video Cảnh {cur}/{tot}..."
+
+    m_scene_pass = re.search(r"(?:SCENE_PASS|PASS|RESUMED)\s+(\d{1,3})(?!\d)", line)
 
     if m_scene_pass:
 
         passed_num = int(m_scene_pass.group(1))
 
-        job_status["current_scene"] = passed_num
+        cur_tot = int(job_status.get("total_scenes") or 0)
 
-        job_status["stage"] = f"RENDER_SCENE_{passed_num}"
+        if cur_tot <= 0 or passed_num <= cur_tot:
 
-        if job_status["total_scenes"] > 0:
+            job_status["current_scene"] = passed_num
 
-            pct = 45 + int((passed_num / job_status["total_scenes"]) * 45)
+            job_status["stage"] = f"RENDER_SCENE_{passed_num}"
 
-            job_status["percent"] = min(92, max(job_status["percent"], pct))
+            if cur_tot > 0:
 
-        job_status["message"] = f"Đã hoàn thành Cảnh {passed_num}/{job_status['total_scenes'] or passed_num}"
+                pct = 45 + int((passed_num / cur_tot) * 45)
+
+                job_status["percent"] = min(92, max(job_status["percent"], pct))
+
+            job_status["message"] = f"Đã hoàn thành Cảnh {passed_num}/{cur_tot or passed_num}"
 
     # 4. Concatenation and Finalizing
 
@@ -1472,9 +1460,13 @@ def get_preflight_check_data() -> dict:
 
             import flowkit_client as fkc
 
-            if fkc.is_flowkit_alive():
+            wt_st = fkc.get_webtool_status("hidden")
+
+            if isinstance(wt_st, dict) and wt_st.get("connected"):
 
                 mcp_verified = True
+
+                tool_open = True
 
         except Exception:
 
@@ -1563,94 +1555,67 @@ def get_preflight_check_data() -> dict:
         flowkit_ok = False
 
     checks.append({
-
         "id": "mcp_v2_runtime",
-
-        "name": "MCP V2 runtime",
-
+        "name": "FlowKit Engine",
         "status": "PASS" if flowkit_ok else "FAIL",
-
-        "message": "MCP V2 runtime configured" if flowkit_ok else "MCP V2 runtime or account configuration missing",
-
+        "message": "FlowKit Engine sẵn sàng (Cổng 18110)" if flowkit_ok else "FlowKit Engine chưa sẵn sàng",
         "detail": "http://127.0.0.1:18110"
-
     })
 
     # 6. Cloud AI / Script Models
-
     from tuansuapi_provider import get_gateway_config
-
     cfg = get_gateway_config()
-
     has_tuansu = bool(cfg.get("api_key") and cfg.get("enabled"))
-
     from resilient_gemini import get_all_api_keys
-
     has_gemini = bool(get_all_api_keys())
-
     if has_tuansu:
-
         api_msg = "Cloud AI Pro (Tuansu API) hoạt động tốt"
-
         api_status = "PASS"
-
     elif has_gemini:
-
         api_msg = "Gemini API trực tiếp sẵn sàng"
-
         api_status = "PASS"
-
     else:
-
         api_msg = "Chưa cấu hình API Key (Vào Cài Đặt để nhập khóa)"
-
         api_status = "WARN"
-
     checks.append({
-
         "id": "api_keys",
-
-        "name": "MCP V2 runtime",
-
+        "name": "Khóa API / Cloud AI",
         "status": api_status,
-
-        "message": "MCP V2 runtime configured" if flowkit_ok else "MCP V2 runtime or account configuration missing",
-
+        "message": api_msg,
         "action": "open_settings"
-
     })
 
     # 7. Project Productions Directory
-
     can_write = False
-
     try:
-
         test_file = PRODUCTIONS_DIR / ".write_test"
-
         test_file.write_text("ok", encoding="utf-8")
-
         test_file.unlink(missing_ok=True)
-
         can_write = True
-
     except Exception:
-
         pass
-
     checks.append({
-
         "id": "project_storage",
-
-        "name": "MCP V2 runtime",
-
+        "name": "Thư mục lưu trữ dự án",
         "status": "PASS" if can_write else "FAIL",
-
-        "message": "MCP V2 runtime configured" if flowkit_ok else "MCP V2 runtime or account configuration missing",
-
+        "message": "Có quyền ghi dữ liệu" if can_write else "Không thể ghi vào thư mục dự án",
         "detail": str(PRODUCTIONS_DIR)
-
     })
+
+    # 8. ComfyUI Local GPU
+    try:
+        from comfyui_image_provider import compatibility_status as _comfy_compat, is_ready as _comfy_ready
+        _c_ready = _comfy_ready(timeout=1.2)
+        _c_comp = _comfy_compat()
+        checks.append({
+            "id": "comfyui",
+            "name": "ComfyUI GPU Nội Bộ",
+            "status": "PASS" if _c_ready else ("WARN" if _c_comp.get("can_attempt_local") else "IDLE"),
+            "message": "ComfyUI GPU sẵn sàng" if _c_ready else ("Tự khởi động khi tạo video" if _c_comp.get("can_attempt_local") else "Chưa cài đặt"),
+            "detail": str(_c_comp.get("comfyui_dir") or "")
+        })
+    except Exception:
+        pass
 
     overall_ready = all(c["status"] == "PASS" for c in checks if c["id"] in ("python_runtime", "ffmpeg", "mcp_v2_runtime", "project_storage"))
 
@@ -1960,6 +1925,47 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_cors_headers()
 
         self.end_headers()
+
+    def do_HEAD(self):
+
+        """Handles HTTP HEAD requests for media probing & health checks."""
+
+        parsed = urllib.parse.urlsplit(self.path)
+        query = urllib.parse.parse_qs(parsed.query)
+        path = parsed.path
+
+        if path.startswith("/media/"):
+            rel_path = path[len("/media/"):]
+            file_path = _resolve_preview_media_path(STUDIO_DIR / rel_path, query)
+            return self.serve_file_with_range(file_path, head_only=True)
+
+        elif path.startswith("/media_abs/"):
+
+            raw_path = path[len("/media_abs/"):]
+
+            file_path = Path(raw_path)
+
+            return self.serve_file_with_range(file_path, head_only=True)
+
+        elif path in ("/api/status", "/"):
+
+            self.send_response(200)
+
+            self.send_cors_headers()
+
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+
+            self.end_headers()
+
+            return
+
+        else:
+
+            self.send_response(200)
+
+            self.send_cors_headers()
+
+            self.end_headers()
 
     def send_cors_headers(self):
 
@@ -2328,7 +2334,10 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
         elif path in ("/api/flow/status", "/api/flowkit/status"):
 
             try:
-
+                import importlib, studio_mcp.transport, studio_flow_accounts, flow_account_manager
+                importlib.reload(studio_mcp.transport)
+                importlib.reload(studio_flow_accounts)
+                importlib.reload(flow_account_manager)
                 from flow_account_manager import get_ui_status
 
                 return self.end_json(get_ui_status())
@@ -2336,6 +2345,15 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
             except Exception as exc:
 
                 return self.end_json({"ready": False, "connected": False, "error": str(exc)}, 200)
+
+        elif path in ("/api/chatgpt/status", "/api/chatgpt/check"):
+            try:
+                import importlib
+                import chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.get_chatgpt_ui_status())
+            except Exception as exc:
+                return self.end_json({"online": False, "logged_in": False, "error": str(exc)}, 200)
 
         elif path == "/api/voices":
 
@@ -2506,6 +2524,80 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                         "api_key_masked": masked_key,
 
                         "has_key": bool(cfg.get("api_key"))
+
+                    },
+
+                    "test": test_res
+
+                })
+
+            except Exception as exc:
+
+                return self.end_json({"ok": False, "error": str(exc)}, 500)
+
+        elif path == "/api/assistant/status":
+            try:
+                import importlib, assistant_9router
+                importlib.reload(assistant_9router)
+                return self.end_json(assistant_9router.get_status())
+            except Exception as exc:
+                return self.end_json({"ok": False, "error": str(exc)}, 500)
+
+        elif path == "/api/freellmapi/status":
+
+            try:
+
+                import freellmapi_provider
+
+                cfg = freellmapi_provider.get_config()
+
+                installed = freellmapi_provider.find_executable() is not None
+
+                running = freellmapi_provider.is_running(cfg["base_url"])
+
+                do_test = "test" in query
+
+                if do_test:
+
+                    test_res = freellmapi_provider.test_connection(auto_start=True, ping_chat=True)
+
+                    running = bool(test_res.get("running", running))
+
+                else:
+
+                    test_res = freellmapi_provider.test_connection(auto_start=False, ping_chat=False) if running else {
+
+                        "ok": False, "installed": installed, "running": False
+
+                    }
+
+                k = cfg.get("api_key") or ""
+
+                masked_key = f"{k[:11]}...{k[-4:]}" if len(k) >= 16 else ("***" if k else "")
+
+                return self.end_json({
+
+                    "ok": True,
+
+                    "installed": installed,
+
+                    "running": running,
+
+                    "dashboard_url": freellmapi_provider.dashboard_url_for(cfg["base_url"]),
+
+                    "config": {
+
+                        "base_url": cfg.get("base_url"),
+
+                        "model": cfg.get("model"),
+
+                        "mode": cfg.get("mode"),
+
+                        "source": cfg.get("source"),
+
+                        "api_key_masked": masked_key,
+
+                        "has_key": bool(k)
 
                     },
 
@@ -2980,13 +3072,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             try:
 
-                import importlib
-
-                import seo_quality, seo_packager
-
-                importlib.reload(seo_quality)
-
-                importlib.reload(seo_packager)
+                import seo_genre_profiles, thumbnail_studio, seo_quality, seo_packager
 
             except Exception:
 
@@ -2997,6 +3083,10 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
             ep_str = query.get("episode", [""])[0]
 
             force_regen = query.get("force_regenerate", ["0"])[0] == "1"
+
+            read_only = query.get("read_only", ["0"])[0] == "1"
+
+            explicit_regen = query.get("explicit_regen", ["0"])[0] == "1"
 
             hook_text = query.get("hook_text", [""])[0] or None
 
@@ -3012,6 +3102,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             genre = query.get("genre", [""])[0] or None
 
+            explicit_thumb_regen = bool(explicit_regen or action == "generate_fierce_thumbnail" or (force_regen and (bool(hook_text) or scene_num is not None or side != "auto" or bool(genre))))
+
             from series_studio import slug
 
             ep_num = int(re.sub(r"\D", "", ep_str) or 1)
@@ -3022,13 +3114,24 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 return self.end_json({"ok": False, "error": f"Tập {ep_num} của dự án '{series_name}' chưa có dữ liệu.", "not_produced": True}, 404)
 
-            # Trigger AI generation of intense fierce reaction character for high CTR
+            # Trigger finished thumbnail generation directly via fixed ChatGPT Web workflow
 
             if action == "generate_fierce_thumbnail":
 
                 from seo_packager import generate_fierce_thumbnail_subject
 
-                generate_fierce_thumbnail_subject(ep_dir, series_name, genre=genre, aspect_ratio=body.get('aspect_ratio'))
+                try:
+                    generate_fierce_thumbnail_subject(
+                        ep_dir,
+                        series_name,
+                        genre=genre,
+                        aspect_ratio=(query.get("aspect_ratio", [""])[0] or None),
+                        hook_text=hook_text,
+                        preferred_side=side,
+                        font_scale=font_scale,
+                    )
+                except Exception as exc_thumb:
+                    return self.end_json({"error": str(exc_thumb)}, 500)
 
                 scene_num = 999
 
@@ -3164,7 +3267,27 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             pack_json_p = ep_dir / "youtube_publish_pack.json"
 
-            if pack_json_p.exists() and not force_regen and not hook_text and not scene_num and side == "auto" and font_scale == "viral" and not genre:
+            same_ep_running = bool(job_status.get("running") and slug(str(job_status.get("series", ""))) == slug(series_name) and int(job_status.get("episode") or 0) == int(ep_num))
+
+            if (not pack_json_p.exists()) and (read_only or same_ep_running) and not force_regen and not explicit_regen and not action:
+
+                return self.end_json({
+
+                    "ok": False,
+
+                    "pending": True,
+
+                    "producing": same_ep_running,
+
+                    "series": series_name,
+
+                    "episode": ep_num,
+
+                    "message": "Đang tạo video; gói SEO & Thumbnail sẽ tự động tạo 1 lần sau khi phim dựng xong.",
+
+                })
+
+            if pack_json_p.exists() and (read_only or (not force_regen and not explicit_regen and not hook_text and not scene_num and side == "auto" and font_scale == "viral" and not genre)):
 
                 try:
 
@@ -3172,7 +3295,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     from seo_packager import enrich_seo_package, is_current_seo_package, write_seo_package
 
-                    if is_current_seo_package(data, ep_dir) or data.get("best_title") or data.get("titles"):
+                    if read_only or is_current_seo_package(data, ep_dir) or data.get("best_title") or data.get("titles"):
 
                         data = enrich_seo_package(data)
                         if data.get("thumbnail_file") and Path(data["thumbnail_file"]).is_file():
@@ -3213,6 +3336,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     force_regenerate=force_regen,
 
+                    explicit_regen=explicit_thumb_regen,
+
                 )
 
                 try:
@@ -3234,11 +3359,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
         # Media serving with HTTP 206 Partial Content support for Video scrubbing
 
         elif path.startswith("/media/"):
-
             rel_path = path[len("/media/"):]
-
-            file_path = STUDIO_DIR / rel_path
-
+            file_path = _resolve_preview_media_path(STUDIO_DIR / rel_path, query)
             return self.serve_file_with_range(file_path)
 
         elif path.startswith("/offline_sample/"):
@@ -3357,6 +3479,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             error = query.get("error", [""])[0]
 
+            state = query.get("state", [""])[0]
+
             if error or not code:
 
                 msg = error or "Không nhận được mã xác thực từ Google."
@@ -3385,7 +3509,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             try:
 
-                result = youtube_manager.exchange_code_and_add_channel(code, redirect_uri)
+                result = youtube_manager.exchange_code_and_add_channel(code, redirect_uri, state=state)
 
                 ch_name = result.get("name", "Kênh YouTube")
 
@@ -3714,17 +3838,18 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                 return self.end_json({"ok": False, "error": str(exc)}, 500)
 
         if path in ("/api/flow/login", "/api/flowkit/open_browser"):
-
             try:
-
+                from engine_orchestrator import close_engine_browser
+                close_engine_browser("chatgpt")
+                time.sleep(0.4)
+            except Exception:
+                pass
+            try:
                 from flow_account_manager import open_google_flow_login
-
-                res = open_google_flow_login()
-
+                acc_id = str(body.get("account_id") or "") if isinstance(body, dict) else ""
+                res = open_google_flow_login(account_id=acc_id or None)
                 return self.end_json(res)
-
             except Exception as exc:
-
                 return self.end_json({"success": False, "error": str(exc)}, 500)
 
         if path == "/api/flow/add_account":
@@ -3735,11 +3860,23 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 res = add_new_account()
 
-                return self.end_json(res)
+                return self.end_json(res, 200 if res.get("success", True) else 409)
 
             except Exception as exc:
 
                 return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path == "/api/flow/delete_account":
+            with job_lock:
+                if job_status["running"]:
+                    return self.end_json({"success": False, "error": "Không thể xóa tài khoản khi phim đang sản xuất."}, 409)
+            try:
+                from flow_account_manager import delete_flow_account
+                acc_id = str(body.get("account_id") or "") if isinstance(body, dict) else ""
+                res = delete_flow_account(account_id=acc_id)
+                return self.end_json(res)
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 400)
 
         if path in ("/api/flow/minimize", "/api/flowkit/minimize_browser"):
 
@@ -3776,14 +3913,116 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                 return self.end_json({"success": False, "error": str(exc)}, 500)
 
         if path == "/api/flow/activate_account":
+            with job_lock:
+                if job_status["running"]:
+                    return self.end_json({"success": False, "error": "Không thể đổi tài khoản khi phim đang sản xuất."}, 409)
             try:
                 from flow_account_manager import activate_account
-                acc_id = params.get("account_id") if isinstance(params, dict) else ""
-                port = int(params.get("port", 0)) if isinstance(params, dict) and params.get("port") else None
+                from studio_flow_accounts import select as select_flow_acc
+                acc_id = body.get("account_id") if isinstance(body, dict) else ""
+                port = int(body.get("port", 0)) if isinstance(body, dict) and body.get("port") else None
+                if acc_id:
+                    select_flow_acc(acc_id)
                 ok = activate_account(account_id=acc_id, cdp_port=port)
                 return self.end_json({"success": ok})
             except Exception as exc:
                 return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path in ("/api/chatgpt/login", "/api/chatgpt/open_browser"):
+            try:
+                import importlib, chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.open_chatgpt_login_ui())
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path == "/api/chatgpt/add_account":
+            try:
+                import importlib, chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.add_chatgpt_account_ui())
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path == "/api/chatgpt/select_account":
+            with job_lock:
+                if job_status["running"]:
+                    return self.end_json({"success": False, "error": "Không thể đổi tài khoản khi phim đang sản xuất."}, 409)
+            try:
+                import chatgpt_account_manager
+                acc_id = str(body.get("account_id") or "") if isinstance(body, dict) else ""
+                return self.end_json(chatgpt_account_manager.select_chatgpt_account_ui(acc_id))
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path == "/api/chatgpt/delete_account":
+            with job_lock:
+                if job_status["running"]:
+                    return self.end_json({"success": False, "error": "Không thể xóa tài khoản khi phim đang sản xuất."}, 409)
+            try:
+                import chatgpt_account_manager
+                acc_id = str(body.get("account_id") or "") if isinstance(body, dict) else ""
+                return self.end_json(chatgpt_account_manager.delete_chatgpt_account_ui(acc_id))
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path == "/api/chatgpt/rotate_account":
+            try:
+                import importlib, chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.rotate_chatgpt_account_ui())
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path in ("/api/chatgpt/status", "/api/chatgpt/check"):
+            try:
+                import importlib, chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.get_chatgpt_ui_status())
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path in ("/api/chatgpt/lock", "/api/chatgpt/minimize"):
+            try:
+                import importlib, chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.lock_chatgpt_ui())
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path in ("/api/chatgpt/close", "/api/chatgpt/shutdown"):
+            try:
+                import importlib, chatgpt_account_manager
+                importlib.reload(chatgpt_account_manager)
+                return self.end_json(chatgpt_account_manager.close_chatgpt_ui())
+            except Exception as exc:
+                return self.end_json({"success": False, "error": str(exc)}, 500)
+
+        if path in ("/api/assistant/start", "/api/assistant/open_dashboard", "/api/assistant/chat"):
+            host = self.headers.get("Host", "")
+            origin = self.headers.get("Origin", "").rstrip("/")
+            fetch_site = self.headers.get("Sec-Fetch-Site", "")
+            if not re.fullmatch(r"(?:127[.]0[.]0[.]1|localhost):[0-9]{2,5}", host) or (
+                origin and origin not in ("http://" + host, "http://127.0.0.1:8765", "http://localhost:8765")
+            ) or fetch_site == "cross-site":
+                return self.end_json({"error": "Local Studio origin required"}, 403)
+            try:
+                import importlib, assistant_9router
+                importlib.reload(assistant_9router)
+                if path == "/api/assistant/start":
+                    return self.end_json(assistant_9router.start_router())
+                if path == "/api/assistant/open_dashboard":
+                    return self.end_json(assistant_9router.open_dashboard())
+                msgs = body.get("messages") if isinstance(body, dict) else []
+                return self.end_json(assistant_9router.chat_completion(
+                    messages=msgs if isinstance(msgs, list) else [],
+                    model=str((body or {}).get("model") or "auto"),
+                    genre=str((body or {}).get("genre") or "auto"),
+                    language=str((body or {}).get("language") or "auto"),
+                    auto_start=bool((body or {}).get("auto_start", True)),
+                ))
+            except Exception as exc:
+                return self.end_json({"ok": False, "error": str(exc)}, 500)
 
         if path == "/api/mcp/auto":
 
@@ -4119,6 +4358,56 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 return self.end_json({"ok": False, "error": str(exc)}, 500)
 
+        if path == "/api/freellmapi/save":
+
+            try:
+
+                import freellmapi_provider
+
+                curr = freellmapi_provider.get_config()
+
+                api_key = str(body.get("api_key") or "").strip()
+
+                base_url = str(body.get("base_url") or curr.get("base_url") or freellmapi_provider.DEFAULT_BASE_URL).strip()
+
+                model = str(body.get("model") or curr.get("model") or freellmapi_provider.DEFAULT_MODEL).strip()
+
+                mode = str(body.get("mode") or curr.get("mode") or freellmapi_provider.DEFAULT_MODE).strip().lower()
+
+                freellmapi_provider.save_config(
+
+                    api_key=api_key,
+
+                    base_url=base_url,
+
+                    model=model,
+
+                    mode=mode
+
+                )
+
+                test_res = freellmapi_provider.test_connection(auto_start=(mode != "off"), ping_chat=(mode != "off"))
+
+                return self.end_json({"ok": True, "test": test_res})
+
+            except Exception as exc:
+
+                return self.end_json({"ok": False, "error": str(exc)}, 500)
+
+        if path == "/api/freellmapi/start":
+
+            try:
+
+                import freellmapi_provider
+
+                res = freellmapi_provider.start_desktop_app()
+
+                return self.end_json(res, 200 if res.get("ok") else 500)
+
+            except Exception as exc:
+
+                return self.end_json({"ok": False, "error": str(exc)}, 500)
+
         if path in ("/api/muse/login/start", "/api/muse/login/complete"):
 
             try:
@@ -4381,6 +4670,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 auto_flow_preflight = None
 
+                chosen_project_url = None
+
                 row = None
 
                 effective_prompt = str(body.get("prompt") or "").strip() if isinstance(body, dict) else ""
@@ -4445,7 +4736,35 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     if not body.get("image_provider"):
 
-                        body["image_provider"] = "muse_video"
+                        _default_drama_prov = "comfyui"
+
+                        try:
+
+                            from muse_video_provider import test_muse_connection
+
+                            if test_muse_connection().get("ok"):
+
+                                _default_drama_prov = "muse_video"
+
+                        except Exception:
+
+                            pass
+
+                        if _default_drama_prov != "muse_video":
+
+                            try:
+
+                                from comfyui_image_provider import compatibility_status
+
+                                if not compatibility_status().get("can_attempt_local"):
+
+                                    _default_drama_prov = "v2_tuanstor"
+
+                            except Exception:
+
+                                _default_drama_prov = "v2_tuanstor"
+
+                        body["image_provider"] = _default_drama_prov
 
                 # Tự động nhận diện link đối thủ và kích hoạt luồng clone A-Z (chỉ khi không phải resume)
 
@@ -4490,10 +4809,11 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                                     has_user_minutes = bool(body.get("minutes") is not None and str(body.get("minutes")).strip() != "")
 
                                     if not has_user_minutes and link_res.get("duration_minutes"):
-
-                                        body["minutes"] = float(link_res["duration_minutes"])
-
-                                        minutes = float(link_res["duration_minutes"])
+                                        raw_dur = float(link_res["duration_minutes"])
+                                        # Smart Sweet-Spot: For long videos (>25m), cap initial default at 20.0m for high audience retention
+                                        eff_dur = min(raw_dur, 20.0) if raw_dur > 25.0 else raw_dur
+                                        body["minutes"] = eff_dur
+                                        minutes = eff_dur
 
                                     if link_res.get("language") and body.get("language") in ("Vietnamese", "Auto", None):
 
@@ -4617,46 +4937,13 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                           and (req_img_prov or "v2_tuanstor") == "mcp_v2")
 
-                if is_mcp and (effective_prompt or effective_ref or body.get("resume")):
-
-                    from studio_mcp.accounts import active_account
-
-                    from studio_mcp.auto_flow_manager import ensure_ready
-
-                    from studio_modes import detect_genre
-
-                    user_genre = str(body.get("genre", "auto"))
-
-                    auto_genre = (detect_genre(effective_prompt or effective_ref)
-
-                                  if user_genre == "auto" and input_mode_val != "link"
-
-                                  else user_genre)
-
-                    # Automatically open and connect Chrome Google Flow MCP V2 if not already open
-                    auto_flow_preflight = ensure_ready(auto_genre, allow_open=True)
-
-                    if not auto_flow_preflight.get("ready"):
-
-                        return self.end_json({
-
-                            "code": "AUTO_FLOW_NOT_READY",
-
-                            "reason": auto_flow_preflight.get("code", "AUTO_FLOW_CHECK_FAILED"),
-
-                            "error": "Auto Flow Manager chưa sẵn sàng: " +
-
-                                auto_flow_preflight.get("detail", "Hãy kiểm tra phiên đăng nhập Google."),
-
-                            "production_started": False,
-
-                        }, 409)
+                if isinstance(body, dict) and body.get("mode", "live") == "live" and (req_img_prov or "") == "flowkit":
 
                     try:
 
-                        from studio_flow_accounts import minimize_active_account_browser
+                        import flowkit_client as fkc
 
-                        minimize_active_account_browser()
+                        fkc.ensure_flowkit_running()
 
                     except Exception:
 
@@ -4747,9 +5034,37 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                         pass
 
-                if is_incomplete and not body.get("force_new") and (body.get("resume") or body.get("retry") or input_mode != "script"):
+                if is_incomplete and not body.get("force_new") and not is_resume_request:
 
-                    is_resume_request = True
+                    same_or_empty_prompt = not str(prompt or "").strip()
+
+                    if not same_or_empty_prompt and old_plan.is_file():
+
+                        try:
+
+                            _chk_p = json.loads(old_plan.read_text(encoding="utf-8"))
+
+                            _chk_c = _chk_p.get("config") or {}
+
+                            _req_p = str(prompt or "").strip()
+
+                            same_or_empty_prompt = _req_p in {
+
+                                str(_chk_c.get("prompt") or "").strip(),
+
+                                str(_chk_p.get("title") or "").strip(),
+
+                                str(_chk_p.get("logline") or "").strip(),
+
+                            }
+
+                        except Exception:
+
+                            pass
+
+                    if same_or_empty_prompt:
+
+                        is_resume_request = True
 
                 drama_plan_file = ep_folder / "drama_plan.json"
 
@@ -4767,7 +5082,19 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                         if not body.get("image_provider"):
 
-                            body["image_provider"] = "muse_video"
+                            prior_prov = ""
+
+                            if old_job.is_file():
+
+                                try:
+
+                                    prior_prov = str(json.loads(old_job.read_text(encoding="utf-8")).get("image_provider") or "").strip()
+
+                                except Exception:
+
+                                    prior_prov = ""
+
+                            body["image_provider"] = prior_prov if prior_prov and prior_prov != "muse_video" else "comfyui"
 
                     except Exception as d_err:
 
@@ -4846,6 +5173,22 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                         print(f"[RESUME] Warning restoring saved config: {err}", flush=True)
 
+                if (is_resume_request or is_incomplete):
+                    ref_path = ep_folder / "reference_analysis.json"
+                    if ref_path.is_file():
+                        try:
+                            ref_d = json.loads(ref_path.read_text(encoding="utf-8"))
+                            if not reference_url or not reference_url.startswith("http"):
+                                reference_url = ref_d.get("canonical_url") or ref_d.get("source_url") or ref_d.get("url") or reference_url
+                            if not prompt or prompt.startswith("Tiếp tục") or prompt.strip() == "Sản xuất từ link":
+                                prompt = ref_d.get("cloned_prompt_suggestion") or ref_d.get("title") or prompt
+                            if "genre" in ref_d and not body.get("genre"):
+                                genre = ref_d["genre"]
+                            if "visual_style" in ref_d and not body.get("visual_style"):
+                                visual_style = ref_d["visual_style"]
+                        except Exception as r_err:
+                            print(f"[RESUME] Warning restoring reference_analysis: {r_err}", flush=True)
+
                 if (is_resume_request or is_incomplete) and not prompt:
 
                     if old_plan.is_file():
@@ -4884,17 +5227,18 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                                 pass
 
-                if input_mode=="link" and not is_resume_request:
-
+                if input_mode == "link":
                     from studio_input_modes import youtube_url
-
                     try:
-
-                        reference_url=youtube_url(reference_url or prompt)
-
+                        reference_url = youtube_url(reference_url or prompt)
                     except ValueError as exc:
+                        if (is_resume_request or is_incomplete) and ((ep_folder / "plan_parts").is_dir() or (ep_folder / "scenes").is_dir()):
+                            print(f"[PRODUCE] Không có link YouTube hợp lệ cho resume nhưng tập {episode} đã có dữ liệu cảnh. Tiếp tục an toàn bằng chế độ script...", flush=True)
+                            input_mode = "script"
+                        else:
+                            return self.end_json({"error": "Vui lòng nhập đường link YouTube hợp lệ (ví dụ: https://www.youtube.com/watch?v=...)"}, 400)
 
-                        return self.end_json({"error":str(exc)},400)
+                if input_mode == "link" and not is_resume_request:
 
                     try:
 
@@ -5037,14 +5381,15 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                     return self.end_json({"error":"Giọng kể không hợp lệ. Vui lòng chọn lại."},400)
 
                 res = body.get("size", "1280x720")
-
                 aspect_req = str(body.get("aspect_ratio", "")).strip()
-
-                if aspect_req in ("9:16", "portrait", "vertical") or bool(body.get("is_short")):
-
+                if aspect_req in ("9:16", "portrait", "vertical") or res in ("720x1280", "1080x1920"):
+                    aspect_req = "9:16"
                     if res in ("1280x720", "1920x1080", None, ""):
-
                         res = "720x1280"
+                else:
+                    aspect_req = "16:9"
+                    if res in ("720x1280", "1080x1920", None, ""):
+                        res = "1280x720"
 
                 try:
                     workers = max(1, min(int(body.get("workers") or 4), 16))
@@ -5201,7 +5546,41 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                         }, 409)
 
-                if img_prov == "mcp_v2":
+                row = None
+
+                if mode == "live" and img_prov == "mcp_v2":
+
+                    from studio_mcp.accounts import active_account, account_tool_url
+
+                    from studio_mcp.transport import _isolated
+
+                    row = active_account()
+
+                    try:
+
+                        _isolated(row)
+
+                    except Exception:
+
+                        return self.end_json({
+
+                            "code": "PRIVATE_MCP_PROFILE_REQUIRED",
+
+                            "error": "Hồ sơ MCP không thuộc Storyboard. Chọn tài khoản riêng trong Cài đặt."
+
+                        }, 409)
+
+                    if not account_tool_url(row):
+
+                        return self.end_json({
+
+                            "code": "PRIVATE_MCP_TOOL_URL_REQUIRED",
+
+                            "error": "MCP riêng chưa liên kết. Hãy mở đăng nhập Google Flow và bấm Xác minh MCP; không cần nhập URL Web Tool."
+
+                        }, 409)
+
+                if img_prov in ("mcp_v2", "flowkit"):
 
                     from studio_image_budget import (required_images,inspect_budget,
 
@@ -5260,134 +5639,6 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                     # Keep user-specified workers count (supports up to 16 scene threads)
                     pass
 
-                    if mode == "live":
-
-                        from studio_mcp.accounts import active_account, account_tool_url
-
-                        from studio_mcp.transport import _isolated
-
-                        row = active_account()
-
-                        # The unlocked preflight above already verified the
-
-                        # account. Fail closed if account selection changed.
-
-                        if not auto_flow_preflight:
-
-                            from studio_mcp.auto_flow_manager import ensure_ready
-
-                            auto_flow_preflight = ensure_ready(genre if 'genre' in locals() else 'auto', allow_open=True)
-
-                        if (not auto_flow_preflight or
-
-                            auto_flow_preflight.get("account_id")!=row["id"]):
-
-                            return self.end_json({
-
-                                "code":"AUTO_FLOW_ACCOUNT_CHANGED",
-
-                                "error":"Tài khoản Google Flow vừa thay đổi. Chưa gửi yêu cầu ảnh.",
-
-                                "production_started":False,
-
-                            },409)
-
-                        try:
-
-                            _isolated(row)
-
-                        except Exception:
-
-                            return self.end_json({
-
-                                "code": "PRIVATE_MCP_PROFILE_REQUIRED",
-
-                                "error": "Hồ sơ MCP không thuộc Storyboard. Chọn tài khoản riêng trong Cài đặt."
-
-                            }, 409)
-
-                        if not account_tool_url(row):
-
-                            return self.end_json({
-
-                                "code": "PRIVATE_MCP_TOOL_URL_REQUIRED",
-
-                                "error": "MCP riêng chưa liên kết. Hãy mở đăng nhập Google Flow và bấm Xác minh MCP; không cần nhập URL Web Tool."
-
-                            }, 409)
-
-                        from studio_mcp.accounts import require_production_browser, AccountError as PrivateMcpAccountError
-
-                        from studio_mcp.projects import url_for, ProjectError
-
-                        try:
-
-                            from studio_modes import detect_genre
-
-                            project_genre=(detect_genre(prompt) if genre=="auto" and input_mode!="link" else genre)
-
-                            try:
-
-                                chosen_project_url=url_for(row,project_genre)
-
-                            except ProjectError as mapping_exc:
-
-                                if (genre=="auto" and
-
-                                        str(mapping_exc)=="FLOW_GENRE_HAS_NO_PROJECT_MAPPING"):
-
-                                    # Auto classification is not a manual project
-
-                                    # assignment. Use the account's selected V2
-
-                                    # bridge when this detected genre lacks a map.
-
-                                    # prepare() separately verifies the real app.
-
-                                    chosen_project_url=url_for(row,"auto")
-
-                                else:
-
-                                    raise
-
-                            if not chosen_project_url:
-
-                                raise ProjectError("FLOW_GENRE_HAS_NO_PROJECT_MAPPING")
-
-                            from studio_mcp.projects import cleanup_duplicate_tool_tabs
-
-                            cleanup_duplicate_tool_tabs(row, chosen_project_url)
-
-                            require_production_browser(row,tool_url=chosen_project_url,allow_duplicate_for_isolated_job=True)
-
-                        except (PrivateMcpAccountError,ProjectError) as exc:
-
-                            reason=str(exc)
-
-                            duplicate=reason=="STORYBOARD_PRIVATE_MULTIPLE_TOOL_TABS"
-
-                            message=("Có nhiều tab mở cùng dự án Google Flow. MCP V2 chỉ dùng đúng 1 tab. "
-
-                                "Hãy giữ lại một tab sau khi lưu hoặc kiểm tra công việc ở các tab còn lại. "
-
-                                "Studio chưa tạo ảnh, chưa sử dụng credit." if duplicate else
-
-                                "Chrome Google Flow riêng chưa kết nối hoặc chưa mở đúng Web Tool. "
-
-                                "Vào Cài đặt MCP → Mở dự án → Xác minh MCP rồi chạy lại. "
-
-                                "Kịch bản được giữ nguyên.")
-
-                            return self.end_json({
-
-                                "code": reason,"error":message,
-
-                                "recovery": "REVIEW_DUPLICATE_FLOW_TABS" if duplicate
-
-                                            else "OPEN_STORYBOARD_FLOW_LOGIN_AND_VERIFY",
-
-                            },409)
-
                 from series_studio import slug
 
                 series_slug = slug(series) + ("-offline-test" if mode == "offline" else "")
@@ -5407,8 +5658,6 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                 old_job = ep_folder / "scenes" / "scene_0001" / "job.json"
 
                 final_video = ep_folder / "episode_final.mp4"
-
-                is_resume_request = bool(body.get("resume") or body.get("retry"))
 
                 is_incomplete = bool(ep_folder.exists() and (old_plan.is_file() or (ep_folder / "plan_parts").is_dir()) and not final_video.is_file())
 
@@ -5433,10 +5682,6 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                     except Exception:
 
                         pass
-
-                if is_incomplete and not body.get("force_new"):
-
-                    is_resume_request = True
 
                 has_completed_scenes = False
 
@@ -5634,6 +5879,106 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 if mode=="live" and img_prov=="mcp_v2":
 
+                    from studio_mcp.auto_flow_manager import ensure_ready
+
+                    from studio_mcp.accounts import active_account, require_production_browser, AccountError as PrivateMcpAccountError
+
+                    from studio_mcp.projects import url_for, ProjectError, cleanup_duplicate_tool_tabs
+
+                    from studio_modes import detect_genre
+
+                    if row is None:
+
+                        row = active_account()
+
+                    project_genre = (detect_genre(prompt) if genre == "auto" and input_mode != "link" else genre)
+
+                    auto_flow_preflight = ensure_ready(project_genre, allow_open=True)
+
+                    if not auto_flow_preflight.get("ready"):
+
+                        return self.end_json({
+
+                            "code": "AUTO_FLOW_NOT_READY",
+
+                            "reason": auto_flow_preflight.get("code", "AUTO_FLOW_CHECK_FAILED"),
+
+                            "error": "Auto Flow Manager chưa sẵn sàng: " +
+
+                                auto_flow_preflight.get("detail", "Hãy kiểm tra phiên đăng nhập Google."),
+
+                            "production_started": False,
+
+                        }, 409)
+
+                    if auto_flow_preflight.get("account_id") != row["id"]:
+
+                        return self.end_json({
+
+                            "code": "AUTO_FLOW_ACCOUNT_CHANGED",
+
+                            "error": "Tài khoản Google Flow vừa thay đổi. Chưa gửi yêu cầu ảnh.",
+
+                            "production_started": False,
+
+                        }, 409)
+
+                    try:
+
+                        try:
+
+                            chosen_project_url = url_for(row, project_genre)
+
+                        except ProjectError as mapping_exc:
+
+                            if genre == "auto" and str(mapping_exc) == "FLOW_GENRE_HAS_NO_PROJECT_MAPPING":
+
+                                chosen_project_url = url_for(row, "auto")
+
+                            else:
+
+                                raise
+
+                        if not chosen_project_url:
+
+                            raise ProjectError("FLOW_GENRE_HAS_NO_PROJECT_MAPPING")
+
+                        cleanup_duplicate_tool_tabs(row, chosen_project_url)
+
+                        require_production_browser(row, tool_url=chosen_project_url, allow_duplicate_for_isolated_job=True)
+
+                        from studio_flow_accounts import minimize_active_account_browser
+
+                        minimize_active_account_browser()
+
+                    except (PrivateMcpAccountError, ProjectError) as exc:
+
+                        reason = str(exc)
+
+                        duplicate = reason == "STORYBOARD_PRIVATE_MULTIPLE_TOOL_TABS"
+
+                        message = ("Có nhiều tab mở cùng dự án Google Flow. MCP V2 chỉ dùng đúng 1 tab. "
+
+                            "Hãy giữ lại một tab sau khi lưu hoặc kiểm tra công việc ở các tab còn lại. "
+
+                            "Studio chưa tạo ảnh, chưa sử dụng credit." if duplicate else
+
+                            "Chrome Google Flow riêng chưa kết nối hoặc chưa mở đúng Web Tool. "
+
+                            "Vào Cài đặt MCP → Mở dự án → Xác minh MCP rồi chạy lại. "
+
+                            "Kịch bản được giữ nguyên.")
+
+                        return self.end_json({
+
+                            "code": reason, "error": message,
+
+                            "recovery": "REVIEW_DUPLICATE_FLOW_TABS" if duplicate
+
+                                        else "OPEN_STORYBOARD_FLOW_LOGIN_AND_VERIFY",
+
+                        }, 409)
+
                     # Create an independent temporary tab for every production.
 
                     # Existing tabs may contain images/prompts and MUST stay intact.
@@ -5696,7 +6041,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                             "reason":str(exc)[:128],
 
-                            "error":"Không chuẩn bị được tab tạo ảnh mới của Google Flow. "
+                            "error":f"Không chuẩn bị được tab tạo ảnh Google Flow ({str(exc)[:100]}). "
 
                                     "Studio chưa tạo ảnh hoặc tiêu credit. "
 
@@ -5730,7 +6075,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     elif not img_prov:
 
-                        img_prov = "mcp_v2"
+                        img_prov = "flowkit"
 
                     scene_sec = int(body.get("scene_seconds") or 10)
 
@@ -5764,7 +6109,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     "--size", "640x360" if mode == "offline" else res,
 
-                    "--aspect-ratio", "9:16" if (res in ("720x1280", "1080x1920") or str(body.get("aspect_ratio")) == "9:16" or bool(body.get("is_short"))) else "16:9",
+                    "--aspect-ratio", aspect_req,
 
                     "--language", language,
 
@@ -5818,7 +6163,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                         cmd.extend(["--link-clone-mode", link_clone_mode])
 
-                if img_prov == "mcp_v2":
+                if img_prov in ("mcp_v2", "flowkit"):
 
                     cmd.extend([
 
@@ -5830,7 +6175,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     ])
 
-                    if mode=="live":
+                    if mode=="live" and img_prov == "mcp_v2" and chosen_project_url:
 
                         cmd.extend(["--mcp-project-url",chosen_project_url])
 
@@ -5952,7 +6297,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     th.start()
 
-                if (scoped_target_id or img_prov == "mcp_v2") and body.get("auto_minimize_browser", True):
+                if (scoped_target_id or img_prov in ("mcp_v2", "flowkit")) and body.get("auto_minimize_browser", True):
 
                     try:
 
@@ -5973,6 +6318,13 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                     except Exception:
 
                         pass
+
+                    if (req_img_prov or "") == "flowkit":
+                        try:
+                            import flowkit_client as fkc
+                            fkc.ensure_flowkit_running()
+                        except Exception:
+                            pass
 
                 return self.end_json({"status": "STARTED", "job": job_status})
 
@@ -6618,13 +6970,43 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                     target = pub_ep if pub_ep.is_dir() else (pub_series if pub_series.is_dir() else (PRODUCTIONS_DIR / s_slug / f"episode_{ep:03d}"))
 
+                elif folder_type in ("video", "video_player"):
+                    ep_dir = PRODUCTIONS_DIR / s_slug / f"episode_{ep:03d}"
+                    scene_target = None
+                    if body.get("scene"):
+                        try:
+                            sc_idx = int(body.get("scene"))
+                            sc_cand = ep_dir / "scenes" / f"scene_{sc_idx:04d}" / "final.mp4"
+                            if not sc_cand.is_file():
+                                sc_cand = ep_dir / "scenes" / f"scene_{sc_idx:04d}" / "video.mp4"
+                            if sc_cand.is_file():
+                                scene_target = sc_cand
+                        except Exception:
+                            pass
+                    if scene_target:
+                        target = scene_target
+                    else:
+                        cand = ep_dir / "episode_final.mp4"
+                        if not cand.is_file():
+                            cand = ep_dir / f"episode_{ep:03d}_final.mp4"
+                        if cand.is_file():
+                            target = cand
+                        else:
+                            target = ep_dir
+
                 elif folder_type == "series":
 
                     target = PRODUCTIONS_DIR / s_slug
 
             
 
-            target.mkdir(parents=True, exist_ok=True)
+            if target.is_dir():
+
+                target.mkdir(parents=True, exist_ok=True)
+
+            elif not target.is_file():
+
+                target.parent.mkdir(parents=True, exist_ok=True)
 
             if hasattr(os, "startfile"):
 
@@ -6646,13 +7028,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             try:
 
-                import importlib
-
-                import seo_quality, seo_packager
-
-                importlib.reload(seo_quality)
-
-                importlib.reload(seo_packager)
+                import seo_genre_profiles, thumbnail_studio, seo_quality, seo_packager
 
             except Exception:
 
@@ -6664,11 +7040,13 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             force_regen = bool(body.get("force_regenerate", False))
 
+            explicit_regen = bool(body.get("explicit_regen", False))
+
             hook_text = str(body.get("hook_text", "")).strip() or None
 
             side = str(body.get("side", "auto")).strip()
 
-            font_scale = str(body.get("font_scale", "standard")).strip()
+            font_scale = str(body.get("font_scale", "viral")).strip()
 
             scene_num = body.get("scene_num")
 
@@ -6833,6 +7211,8 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                     font_scale=font_scale,
 
                     force_regenerate=force_regen,
+
+                    explicit_regen=explicit_regen,
 
                 )
 
@@ -7206,7 +7586,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
                 correct_name = ch_map.get(correct_ch_id, correct_ch_id)
 
-                lang_names = {"ru": "Tiếng Nga", "es": "Tiếng Tây Ban Nha", "en": "Tiếng Anh", "vi": "Tiếng Việt"}
+                lang_names = {"ru": "Tiếng Nga", "es": "Tiếng Tây Ban Nha", "en": "Tiếng Anh", "vi": "Tiếng Việt", "ja": "Tiếng Nhật", "ko": "Tiếng Hàn"}
 
                 v_name = lang_names.get(video_lang, video_lang.upper())
 
@@ -8199,11 +8579,11 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
         lang_lower = lang.lower()
 
-        if "viet" in lang_lower or "vn" in lang_lower:
+        if "viet" in lang_lower or "vn" in lang_lower or lang_lower.strip() == "vi":
 
             sample_text = "Xin chào, đây là giọng đọc thuyết minh thử nghiệm trên Storyboard AI Studio."
 
-        elif "span" in lang_lower or "es" in lang_lower or "tây ban nha" in lang_lower:
+        elif "span" in lang_lower or "tây ban nha" in lang_lower or "español" in lang_lower or lang_lower.strip() in ("es", "es-es", "es-mx"):
 
             sample_text = "Hola, esta es una muestra de voz para Storyboard AI Studio."
 
@@ -8315,7 +8695,7 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
         self.wfile.write(data)
 
-    def serve_file_with_range(self, file_path: Path):
+    def serve_file_with_range(self, file_path: Path, head_only: bool = False):
 
         """Serves media with standard HTTP 206 Partial Content for instant video seeking."""
 
@@ -8325,7 +8705,9 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
 
             self.end_headers()
 
-            self.wfile.write(b"Media File Not Found")
+            if not head_only:
+
+                self.wfile.write(b"Media File Not Found")
 
             return
 
@@ -8336,24 +8718,25 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
         ctype, _ = mimetypes.guess_type(str(file_path))
 
         if not ctype:
-
-            ctype = "video/mp4" if file_path.suffix == ".mp4" else "audio/wav" if file_path.suffix == ".wav" else "application/octet-stream"
+            suf = file_path.suffix.lower()
+            ctype = "video/mp4" if suf == ".mp4" else "video/webm" if suf == ".webm" else "audio/wav" if suf == ".wav" else "application/octet-stream"
 
         if not range_header:
 
             # Full file request
 
             self.send_response(200)
-
             self.send_cors_headers()
-
             self.send_header("Content-Type", ctype)
-
             self.send_header("Content-Length", str(file_size))
-
             self.send_header("Accept-Ranges", "bytes")
-
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
             self.end_headers()
+
+            if head_only:
+
+                return
 
             with open(file_path, "rb") as f:
 
@@ -8400,18 +8783,18 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
         length = end - start + 1
 
         self.send_response(206)
-
         self.send_cors_headers()
-
         self.send_header("Content-Type", ctype)
-
         self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
-
         self.send_header("Content-Length", str(length))
-
         self.send_header("Accept-Ranges", "bytes")
-
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
         self.end_headers()
+
+        if head_only:
+
+            return
 
         with open(file_path, "rb") as f:
 
@@ -8438,6 +8821,60 @@ class StudioRequestHandler(http.server.BaseHTTPRequestHandler):
                     break
 
                 bytes_left -= len(chunk)
+
+_PREVIEW_TRANSCODE_LOCKS: dict[str, threading.Lock] = {}
+_PREVIEW_TRANSCODE_MAP_LOCK = threading.Lock()
+
+
+def _resolve_preview_media_path(file_path: Path, query: dict) -> Path:
+    """Transcode and cache lightweight WebM preview on demand for engines without H.264/AAC."""
+    want_webm = (
+        query.get("preview", [""])[0] == "webm"
+        or query.get("format", [""])[0] == "webm"
+    )
+    if not want_webm or file_path.suffix.lower() != ".mp4" or not file_path.is_file():
+        return file_path
+
+    try:
+        st = file_path.stat()
+        import hashlib
+        key = hashlib.sha1(f"{file_path.resolve()}|{st.st_mtime_ns}|{st.st_size}".encode("utf-8")).hexdigest()[:20]
+        cache_dir = STUDIO_DIR / "_preview_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        out_webm = cache_dir / f"{key}.webm"
+        if out_webm.is_file() and out_webm.stat().st_size > 1024:
+            return out_webm
+
+        with _PREVIEW_TRANSCODE_MAP_LOCK:
+            lock = _PREVIEW_TRANSCODE_LOCKS.setdefault(key, threading.Lock())
+        with lock:
+            if out_webm.is_file() and out_webm.stat().st_size > 1024:
+                return out_webm
+            tmp_webm = cache_dir / f"{key}.part.webm"
+            cmd = [
+                "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                "-i", str(file_path),
+                "-vf", "scale='min(854,iw)':-2",
+                "-c:v", "libvpx", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "900k",
+                "-c:a", "libopus", "-b:a", "96k",
+                str(tmp_webm),
+            ]
+            proc = subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=120,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if proc.returncode == 0 and tmp_webm.is_file() and tmp_webm.stat().st_size > 1024:
+                tmp_webm.replace(out_webm)
+                return out_webm
+            if tmp_webm.is_file():
+                tmp_webm.unlink(missing_ok=True)
+    except Exception:
+        pass
+    return file_path
+
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 

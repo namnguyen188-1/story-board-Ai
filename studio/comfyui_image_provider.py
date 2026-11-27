@@ -37,9 +37,30 @@ from PIL import Image
 
 
 
-COMFYUI_HOST = os.environ.get("COMFYUI_HOST", "127.0.0.1:8188")
-
 STUDIO_DIR = Path(__file__).resolve().parent
+
+def _get_active_comfyui_host() -> str:
+    env_h = os.environ.get("COMFYUI_HOST", "").strip()
+    if env_h:
+        return env_h
+    cfg_p = STUDIO_DIR / "engine_config.json"
+    if cfg_p.is_file():
+        try:
+            with open(cfg_p, "r", encoding="utf-8") as f:
+                c = json.load(f)
+                if c.get("use_colab_gpu", False) or c.get("mode") == "colab":
+                    colab_h = c.get("colab_host", "127.0.0.1:8189")
+                    # Check if colab host is reachable
+                    url = f"http://{colab_h}/system_stats"
+                    req = urllib.request.Request(url, headers={"User-Agent": "StoryboardStudio/1.0"})
+                    with urllib.request.urlopen(req, timeout=0.8) as resp:
+                        if resp.status == 200:
+                            return colab_h
+        except Exception:
+            pass
+    return "127.0.0.1:8188"
+
+COMFYUI_HOST = _get_active_comfyui_host()
 
 def discover_comfy_dir() -> Path:
 
@@ -499,19 +520,40 @@ def get_active_checkpoint(host: str = COMFYUI_HOST) -> str:
 
 def get_sdxl_bucket(target_w: int, target_h: int) -> tuple[int, int]:
     """Returns optimal native SDXL resolution bucket closest to target aspect ratio (~1.0 Megapixel).
-    Using full ~1.0MP buckets (1344x768 for 16:9, 768x1344 for 9:16) prevents soft blurry upscaling artifacts.
+    Using Stability AI certified buckets (1216x832 for 16:9, 832x1216 for 9:16) prevents cross-attention
+    horizontal splitting (two heads / multiple statues) while ensuring pin-sharp detail.
     """
     ratio = target_w / max(1, target_h)
     if ratio <= 0.65:    # 9:16 vertical portrait (target 720x1280 or 1080x1920)
-        return (768, 1344)
+        return (832, 1216)
     elif ratio <= 0.85:  # 3:4 portrait
         return (896, 1152)
     elif ratio >= 1.5:   # 16:9 landscape (target 1280x720 or 1920x1080)
-        return (1344, 768)
+        return (1216, 832)
     elif ratio >= 1.2:   # 4:3 landscape
         return (1152, 896)
     else:                # 1:1 square
         return (1024, 1024)
+
+
+def sanitize_prompt_for_safety(p: str) -> str:
+    """Purges negated body/NSFW clauses (SDXL reads 'no X' as 'X') and enforces proper clothing."""
+    if not p:
+        return ""
+    import re
+    # Remove trailing 'All characters fully clothed... Strictly no nudity, no bare torso, no exposed chest...'
+    # because SDXL CLIP ignores 'no' and literally draws exposed chests when those tokens appear in positive prompt!
+    p = re.sub(r"(?i)All characters fully clothed[^.]*\.?", "", p)
+    p = re.sub(r"(?i)(?:Strictly\s+)?(?:absolutely\s+)?no\s+(?:nudity|bare torso|exposed chest|cleavage|bath towels?|underwear|split screen|collage|diptych|dual panels|white lines|borders|filmstrip|perforated margins|text overlays|watermarks|distorted faces|pedestals)[,.\s]*", "", p)
+    p = re.sub(r"(?i)\b(bare torso|bare chest|exposed chest|shirtless|unclothed|half-naked|topless)\b", "wearing a rugged button-down shirt", p)
+    p = re.sub(r"(?i)\b(unbuttoned vest|open vest|open shirt|unbuttoned shirt|open jacket)\b", "wearing a closed vest over a fully buttoned sturdy shirt", p)
+    p = re.sub(r"(?i)\b(undressed|undressing|nude|naked)\b", "fully clothed in respectable period attire", p)
+    p = re.sub(r"(?i)\b(bath towel|towel wrap)\b", "warm woolen shawl and long dress", p)
+    p = re.sub(r"(?i)\b(low-cut|deep cleavage|cleavage|revealing dress)\b", "modest high-collared dress", p)
+    p = re.sub(r"(?i)\b(bare belly|exposed belly|bare stomach|exposed stomach|bare midriff|exposed midriff|navel|crop top)\b", "modest high-necked woolen dress fully covering torso and belly", p)
+    # Ensure pregnant women are always described as wearing full covered modest maternity attire
+    p = re.sub(r"(?i)\bpregnant woman\b", "pregnant woman wearing a modest high-necked Victorian pioneer dress completely covering her body", p)
+    return p
 
 
 def build_prompts(
@@ -525,40 +567,174 @@ def build_prompts(
     Strict genre and visual style isolation guarantees that Stoic, Drama, Western,
     and Whiteboard/Colored Marker never contaminate each other.
     """
-    clean_prompt = prompt.strip()
+    clean_prompt = sanitize_prompt_for_safety(prompt.strip())
     is_vertical = height > width
     ratio_tag = "9:16 vertical portrait" if is_vertical else "16:9 widescreen"
 
     genre_lower = str(genre or "").lower().strip()
     style_lower = str(visual_style or "").lower().strip()
+    clean_lower = clean_prompt.lower()
+
+    # UNIVERSAL ANTI-DUPLICATION NEGATIVE PROMPT (Guarantees strictly single subject & prevents two-headed deformities)
+    anti_dup_universal = (
+        "(two heads:1.5), (two-headed:1.5), (double head:1.5), (twin heads:1.5), (multiple heads:1.5), "
+        "(extra head:1.5), (duplicate head:1.5), (conjoined heads:1.5), (split head:1.5), (hydra:1.4), "
+        "(two faces:1.4), (double face:1.4), (conjoined:1.4), (fused heads:1.4), "
+        "two people, 2 people, multiple people, two persons, 2 persons, multiple persons, "
+        "second person, duplicate person, two men, 2 men, two women, 2 women, couple, crowd, group of people, "
+        "bystanders, background people, secondary character, extra people, two subjects, "
+        "two statues, 2 statues, multiple statues, second statue, duplicate statue, two busts, 2 busts, multiple busts, "
+        "twin statues, background statue, secondary statue, deformed neck, elongated neck, "
+        "split screen, diptych, triptych, side by side, collage, dual, double, mirror image, reflection, "
+    )
+
+    # UNIVERSAL CONTENT SAFETY & ANTI-NSFW NEGATIVE PROMPT (Strict YouTube Community Guidelines Compliance)
+    anti_nsfw_universal = (
+        "(nudity:1.6), (nude:1.6), (naked:1.6), (nsfw:1.6), (cleavage:1.6), (bare breasts:1.6), "
+        "(exposed breasts:1.6), (topless:1.6), (shirtless:1.6), (bare torso:1.6), (bare chest:1.6), "
+        "(exposed belly:1.6), (bare belly:1.6), (bare stomach:1.6), (exposed midriff:1.6), (bare midriff:1.6), "
+        "(navel:1.6), (crop top:1.6), (open shirt:1.5), (unbuttoned shirt:1.5), (open vest:1.5), (unbuttoned vest:1.5), "
+        "(open jacket:1.5), (underwear:1.6), (lingerie:1.6), (panties:1.6), (bra:1.6), (bikini:1.6), (swimsuit:1.6), "
+        "(bath towel:1.6), (towel wrap:1.6), (undressing:1.6), (low cut dress:1.5), (deep neckline:1.5), "
+        "(erotic:1.5), (sensual:1.4), (sexual:1.6), (provocative:1.5), (seductive:1.4), "
+        "(genitals:1.6), (nipples:1.6), (exposed body:1.6), (bare skin:1.4), (unclothed:1.6), "
+    )
+
+    # Check if clean_prompt is already an expertly crafted standalone prompt (e.g. from thumbnail_studio or seo_packager)
+    is_standalone_complete = any(
+        marker in clean_lower
+        for marker in (
+            "authentic neoclassical sculpture",
+            "authentic classical carrara marble",
+            "solitary heroic close-up bust portrait",
+            "solitary heroic chest-up bust sculpture",
+            "monumental heroic bust portrait",
+            "bust portrait of stoic emperor",
+            "carved white carrara marble head",
+            "strictly positioned on the",
+            "leaving open dark atmospheric negative space",
+            "leaving open clean dark shadow on the",
+            "leaving deep black high-contrast negative space",
+            "leaving clean soft-focus atmospheric space",
+            "leaving right half dark negative space",
+            "leaving left half open for massive typography",
+            "leaving left 50% dark atmospheric negative space",
+            "leaving right 52% clean for bold high-ctr typography",
+            "leaving open dark stylized space on the left",
+            "artwork concentrated strictly on right",
+            "single statue only, strictly one subject",
+            "single person only, strictly one",
+            "single character only, strictly one",
+            "single hero only, strictly one",
+            "single gunslinger only, strictly one",
+            "single commander only, strictly one",
+        )
+    )
+
+    if is_standalone_complete:
+        positive = clean_prompt
+        if genre_lower in ("stoic", "stoicism", "stoi"):
+            is_cinematic_stoic = any(k in clean_lower for k in ("crimson", "toga", "aurora", "philosopher emperor", "night city", "acropolis", "skin", "master film still", "thumbnail"))
+            if is_cinematic_stoic:
+                negative = (
+                    anti_dup_universal +
+                    "whiteboard, marker, cartoon, drawing, sketch, anime, 3d render, CGI, plastic skin, doll, female, woman, "
+                    "deformed, bad anatomy, bad hands, broken arms, blur, low quality, artifacts, watermark, text, signature"
+                )
+            else:
+                negative = (
+                    anti_dup_universal +
+                    "living human, real person, human skin, flesh, living eyes with pupils, human face, skin pores, flesh tones, "
+                    "tan skin, peach skin, veins, real hair, beard hair, soft skin, biological human, bodybuilder cosplay, "
+                    "organic human flesh, modern clothes, whiteboard, marker, cartoon, deformed, bad anatomy, broken arms, blur, watermark, text, signature"
+                )
+        elif style_lower in ("hand_color", "colored_marker", "color_marker") or genre_lower in ("colored_marker", "hand_color", "after_skool"):
+            negative = (
+                anti_dup_universal +
+                "photorealistic, realistic photo, real human, photograph, 3d render, CGI, statue, marble, stone, "
+                "dark background, grey background, gloomy, film still, cinema, ugly, deformed, blurry, low quality, "
+                "artifacts, watermark, text, signature"
+            )
+        elif style_lower in ("whiteboard", "monochrome_sketch", "black_white") or genre_lower == "whiteboard":
+            negative = (
+                anti_dup_universal +
+                "color, shading, gradients, photorealistic, realistic photo, real human, 3d render, CGI, statue, marble, "
+                "gray background, dark background, noise, blurry, messy, ugly, deformed, low quality, artifacts, watermark, text, signature"
+            )
+        elif style_lower == "color_animation" or genre_lower in ("animation", "anime"):
+            negative = (
+                anti_dup_universal +
+                "photorealistic, realistic photo, real life, monochrome, statue, marble, whiteboard, marker, ugly, deformed, "
+                "low quality, watermark, text"
+            )
+        else:
+            negative = (
+                anti_dup_universal +
+                anti_nsfw_universal +
+                "statue, marble, stone sculpture, pedestal, bust, whiteboard, marker, sketch, drawing, illustration, "
+                "cartoon, anime, 3d render, CGI, plastic skin, doll, mannequin, ugly, deformed, bad anatomy, bad hands, "
+                "missing limbs, blurry, low quality, artifacts, watermark, text, signature"
+            )
+        return positive, negative
 
     # BRANCH 1: STOIC / KHẮC KỶ (100% ISOLATED: Carrara Marble Statue, Antique Relics, Roman Ruins)
     if genre_lower in ("stoic", "stoicism", "stoi"):
+        clean_lower = clean_prompt.lower()
+        is_competitor_stoic = any(
+            kw in clean_lower
+            for kw in ("crimson", "toga", "aurora", "philosopher emperor", "marcus aurelius archetype", "competitor", "masterpiece", "valorestoico")
+        )
         is_relic = any(
-            kw in clean_prompt.lower()
+            kw in clean_lower
             for kw in (
                 "hourglass", "clepsidra", "reloj", "sand trickling", "oil lamp", "candle", "candlelight",
                 "flame", "papyrus", "scroll", "writing", "quill", "ink", "coins", "denarius", "scales",
                 "sundial", "brazier", "embers", "columns", "pantheon", "colosseum", "storm", "macro"
             )
-        ) and not any(kw in clean_prompt.lower() for kw in ("statue", "sculpture", "marcus", "aurelius", "monument"))
+        ) and not any(kw in clean_lower for kw in ("statue", "sculpture", "marcus", "aurelius", "monument"))
 
-        is_wide = any(
-            kw in clean_prompt.lower()
-            for kw in ("wide", "standing", "full body", "ruins", "courtyard", "colonnade", "temple", "palace", "hall", "landscape", "distant")
+        is_bust_or_portrait = any(
+            kw in clean_lower
+            for kw in ("bust", "portrait", "close-up", "face", "head", "solitary")
         )
 
+        is_wide = any(
+            kw in clean_lower
+            for kw in ("wide", "standing", "full body", "landscape", "distant")
+        ) and not is_bust_or_portrait
+
         is_torso = any(
-            kw in clean_prompt.lower()
+            kw in clean_lower
             for kw in ("torso", "chest", "abs", "muscular", "medium torso", "waist", "body", "power", "strength", "fuerza", "dignidad", "broad shoulder", "shoulders")
         )
 
         is_profile = any(
-            kw in clean_prompt.lower()
+            kw in clean_lower
             for kw in ("profile", "hand on", "chin", "gaze", "thought", "side view", "three-quarter", "looking away", "contemplat")
         )
 
-        if is_relic:
+        if is_competitor_stoic:
+            # Archetype S: Cinematic Stoic Masterpiece (Valor Estoico Archetype - Colossal Marble Statue with large face on the right + crimson toga)
+            positive = (
+                f"cinematic {ratio_tag} master film still of a colossal carved Carrara marble bust statue of a wise Stoic philosopher emperor (Marcus Aurelius archetype) "
+                f"occupying strictly the RIGHT 50% of the canvas (x=640 to x=1280), "
+                f"heroic colossal bust portrait with a LARGE chiseled white marble face, sculpted curly Roman marble hair and thick sculpted grey-white marble beard, "
+                f"profound contemplative carved eyes looking towards the left. "
+                f"Draped across his white marble shoulder and chest is an intensely vibrant scarlet crimson-red silk fabric Roman toga with rich natural cloth folds. "
+                f"Beside the statue on the far right edge is an ancient Corinthian column. "
+                f"Above in the background, a dark midnight blue starry sky with a glowing radiant emerald-green aurora borealis. "
+                f"Low on the distant far-left horizon, glowing ancient Acropolis ruins with sparkling golden night city lights. "
+                f"Dramatic cyan-emerald rim lighting outlining the carved marble silhouette, warm golden sidelight sculpting facial stone contours. "
+                f"The entire LEFT 50% of the canvas is wide open, completely clean, deep dark atmospheric midnight sky with soft shadows for giant headline typography. "
+                f"8k resolution, master cinematography, photorealistic, {ratio_tag}. Details: {clean_prompt}"
+            )
+            negative = (
+                anti_dup_universal +
+                "statue on left, centered statue, human skin, flesh, real person, columns on left, pillar on left, "
+                "whiteboard, marker, cartoon, drawing, anime, 3d render, CGI, plastic skin, doll, female, woman, "
+                "deformed, bad anatomy, bad hands, broken arms, blur, low quality, artifacts, watermark, text, signature"
+            )
+        elif is_relic:
             # Archetype A: B-Roll Symbolic Antique Relics (No statue, pure atmospheric relics)
             positive = (
                 f"cinematic {ratio_tag} film still, 35mm cinema lens, master cinematography, photorealistic 8k, "
@@ -573,12 +749,13 @@ def build_prompts(
             # Archetype B: Wide Establishing Shot of Marble Statue in Ruins / Colonnade
             positive = (
                 f"cinematic wide establishing shot of a monumental carved white Carrara marble statue of Stoic emperor Marcus Aurelius, "
+                f"strictly one solitary single head, singular neck and head, centered single bust, anatomically flawless single head, "
                 f"standing majestically amidst ancient Roman classical ruins and weathered Corinthian columns under a dramatic atmospheric sky, "
                 f"soft golden volumetric god rays, authentic classical antiquity sculpture, completely solid chiselled stone material, "
                 f"epic cinematic scale, museum masterpiece, {ratio_tag}. Setting: {clean_prompt}"
             )
             negative = (
-                "two statues, 2 statues, multiple statues, second statue, background statue, secondary figure, crowd, duplicate, blurry figure in background, "
+                anti_dup_universal +
                 "living human, real person, human skin, flesh, living eyes with pupils, human face, skin pores, flesh tones, "
                 "tan skin, peach skin, veins, real hair, beard hair, soft skin, biological human, bodybuilder cosplay, "
                 "modern clothes, whiteboard, marker, cartoon, deformed, bad anatomy, broken arms, blur, watermark, text, signature"
@@ -587,13 +764,14 @@ def build_prompts(
             # Archetype C: Heroic Muscular Torso & Abs Shot (Waist-up, draped toga)
             positive = (
                 f"centered medium waist-up shot of a monumental carved Roman stone statue, white Carrara marble sculpture of Emperor Marcus Aurelius, "
+                f"strictly one solitary single head, singular neck and head, centered single bust, anatomically flawless single head, "
                 f"muscular sculpted stone torso and defined chiselled stone abs, broad stone shoulders, royal draped stone toga cascading over hip and shoulder, "
                 f"ancient classical antiquity art, authentic chiselled marble stone texture, cold white marble, completely inanimate solid stone statue, "
                 f"carved stone eyes without pupils, sculpted stone beard, dramatic moody museum chiaroscuro lighting, floating golden embers in dark atmospheric Roman background, "
                 f"neoclassical stone sculpture masterpiece, {ratio_tag}. Setting: {clean_prompt}"
             )
             negative = (
-                "two statues, 2 statues, multiple statues, second statue, background statue, secondary figure, crowd, duplicate, blurry figure in background, "
+                anti_dup_universal +
                 "living human, real person, human skin, flesh, living eyes with pupils, human face, skin pores, flesh tones, "
                 "tan skin, peach skin, veins, real hair, beard hair, soft skin, biological human, bodybuilder cosplay, "
                 "organic human flesh, modern clothes, whiteboard, marker, cartoon, extra limbs, deformed, bad anatomy, blur, watermark, text, signature"
@@ -602,12 +780,13 @@ def build_prompts(
             # Archetype D: Philosophical Three-Quarter Profile & Hand on Chin
             positive = (
                 f"cinematic three-quarter profile shot of a carved white Carrara marble statue of Marcus Aurelius in deep philosophical thought, "
+                f"strictly one solitary single head, singular neck and head, centered single bust, anatomically flawless single head, "
                 f"sculpted stone hand thoughtfully resting near chin, contemplative stone gaze, noble chiseled stone features, curly stone hair and beard, "
                 f"cold white marble texture with fine chisel marks, dramatic side raking light, dark atmospheric Roman background, "
                 f"100% solid stone material, neoclassical stone sculpture masterpiece, {ratio_tag}. Setting: {clean_prompt}"
             )
             negative = (
-                "two statues, 2 statues, multiple statues, second statue, background statue, secondary figure, crowd, duplicate, blurry figure in background, "
+                anti_dup_universal +
                 "living human, real person, human skin, flesh, living eyes with pupils, human face, skin pores, flesh tones, "
                 "tan skin, peach skin, veins, real hair, beard hair, soft skin, biological human, bodybuilder cosplay, "
                 "organic human flesh, modern clothes, whiteboard, marker, cartoon, deformed, bad anatomy, broken arms, blur, watermark, text, signature"
@@ -616,6 +795,7 @@ def build_prompts(
             # Archetype E: Standard Heroic Statue Medium Shot
             positive = (
                 f"monumental carved Roman stone statue, cold white Carrara marble sculpture of Emperor Marcus Aurelius, "
+                f"strictly one solitary single head, singular neck and head, centered single bust, anatomically flawless single head, "
                 f"medium framing showing noble carved stone head and muscular sculpted stone shoulders draped in toga, "
                 f"ancient classical antiquity art, authentic chiselled marble stone texture, rough chiselled stone finish, "
                 f"completely inanimate solid stone statue, carved stone eyes without pupils, sculpted stone beard and hair, "
@@ -623,7 +803,7 @@ def build_prompts(
                 f"neoclassical stone sculpture, {ratio_tag}. Setting: {clean_prompt}"
             )
             negative = (
-                "two statues, 2 statues, multiple statues, second statue, background statue, secondary figure, crowd, duplicate, blurry figure in background, "
+                anti_dup_universal +
                 "living human, real person, human skin, flesh, living person, realistic eyes with pupils, human face, skin pores, "
                 "flesh tones, tan skin, peach skin, veins, real hair, beard hair, soft skin, biological human, bodybuilder cosplay, "
                 "organic human flesh, modern clothes, whiteboard, marker, cartoon, deformed, bad anatomy, broken arms, blur, watermark, text, signature"
@@ -633,11 +813,14 @@ def build_prompts(
     elif genre_lower in ("drama", "family_drama", "hoa_drama", "cinematic_drama", "hollywood"):
         positive = (
             f"cinematic {ratio_tag} film shot, photorealistic contemporary Hollywood cinematic drama, "
-            f"authentic human actors with natural human skin tones and facial pores, emotional performance, "
+            f"authentic human actor with natural human skin tones and facial pores, solo character emotional performance, "
+            f"fully clothed in modest respectable attire, completely covered torso, no bare skin, "
             f"35mm anamorphic cinema lens, master cinematography, atmospheric lighting, Kodak Vision3 color grading, "
             f"highly detailed 8k film still: {clean_prompt}"
         )
         negative = (
+            anti_dup_universal +
+            anti_nsfw_universal +
             "statue, marble, stone sculpture, pedestal, bust, whiteboard, marker, sketch, drawing, illustration, "
             "cartoon, anime, 3d render, CGI, plastic skin, doll, mannequin, ugly, deformed, bad anatomy, bad hands, "
             "missing limbs, blurry, low quality, artifacts, watermark, text, signature"
@@ -647,10 +830,13 @@ def build_prompts(
     elif genre_lower in ("western", "ranch", "frontier", "cowboy"):
         positive = (
             f"cinematic {ratio_tag} film shot, authentic American frontier western movie cinematography, "
-            f"weathered leather and denim, dusty rugged landscape, dramatic golden hour sun, authentic western actors "
-            f"with lifelike skin textures, 35mm anamorphic lens, master composition, 8k resolution: {clean_prompt}"
+            f"weathered leather and denim, dusty rugged landscape, dramatic golden hour sun, authentic western actor "
+            f"with lifelike skin textures, fully clothed in rugged frontier attire with buttoned shirt, completely covered torso, "
+            f"solo framing, 35mm anamorphic lens, master composition, 8k resolution: {clean_prompt}"
         )
         negative = (
+            anti_dup_universal +
+            anti_nsfw_universal +
             "modern clothes, modern gadgets, cars, electronics, statue, marble, stone sculpture, whiteboard, marker, "
             "sketch, drawing, illustration, cartoon, anime, 3d render, CGI, plastic, doll, ugly, deformed, bad anatomy, "
             "bad hands, blurry, low quality, artifacts, watermark, text, signature"
@@ -700,9 +886,12 @@ def build_prompts(
     else:
         positive = (
             f"cinematic {ratio_tag} film shot, {genre} movie aesthetic, stunning composition, 8k resolution, masterpiece, "
+            f"fully clothed in modest respectable attire, completely covered torso, no bare skin, "
             f"atmospheric lighting, highly detailed, vivid storytelling visual: {clean_prompt}"
         )
         negative = (
+            anti_dup_universal +
+            anti_nsfw_universal +
             "statue, marble, whiteboard, marker, sketch, cartoon, anime, ugly, deformed, bad anatomy, bad hands, "
             "missing limbs, missing hands, severed arms, cropped limbs, elongated torso, stretched proportions, "
             "blurry, grainy, low resolution, low quality, artifacts, watermark, text, signature"

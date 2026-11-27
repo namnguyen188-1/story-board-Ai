@@ -61,7 +61,7 @@
     },
     "dist/flow/storyboard-native-image.js": {
       "v2_source_sha256": "37d60cd4bee6df298fa8f805b22e82588bba708dd568e6a42f2bbf3dafeacfe0",
-      "studio_sha256": "a1940255cb17f1573987b28357d0a4f6b515db47c1a59b5ccec3f93e34e70a94"
+      "studio_sha256": "ac20fe7470737f467c3f0bf220d22604caf60fb490e51ebd9b01f69cafd49e1a"
     },
     "dist/flow/storyboard-native.js": {
       "v2_source_sha256": "e71afc0e1569b4a0fb0db784e53dcfb7831806eadfd31e9f0bc5904cc27fb619",

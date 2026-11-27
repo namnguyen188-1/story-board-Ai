@@ -71,3 +71,21 @@ def expected_scene_speech(scene):
         if speech:
             words.append(speech)
     return "\n".join(words)
+
+
+def require_cached_scene_audio(path, scene, *, muse_original=None, min_peak_dbfs=-65.0, min_mean_dbfs=-75.0):
+    """Verifies that a cached scene video or audio file has audible signal if spoken text was expected."""
+    expected_text = expected_scene_speech(scene)
+    if not expected_text.strip():
+        return {"status": "SKIPPED_INTENTIONAL_SILENCE", "speech_verified": False}
+    target = Path(path) if path else None
+    if (not target or not target.is_file() or target.stat().st_size < 1000) and muse_original:
+        target = Path(muse_original)
+    if not target or not target.is_file():
+        return {"status": "TARGET_FILE_MISSING", "speech_verified": False}
+    try:
+        return require_audible_if_spoken(target, expected_text, min_peak_dbfs=min_peak_dbfs, min_mean_dbfs=min_mean_dbfs)
+    except Exception as exc:
+        print(f"[AUDIO_SIGNAL_GUARD] Lưu ý: Kiểm tra âm thanh scene cache: {exc}")
+        return {"status": "AUDIBLE_CHECK_EXCEPTION", "error": str(exc), "speech_verified": False}
+

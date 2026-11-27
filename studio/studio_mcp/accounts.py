@@ -266,7 +266,11 @@ def select_account(account_id, root=None):
         acc = find_account(account_id,root)
     try:
         if acc:
-            m_path = Path("D:/FLOWKIT/state/machine.json")
+            m_cand = [
+                Path(__file__).resolve().parent.parent.parent / "flowkit" / "state" / "machine.json",
+                Path("D:/FLOWKIT/state/machine.json")
+            ]
+            m_path = next((p for p in m_cand if p.parent.exists()), m_cand[0])
             if m_path.parent.exists():
                 chrome_exe = str(_chrome_path())
                 m_path.write_text(json.dumps({
@@ -330,10 +334,10 @@ def browser_probe(account):
     account = _validate(account)
     port = account["cdp_port"]
     try:
-        with urlopen("http://127.0.0.1:%d/json/version" % port,timeout=8.0) as r:
+        with urlopen("http://127.0.0.1:%d/json/version" % port,timeout=0.6) as r:
             if r.status != 200:
                 return {"connected":False,"reason":"CDP_HTTP_ERROR","logged_in":None}
-        with urlopen("http://127.0.0.1:%d/json/list" % port,timeout=8.0) as r:
+        with urlopen("http://127.0.0.1:%d/json/list" % port,timeout=0.6) as r:
             pages=json.loads(r.read(128000).decode("utf-8"))
         urls=[str(row.get("url") or "") for row in pages if isinstance(row,dict)]
         return {"connected":True,
@@ -581,7 +585,11 @@ def open_account_login(account_id, root=None):
         _show_window(pid)
         mark_manual_login(row["id"],root)
         try:
-            u_flag = Path("D:/FLOWKIT/state/flow_window/unlock.flag")
+            u_cand = [
+                Path(__file__).resolve().parent.parent.parent / "flowkit" / "state" / "flow_window" / "unlock.flag",
+                Path("D:/FLOWKIT/state/flow_window/unlock.flag")
+            ]
+            u_flag = next((p for p in u_cand if p.parent.parent.exists()), u_cand[0])
             u_flag.parent.mkdir(parents=True, exist_ok=True)
             u_flag.write_text("unlock", encoding="ascii")
         except Exception:

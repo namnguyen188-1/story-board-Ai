@@ -119,12 +119,24 @@ def generate_styled_ass(
                 pass
         if resolved_lang in ("auto", "none", ""):
             sample_txt = " ".join(str(s.get("text", "")) for s in subtitles[:6]).lower()
-            if any(c in sample_txt for c in 'àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ'):
+            try:
+                import sys
+                studio_root = str(Path(__file__).resolve().parents[2])
+                if studio_root not in sys.path:
+                    sys.path.insert(0, studio_root)
+                from east_asia_hook import get_ea_bridge
+                _ea_detect = get_ea_bridge()
+                cjk_hint = _ea_detect.canonical_east_asia_language(sample_txt) if _ea_detect else None
+            except Exception:
+                cjk_hint = None
+            if cjk_hint:
+                resolved_lang = cjk_hint.lower()
+            elif any(c in sample_txt for c in 'àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ'):
                 resolved_lang = "vi"
             elif any(w in sample_txt for w in [' que ', ' de ', ' la ', ' el ', ' en ', ' y ', ' por ', ' una ', ' con ', ' para ', 'existe']):
                 resolved_lang = "es"
             else:
-                resolved_lang = "en" 
+                resolved_lang = "en"
 
     # Auto-load companion .words.json if present and root has no word-level timestamps
     if subtitles:
@@ -152,6 +164,28 @@ def generate_styled_ass(
 
     if not subtitles:
         return ""
+
+    try:
+        import sys
+        studio_root = str(Path(__file__).resolve().parents[2])
+        if studio_root not in sys.path:
+            sys.path.insert(0, studio_root)
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None:
+            cjk_ass = ea.generate_ass_if_cjk(
+                subtitles_json_path=subtitles_json_path,
+                ass_output_path=ass_output_path,
+                subtitle_style=subtitle_style,
+                video_width=video_width,
+                video_height=video_height,
+                custom_font_size=custom_font_size,
+                language=resolved_lang,
+            )
+            if cjk_ass and os.path.isfile(cjk_ass):
+                return cjk_ass
+    except Exception:
+        pass
 
     # Baseline font size is calibrated against canvas resolution
     base_font_size = int(custom_font_size) if custom_font_size and int(custom_font_size) > 0 else 52
@@ -194,7 +228,7 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: StudioSub,Arial,{font_size},{primary_col},{secondary_col},{outline_col},{back_col},{bold},0,0,0,100,100,0,0,{border_style},{box_outline},{shadow},2,{margin_lr},{margin_lr},{margin_v},1
-Style: KineticSticker,Segoe UI Emoji,{max(18, int(round(font_size * 0.95)))},&H0000FFFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,3.2,1.8,8,{margin_lr},{margin_lr},{int(round(video_height * 0.08))},1
+Style: KineticSticker,Segoe UI Emoji,{max(18, int(round(font_size * (0.82 if is_vertical else 0.70))))},&H0000FFFF,&H00FFFFFF,&H00000000,&H90000000,1,0,0,0,100,100,0,0,1,3.0,1.4,9,{margin_lr},{margin_lr},{int(round(video_height * (0.10 if is_vertical else 0.05)))},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -351,9 +385,26 @@ def build_force_style(
     style_key: str = "yellow_black",
     video_height: int = 720,
     custom_font_size: int = 0,
-    video_width: int = 1280
+    video_width: int = 1280,
+    sample_text: str = "",
+    language: str = "",
 ) -> str:
     """Builds a libass force_style string properly proportioned to video resolution."""
+    font_name = "Arial"
+    try:
+        import sys
+        studio_root = str(Path(__file__).resolve().parents[2])
+        if studio_root not in sys.path:
+            sys.path.insert(0, studio_root)
+        from east_asia_hook import get_ea_bridge
+        ea = get_ea_bridge()
+        if ea is not None and (sample_text or language):
+            from east_asia_story_lab.cjk_text_utils import resolve_ass_font_name
+            cand_font = resolve_ass_font_name(sample_text, language)
+            if cand_font and cand_font != "Arial":
+                font_name = cand_font
+    except Exception:
+        pass
     cfg = SUBTITLE_STYLES.get(style_key, SUBTITLE_STYLES.get("yellow_black", {}))
     base_font_size = int(custom_font_size) if custom_font_size and int(custom_font_size) > 0 else 52
     if custom_font_size and int(custom_font_size) > 0:
@@ -370,7 +421,7 @@ def build_force_style(
         margin_v = round(max(24, font_size * 0.95))
 
     parts = [
-        "FontName=Arial",
+        f"FontName={font_name}",
         f"FontSize={font_size}",
         f"Bold={cfg.get('Bold', '1')}",
         f"PrimaryColour={cfg.get('PrimaryColour', '&H0000FFFF')}",
@@ -533,7 +584,8 @@ def burn_subtitles_to_video_tool_fn(
 
         srt_p = Path(srt_path)
         fallback_style = subtitle_style if subtitle_style in SUBTITLE_STYLES and subtitle_style != "karaoke_viral" else "yellow_black"
-        force_style = build_force_style(fallback_style, video_height, custom_font_size=base_sz, video_width=width)
+        sample_fb = " ".join(str(s.get("text", "")) for s in subtitles[:3])
+        force_style = build_force_style(fallback_style, video_height, custom_font_size=base_sz, video_width=width, sample_text=sample_fb, language=resolved_lang)
 
         if use_cwd:
             cmd_fallback = [
