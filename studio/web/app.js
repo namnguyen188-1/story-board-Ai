@@ -5587,8 +5587,14 @@ function setupEventHandlers() {
       try {
         const res = await fetch("/api/chatgpt/login", { method: "POST" });
         const data = await res.json();
+        if (!res.ok || data.success === false) {
+          const errMsg = data.message || data.error || `HTTP ${res.status}`;
+          if (statusBox) statusBox.textContent = "Lỗi khi mở ChatGPT: " + errMsg;
+          return;
+        }
         if (statusBox && data.message) statusBox.textContent = data.message;
         if (typeof showToast === "function") showToast(`Đã mở trình duyệt ChatGPT Web trên cổng ${data.port || 9468}!`);
+        await refreshChatGptStatus();
         _watchChatGptLoginCompletion(data.account_id || "");
       } catch (err) {
         if (statusBox) statusBox.textContent = "Lỗi khi mở ChatGPT: " + err.message;

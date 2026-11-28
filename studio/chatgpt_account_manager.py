@@ -21,7 +21,7 @@ if str(FLOWKIT_APP) not in sys.path:
 import chatgpt_browser
 
 CDP_PORT = 9468
-CHATGPT_PROFILE = Path(r"D:\STORYBOARD_AI\profiles\chatgpt_web")
+CHATGPT_PROFILE = PROJECT_ROOT / "profiles" / "chatgpt_web"
 LOGIN_STATE_FILE = CHATGPT_PROFILE / "login_state.json"
 
 

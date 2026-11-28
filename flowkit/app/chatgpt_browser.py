@@ -22,14 +22,15 @@ from typing import Dict, Any, List, Optional, Tuple
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
-PROFILES_ROOT = Path(r"D:\STORYBOARD_AI\profiles")
+PROJECT_ROOT = ROOT.parent
+PROFILES_ROOT = PROJECT_ROOT / "profiles"
 CHATGPT_PROFILE = PROFILES_ROOT / "chatgpt_web"
 ACCOUNTS_REGISTRY = PROFILES_ROOT / "chatgpt_accounts.json"
 CDP_PORT = 9468
 CHATGPT_PORT_MIN = 9468
 CHATGPT_PORT_MAX = 9489
 TARGET_URL = "https://chatgpt.com"
-BAT_LAUNCHER = Path(r"D:\FLOWKIT\launch_chatgpt.bat")
+BAT_LAUNCHER = ROOT / "launch_chatgpt.bat"
 TASK_NAME = "Storyboard_Launch_ChatGPT"
 
 user32 = ctypes.windll.user32
@@ -511,38 +512,68 @@ def open_chatgpt_browser(show: bool = True, account_id: Optional[str] = None) ->
             except Exception:
                 pass
 
-    # 5. Launch Chrome: interactive desktop when show=True, offscreen + /min + unthrottled background flags when show=False
-    bg_flags = (
-        "--disable-background-timer-throttling "
-        "--disable-renderer-backgrounding "
-        "--disable-backgrounding-occluded-windows "
-    )
-    if show:
-        start_prefix = 'start ""'
-        win_flags = '--window-size=1200,850 --window-position=120,80 '
-    else:
-        start_prefix = 'start "" /min'
-        win_flags = '--window-size=1200,850 --window-position=-32000,-32000 '
-    bat_content = (
-        f'@echo off\n'
-        f'{start_prefix} "{chrome_exe}" '
-        f'--user-data-dir="{profile_dir}" '
-        f'--remote-debugging-port={cdp_port} '
-        f'--remote-debugging-address=127.0.0.1 '
-        f'--no-first-run '
-        f'--no-default-browser-check '
-        f'--disable-session-crashed-bubble '
-        f'--hide-crash-restore-bubble '
-        f'{bg_flags}'
-        f'{win_flags}'
-        f'"{TARGET_URL}"\n'
-    )
-    BAT_LAUNCHER.parent.mkdir(parents=True, exist_ok=True)
-    BAT_LAUNCHER.write_text(bat_content, encoding="utf-8")
+    # 5. Launch Chrome directly via Popen (reliable across all PCs without schtasks/Admin)
+    chrome_args = [
+        chrome_exe,
+        f"--user-data-dir={profile_dir}",
+        f"--remote-debugging-port={cdp_port}",
+        "--remote-debugging-address=127.0.0.1",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-session-crashed-bubble",
+        "--hide-crash-restore-bubble",
+        "--disable-background-timer-throttling",
+        "--disable-renderer-backgrounding",
+        "--disable-backgrounding-occluded-windows",
+        "--window-size=1200,850",
+        "--window-position=120,80" if show else "--window-position=-32000,-32000",
+        TARGET_URL,
+    ]
+    launched_direct = False
+    try:
+        creation_flags = 0x08000000 if (os.name == "nt" and not show) else 0
+        subprocess.Popen(
+            chrome_args,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=creation_flags,
+        )
+        launched_direct = True
+    except Exception as exc:
+        print(f"[CHATGPT_WEB] Direct Chrome Popen failed ({exc}), trying schtasks fallback...", flush=True)
 
-    cmd_create = f'schtasks /create /tn "{TASK_NAME}" /tr "cmd.exe /c \"{BAT_LAUNCHER}\"" /sc ONCE /st 23:59 /f'
-    subprocess.run(cmd_create, shell=True, capture_output=True)
-    subprocess.run(f'schtasks /run /tn "{TASK_NAME}"', shell=True, capture_output=True)
+    if not launched_direct:
+        bg_flags = (
+            "--disable-background-timer-throttling "
+            "--disable-renderer-backgrounding "
+            "--disable-backgrounding-occluded-windows "
+        )
+        if show:
+            start_prefix = 'start ""'
+            win_flags = '--window-size=1200,850 --window-position=120,80 '
+        else:
+            start_prefix = 'start "" /min'
+            win_flags = '--window-size=1200,850 --window-position=-32000,-32000 '
+        bat_content = (
+            f'@echo off\n'
+            f'{start_prefix} "{chrome_exe}" '
+            f'--user-data-dir="{profile_dir}" '
+            f'--remote-debugging-port={cdp_port} '
+            f'--remote-debugging-address=127.0.0.1 '
+            f'--no-first-run '
+            f'--no-default-browser-check '
+            f'--disable-session-crashed-bubble '
+            f'--hide-crash-restore-bubble '
+            f'{bg_flags}'
+            f'{win_flags}'
+            f'"{TARGET_URL}"\n'
+        )
+        BAT_LAUNCHER.parent.mkdir(parents=True, exist_ok=True)
+        BAT_LAUNCHER.write_text(bat_content, encoding="utf-8")
+
+        cmd_create = f'schtasks /create /tn "{TASK_NAME}" /tr "cmd.exe /c \\"{BAT_LAUNCHER}\\"" /sc ONCE /st 23:59 /f'
+        subprocess.run(cmd_create, shell=True, capture_output=True)
+        subprocess.run(f'schtasks /run /tn "{TASK_NAME}"', shell=True, capture_output=True)
 
     # 6. Wait for Chrome to listen and force foreground (or hide completely if show=False)
     for _ in range(25):

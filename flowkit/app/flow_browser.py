@@ -39,7 +39,7 @@ def machine():
     cfg = json.loads(path.read_text(encoding="utf-8-sig"))
 
     # Dynamic sync with Storyboard AI Studio active account
-    storyboard_db = Path("D:/STORYBOARD_AI/studio/runtime/storyboard_accounts.json")
+    storyboard_db = ROOT.parent / "studio" / "runtime" / "storyboard_accounts.json"
     if storyboard_db.is_file():
         try:
             sb_data = json.loads(storyboard_db.read_text(encoding="utf-8"))
