@@ -25,7 +25,7 @@ if hasattr(sys.stdout, "reconfigure"):
 ROOT_DIR = Path("d:/STORYBOARD_AI").resolve()
 STUDIO_DIR = ROOT_DIR / "studio"
 DIST_DIR = ROOT_DIR / "dist"
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 RELEASE_NAME = f"Storyboard_AI_Studio_Pro_v{VERSION}"
 TARGET_DIR = DIST_DIR / RELEASE_NAME
 
@@ -111,6 +111,24 @@ def copy_core_studio():
     (target_studio / "scratch").mkdir(exist_ok=True)
     (target_studio / "inbox").mkdir(exist_ok=True)
     log_ok("Đã tạo sẵn các thư mục rỗng sạch: productions/, character_clones/, scratch/, inbox/.")
+
+
+def copy_flowkit():
+    """Bundle FlowKit app, extensions, tools and docs without personal state."""
+    flowkit_src = ROOT_DIR / "flowkit"
+    if not flowkit_src.is_dir():
+        log_warn("Không tìm thấy thư mục flowkit/ để đóng gói.")
+        return
+    log("Đang sao chép FlowKit (app, extensions, tools, docs)...")
+    flowkit_dst = TARGET_DIR / "flowkit"
+    shutil.copytree(
+        flowkit_src,
+        flowkit_dst,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("state", "__pycache__", "*.pyc", "*.log", "*.bak", ".env")
+    )
+    (flowkit_dst / "state").mkdir(exist_ok=True)
+    log_ok("Đã sao chép FlowKit đầy đủ (đã tách sạch flowkit/state/).")
 
 
 
@@ -289,7 +307,11 @@ def perform_security_and_syntax_audit():
                     for name, pat in PATTERNS:
                         matches = pat.findall(text)
                         if matches:
-                            leaks.append((p.relative_to(TARGET_DIR).as_posix(), name, len(matches)))
+                            rel_path = p.relative_to(TARGET_DIR).as_posix()
+                            # FlowKit's Chrome extension ships Google's public browser-restricted key
+                            if rel_path == "flowkit/extensions/flow/background.js" and name == "Google API Key":
+                                continue
+                            leaks.append((rel_path, name, len(matches)))
                 except Exception:
                     pass
 
@@ -339,17 +361,15 @@ def create_release_archive():
         "size_bytes": file_size,
         "sha256": sha256,
         "release_notes": [
+            "Bo sung day du thu muc FlowKit (app, extensions, tools, docs) trong goi cap nhat 1-Click.",
             "Tro Ly AI Kich Ban Da Ngon Ngu: Viet kich ban dai 5-15 phut bang Tieng Viet, Nhat, Han, Anh, Trung, Phap, Duc, Nga, Thai, Indonesia.",
             "Ho tro viet tiep nhieu phan lien mach (Phan 1 -> Phan 2...) va ghep tat ca vao mot du an video.",
             "Chat AI phat hien tu dong yeu cau kich ban dai, tu dong dong bo thoi luong (phut) vao Studio.",
             "Ngan ngua AI tro loi bang sai ngon ngu khi da chon ngon ngu cu the trong dropdown.",
-            "Max context len 24 tin nhan, 24.000 ky tu/tin, max_tokens=8192 cho bai dai.",
-            "Quick chip: Kich ban dai (5-10p), Japanese idea, Korean idea.",
-            "Nut Viet tiep dai them va Ghep N phan & Tao Video trong chat bubble.",
-            "Kiem thu toan dien: 7/7 test chat long script PASS 100%."
+            "Max context len 24 tin nhan, 24.000 ky tu/tin, max_tokens=8192 cho bai dai."
         ],
         "changelog": [
-            "v1.4.0 - 2026-11-27: Chat AI Co-Pilot nâng cấp toàn diện đa ngôn ngữ + kịch bản dài."
+            "v1.4.1 - 2026-11-28: Dong goi day du FlowKit + Chat AI da ngon ngu & kich ban dai."
         ]
     }
     manifest_path = DIST_DIR / "latest.json"
@@ -369,6 +389,7 @@ if __name__ == "__main__":
     try:
         clean_target()
         copy_core_studio()
+        copy_flowkit()
         copy_muse_runtime()
         sanitize_and_inject_clean_templates()
         copy_root_launchers()

@@ -1,26 +1,24 @@
 {
-  "version": "1.4.0",
-  "release_name": "Storyboard_AI_Studio_Pro_v1.4.0",
-  "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip",
-  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip",
-  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip",
+  "version": "1.4.1",
+  "release_name": "Storyboard_AI_Studio_Pro_v1.4.1",
+  "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.1/Storyboard_AI_Studio_Pro_v1.4.1.zip",
+  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.1/Storyboard_AI_Studio_Pro_v1.4.1.zip",
+  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.1/Storyboard_AI_Studio_Pro_v1.4.1.zip",
   "fallback_urls": [
-    "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.4.0/Storyboard_AI_Studio_Pro_v1.4.0.zip"
+    "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.4.1/Storyboard_AI_Studio_Pro_v1.4.1.zip"
   ],
-  "bytes": 287361684,
-  "size_bytes": 287361684,
-  "sha256": "D2862C410047C6859AE9C97916BB177E62C781BA5F19DF8F579C2EEE7DFE18D5",
+  "bytes": 287847738,
+  "size_bytes": 287847738,
+  "sha256": "572D0FB8F3E79C7DDF88078DE098A37CABB2DA87380420EF35D9FC4F8C0F47AA",
   "release_notes": [
+    "Bo sung day du thu muc FlowKit (app, extensions, tools, docs) trong goi cap nhat 1-Click.",
     "Tro Ly AI Kich Ban Da Ngon Ngu: Viet kich ban dai 5-15 phut bang Tieng Viet, Nhat, Han, Anh, Trung, Phap, Duc, Nga, Thai, Indonesia.",
     "Ho tro viet tiep nhieu phan lien mach (Phan 1 -> Phan 2...) va ghep tat ca vao mot du an video.",
     "Chat AI phat hien tu dong yeu cau kich ban dai, tu dong dong bo thoi luong (phut) vao Studio.",
     "Ngan ngua AI tro loi bang sai ngon ngu khi da chon ngon ngu cu the trong dropdown.",
-    "Max context len 24 tin nhan, 24.000 ky tu/tin, max_tokens=8192 cho bai dai.",
-    "Quick chip: Kich ban dai (5-10p), Japanese idea, Korean idea.",
-    "Nut Viet tiep dai them va Ghep N phan & Tao Video trong chat bubble.",
-    "Kiem thu toan dien: 7/7 test chat long script PASS 100%."
+    "Max context len 24 tin nhan, 24.000 ky tu/tin, max_tokens=8192 cho bai dai."
   ],
   "changelog": [
-    "v1.4.0 - 2026-11-27: Chat AI Co-Pilot nâng cấp toàn diện đa ngôn ngữ + kịch bản dài."
+    "v1.4.1 - 2026-11-28: Dong goi day du FlowKit + Chat AI da ngon ngu & kich ban dai."
   ]
 }
