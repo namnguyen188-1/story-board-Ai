@@ -6,13 +6,18 @@ and automatic multi-account rotation on daily image quota limits.
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
+import socket
+import struct
 import tempfile
 import time
 from typing import Dict, Any, Optional
+import urllib.parse
 import urllib.request
 
 from PIL import Image
@@ -63,6 +68,112 @@ def get_chatgpt_tab(port: Optional[int] = None) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _ws_recv_exact(sock: socket.socket, n: int, buf: bytearray) -> bytes:
+    while len(buf) < n:
+        chunk = sock.recv(max(4096, n - len(buf)))
+        if not chunk:
+            raise ConnectionError("WebSocket closed unexpectedly")
+        buf.extend(chunk)
+    out = bytes(buf[:n])
+    del buf[:n]
+    return out
+
+
+def _ws_send_frame(sock: socket.socket, opcode: int, data: bytes) -> None:
+    mask_key = os.urandom(4)
+    length = len(data)
+    header = bytearray([0x80 | (opcode & 0x0F)])
+    if length < 126:
+        header.append(0x80 | length)
+    elif length < 65536:
+        header.append(0x80 | 126)
+        header.extend(struct.pack("!H", length))
+    else:
+        header.append(0x80 | 127)
+        header.extend(struct.pack("!Q", length))
+    header.extend(mask_key)
+    masked = bytes(b ^ mask_key[i % 4] for i, b in enumerate(data))
+    sock.sendall(bytes(header) + masked)
+
+
+def _ws_recv_message(sock: socket.socket, buf: bytearray) -> str:
+    fragments = bytearray()
+    while True:
+        b1, b2 = _ws_recv_exact(sock, 2, buf)
+        fin = (b1 & 0x80) != 0
+        opcode = b1 & 0x0F
+        masked = (b2 & 0x80) != 0
+        length = b2 & 0x7F
+        if length == 126:
+            length = struct.unpack("!H", _ws_recv_exact(sock, 2, buf))[0]
+        elif length == 127:
+            length = struct.unpack("!Q", _ws_recv_exact(sock, 8, buf))[0]
+        mask_key = _ws_recv_exact(sock, 4, buf) if masked else b""
+        payload = _ws_recv_exact(sock, length, buf) if length else b""
+        if masked:
+            payload = bytes(b ^ mask_key[i % 4] for i, b in enumerate(payload))
+        if opcode == 0x8:  # Close
+            raise ConnectionError("WebSocket closed by peer")
+        if opcode == 0x9:  # Ping -> Pong
+            _ws_send_frame(sock, 0xA, payload)
+            continue
+        if opcode == 0xA:  # Pong
+            continue
+        fragments.extend(payload)
+        if fin:
+            return fragments.decode("utf-8", errors="replace")
+
+
+def _execute_cdp_pure_python(ws_url: str, payload: Dict[str, Any], req_id: int, timeout: float) -> Dict[str, Any]:
+    parsed = urllib.parse.urlsplit(ws_url)
+    host = parsed.hostname or "127.0.0.1"
+    port = int(parsed.port or 80)
+    path = parsed.path or "/"
+    if parsed.query:
+        path += "?" + parsed.query
+    sec_key = base64.b64encode(os.urandom(16)).decode("ascii")
+    handshake = (
+        f"GET {path} HTTP/1.1\r\n"
+        f"Host: {host}:{port}\r\n"
+        f"Upgrade: websocket\r\n"
+        f"Connection: Upgrade\r\n"
+        f"Sec-WebSocket-Key: {sec_key}\r\n"
+        f"Sec-WebSocket-Version: 13\r\n\r\n"
+    ).encode("ascii")
+    sock = socket.create_connection((host, port), timeout=6.0)
+    try:
+        sock.sendall(handshake)
+        resp_buf = bytearray()
+        while b"\r\n\r\n" not in resp_buf:
+            chunk = sock.recv(4096)
+            if not chunk:
+                raise ConnectionError("CDP WebSocket handshake failed")
+            resp_buf.extend(chunk)
+        header_end = resp_buf.index(b"\r\n\r\n") + 4
+        header_text = resp_buf[:header_end].decode("latin-1", errors="ignore")
+        if "101" not in header_text.splitlines()[0]:
+            raise ConnectionError(f"CDP handshake rejected: {header_text.splitlines()[0]}")
+        del resp_buf[:header_end]
+        _ws_send_frame(sock, 0x1, json.dumps(payload).encode("utf-8"))
+        deadline = time.time() + float(timeout)
+        while time.time() < deadline:
+            sock.settimeout(max(0.5, deadline - time.time()))
+            raw = _ws_recv_message(sock, resp_buf)
+            resp = json.loads(raw)
+            if resp.get("id") == req_id:
+                return resp
+        raise TimeoutError(f"CDP command timed out: {payload.get('method')}")
+    finally:
+        try:
+            _ws_send_frame(sock, 0x8, b"")
+        except Exception:
+            pass
+        try:
+            sock.close()
+        except Exception:
+            pass
+
+
 def execute_cdp_command(
     ws_url: str,
     method: str,
@@ -70,10 +181,10 @@ def execute_cdp_command(
     msg_id: Optional[int] = None,
     timeout: float = 20.0,
 ) -> Dict[str, Any]:
-    if not connect:
-        raise RuntimeError("WEBSOCKETS_LIBRARY_MISSING")
     req_id = int(msg_id) if msg_id is not None else _next_msg_id()
     payload = {"id": req_id, "method": method, "params": params or {}}
+    if not connect:
+        return _execute_cdp_pure_python(ws_url, payload, req_id, timeout)
     with connect(ws_url, open_timeout=6, close_timeout=4, max_size=64 * 1024 * 1024) as ws:
         ws.send(json.dumps(payload))
         deadline = time.time() + float(timeout)

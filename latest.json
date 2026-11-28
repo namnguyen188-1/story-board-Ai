@@ -1,22 +1,22 @@
 {
-  "version": "1.4.2",
-  "release_name": "Storyboard_AI_Studio_Pro_v1.4.2",
-  "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.2/Storyboard_AI_Studio_Pro_v1.4.2.zip",
-  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.2/Storyboard_AI_Studio_Pro_v1.4.2.zip",
-  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.2/Storyboard_AI_Studio_Pro_v1.4.2.zip",
+  "version": "1.4.3",
+  "release_name": "Storyboard_AI_Studio_Pro_v1.4.3",
+  "url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.3/Storyboard_AI_Studio_Pro_v1.4.3.zip",
+  "installer": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.3/Storyboard_AI_Studio_Pro_v1.4.3.zip",
+  "download_url": "https://github.com/anma8802-create/AI-tool/releases/download/v1.4.3/Storyboard_AI_Studio_Pro_v1.4.3.zip",
   "fallback_urls": [
-    "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.4.2/Storyboard_AI_Studio_Pro_v1.4.2.zip"
+    "https://github.com/namnguyen188-1/story-board-Ai/releases/download/v1.4.3/Storyboard_AI_Studio_Pro_v1.4.3.zip"
   ],
-  "bytes": 287847989,
-  "size_bytes": 287847989,
-  "sha256": "DE5076B66856E1DAB3DADCDB22D1D70AFD584B52F5AC0DA86927CB3BBAFDD7A1",
+  "bytes": 287849344,
+  "size_bytes": 287849344,
+  "sha256": "D67482A44F3E88C9068203003A8180C51EC0E93F0EAFFD949B00C7C2B85DC2A4",
   "release_notes": [
-    "Sua triet de loi treo khi dang nhap ChatGPT Web tren may khac (bo hardcode D:\\STORYBOARD_AI\\profiles va D:\\FLOWKIT).",
-    "Mo trinh duyet ChatGPT Web truc tiep bang Chrome Popen (khong phu thuoc schtasks/Admin), hoat dong on dinh tren moi may.",
-    "Bo sung day du thu muc FlowKit (app, extensions, tools, docs) trong goi cap nhat 1-Click.",
-    "Tro Ly AI Kich Ban Da Ngon Ngu & Viet kich ban dai 5-15 phut + viet tiep nhieu phan."
+    "Sua triet de loi ChatGPT Web mo duoc trinh duyet nhung khong ket noi duoc tren may khac (tich hop pure-Python WebSocket CDP khong phu thuoc thu vien ngoai + --remote-allow-origins=*).",
+    "Bo sung websockets>=12.0 vao requirements.txt.",
+    "Bo toan bo duong dan cung o D:, mo Chrome truc tiep bang Popen on dinh tren moi may.",
+    "Bo sung day du FlowKit + Tro Ly AI Kich Ban Da Ngon Ngu & Kich ban dai 5-15 phut."
   ],
   "changelog": [
-    "v1.4.2 - 2026-11-28: Sua loi mo Chrome & dang nhap ChatGPT Web tren may khac."
+    "v1.4.3 - 2026-11-28: Sua triet de loi ket noi ChatGPT Web CDP tren may khac."
   ]
 }

@@ -11,3 +11,4 @@ python-dotenv>=1.0.0
 customtkinter>=5.2.0
 pywebview>=5.0.0
 bottle>=0.12.25
+websockets>=12.0

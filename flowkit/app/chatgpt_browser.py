@@ -518,6 +518,7 @@ def open_chatgpt_browser(show: bool = True, account_id: Optional[str] = None) ->
         f"--user-data-dir={profile_dir}",
         f"--remote-debugging-port={cdp_port}",
         "--remote-debugging-address=127.0.0.1",
+        "--remote-allow-origins=*",
         "--no-first-run",
         "--no-default-browser-check",
         "--disable-session-crashed-bubble",

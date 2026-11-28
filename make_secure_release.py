@@ -25,7 +25,7 @@ if hasattr(sys.stdout, "reconfigure"):
 ROOT_DIR = Path("d:/STORYBOARD_AI").resolve()
 STUDIO_DIR = ROOT_DIR / "studio"
 DIST_DIR = ROOT_DIR / "dist"
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 RELEASE_NAME = f"Storyboard_AI_Studio_Pro_v{VERSION}"
 TARGET_DIR = DIST_DIR / RELEASE_NAME
 
@@ -361,13 +361,13 @@ def create_release_archive():
         "size_bytes": file_size,
         "sha256": sha256,
         "release_notes": [
-            "Sua triet de loi treo khi dang nhap ChatGPT Web tren may khac (bo hardcode D:\\STORYBOARD_AI\\profiles va D:\\FLOWKIT).",
-            "Mo trinh duyet ChatGPT Web truc tiep bang Chrome Popen (khong phu thuoc schtasks/Admin), hoat dong on dinh tren moi may.",
-            "Bo sung day du thu muc FlowKit (app, extensions, tools, docs) trong goi cap nhat 1-Click.",
-            "Tro Ly AI Kich Ban Da Ngon Ngu & Viet kich ban dai 5-15 phut + viet tiep nhieu phan."
+            "Sua triet de loi ChatGPT Web mo duoc trinh duyet nhung khong ket noi duoc tren may khac (tich hop pure-Python WebSocket CDP khong phu thuoc thu vien ngoai + --remote-allow-origins=*).",
+            "Bo sung websockets>=12.0 vao requirements.txt.",
+            "Bo toan bo duong dan cung o D:, mo Chrome truc tiep bang Popen on dinh tren moi may.",
+            "Bo sung day du FlowKit + Tro Ly AI Kich Ban Da Ngon Ngu & Kich ban dai 5-15 phut."
         ],
         "changelog": [
-            "v1.4.2 - 2026-11-28: Sua loi mo Chrome & dang nhap ChatGPT Web tren may khac."
+            "v1.4.3 - 2026-11-28: Sua triet de loi ket noi ChatGPT Web CDP tren may khac."
         ]
     }
     manifest_path = DIST_DIR / "latest.json"

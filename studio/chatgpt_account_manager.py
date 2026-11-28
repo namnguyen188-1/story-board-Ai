@@ -148,8 +148,10 @@ def get_chatgpt_ui_status() -> Dict[str, Any]:
                     email=email or None,
                 )
                 accounts = chatgpt_browser.list_accounts()
-        except Exception:
-            pass
+            elif chk.get("error"):
+                print(f"[CHATGPT_STATUS] CDP check error on port {effective_port}: {chk.get('error')}", flush=True)
+        except Exception as exc:
+            print(f"[CHATGPT_STATUS] check_chatgpt_login_status failed: {exc}", flush=True)
 
     total_accounts = len(accounts)
     ready_count = sum(1 for a in accounts if a.get("logged_in"))
